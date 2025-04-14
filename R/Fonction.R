@@ -28,7 +28,18 @@ calculer_volumes <- function(donnees_arbres, type_volume = "VC22", essence = NUL
 
     donnees_arbres$C130 <- donnees_arbres$C150 * donnees_arbres$Coef_C150_C130
   }
+  if (!"G130" %in% colnames(donnees_arbres) && "C130" %in% colnames(donnees_arbres)) {
+    donnees_arbres$G130 <- (donnees_arbres$C130^2) / (4 * pi)
+  }
 
+  if (!"G150" %in% colnames(donnees_arbres) && "C150" %in% colnames(donnees_arbres)) {
+    donnees_arbres$G150 <- (donnees_arbres$C150^2) / (4 * pi)
+  }
+
+  # === Vérification des colonnes de base ===
+  if (!all(c("Essence", "C130") %in% colnames(donnees_arbres))) {
+    stop("Le fichier doit contenir au moins les colonnes 'Essence' et 'C130'")
+  }
   # Vérifier les colonnes requises
   if(!all(c("Essence", "C130") %in% colnames(donnees_arbres))) {
     stop("Le fichier doit contenir au moins les colonnes 'Essence' et 'C130'")
