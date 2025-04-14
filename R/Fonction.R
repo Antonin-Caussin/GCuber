@@ -64,11 +64,23 @@ calculer_volumes <- function(donnees_arbres, type_volume = "VC22", essence = NUL
     essence_arbre <- donnees_arbres$Essence[i]
     c130_arbre <- donnees_arbres$C130[i]
 
-    # Variables disponibles pour les calculs
-    variables <- list("C130" = c130_arbre)
-    if("HDOM" %in% colnames(donnees_arbres)) {
-      variables[["HDOM"]] <- donnees_arbres$HDOM[i]
+    # Créer dynamiquement la liste des variables nécessaires à partir des X1 à X5
+    exprs <- as.character(unlist(eq[, paste0("X", 1:5)]))
+    exprs <- exprs[!is.na(exprs) & exprs != "0"]
+
+    # Extraire les noms de variables (C130, HDOM, G150, etc.)
+    vars_needed <- unique(unlist(regmatches(exprs, gregexpr("[A-Za-z_][A-Za-z0-9_]*", exprs))))
+
+    # Extraire les valeurs correspondantes depuis les données de l'arbre
+    variables <- list()
+    for (v in vars_needed) {
+      if (v %in% names(donnees_arbres)) {
+        variables[[v]] <- donnees_arbres[[v]][i]
+      } else {
+        stop(paste("La variable", v, "est utilisée dans une équation mais absente des données."))
+      }
     }
+
 
     # Chercher l'équation appropriée
     if(!is.null(essence)) {
