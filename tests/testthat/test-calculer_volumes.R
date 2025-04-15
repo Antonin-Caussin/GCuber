@@ -1,9 +1,5 @@
 #' @title Tests pour la fonction calculer_volumes
 #' @description Tests unitaires pour vérifier le comportement de la fonction calculer_volumes
-
-# Charger les bibliothèques nécessaires
-library(testthat)
-
 # Test de la fonction calculer_volumes
 test_that("La fonction calculer_volumes calcule correctement les volumes", {
 
