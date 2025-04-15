@@ -1,7 +1,7 @@
 Package: GCuber
 Type: Package
 Title: GCuber
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
     person("Antonin", "Caussin", , "antonin.caussin@student.uliege.be", role = c("aut", "cre")),
     person(, "Université de Liège - Département d'enseignement AGRO BIO-TECH", role = "cph"),

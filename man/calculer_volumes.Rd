@@ -9,7 +9,8 @@ calculer_volumes(
   type_volume = "VC22",
   essence = NULL,
   equations_df = equations_allometriques,
-  id_equation = 1
+  id_equation = 1,
+  coefs_conversion = NULL
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ calculer_volumes(
 \item{equations_df}{Le data frame contenant les équations allométriques}
 
 \item{id_equation}{Indice de l'équation à utiliser si plusieurs sont disponibles (par défaut = 1)}
+
+\item{coefs_conversion}{(Optionnel) Data frame de conversion de C150 vers C130}
 }
 \value{
 Un data frame avec les données d'entrée plus une colonne de volume calculé

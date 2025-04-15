@@ -25,9 +25,9 @@ dans une autre fonction).
 }
 \examples{
 # Liste toutes les équations disponibles pour le bouleau et le volume VC22
-lister_equations(equations_allometriques, essence = "Bouleau", type_volume = "VC22")
+liste_eq(equations_allometriques, essence = "Bouleau", type_volume = "VC22")
 
 # Liste toutes les équations, sans filtre
-lister_equations(equations_allometriques)
+liste_eq(equations_allometriques)
 
 }

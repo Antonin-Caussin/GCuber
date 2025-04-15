@@ -127,3 +127,4 @@ calculer_biomasse <- function(donnees_arbres,
 
   return(donnees_arbres)
 }
+
