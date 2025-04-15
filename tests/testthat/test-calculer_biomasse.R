@@ -1,9 +1,6 @@
 #' @title Tests pour la fonction calculer_biomasse
 #' @description Tests unitaires pour vérifier le comportement de la fonction calculer_biomasse
-
-# Charger les bibliothèques nécessaires
 library(testthat)
-
 # Test de la fonction calculer_biomasse
 test_that("La fonction calculer_biomasse calcule correctement la biomasse et le carbone", {
 
