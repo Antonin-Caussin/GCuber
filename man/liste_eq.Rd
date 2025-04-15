@@ -4,14 +4,14 @@
 \alias{liste_eq}
 \title{Liste les équations disponibles pour une essence et un type de volume donné}
 \usage{
-liste_eq(equations_df, essence = NULL, type_volume = NULL)
+liste_eq(equations_allometriques, essence = NULL, type_volume = NULL)
 }
 \arguments{
-\item{equations_df}{Le data frame contenant les équations allométriques (ex : `equations_allometriques`)}
-
 \item{essence}{(Optionnel) Le nom de l'essence à filtrer (ex : `"Bouleau"`). Si NULL, toutes les essences sont affichées.}
 
 \item{type_volume}{(Optionnel) Le type de volume à filtrer (ex : `"VC22"`). Si NULL, tous les types de volume sont affichés.}
+
+\item{equations_df}{Le data frame contenant les équations allométriques (ex : `equations_allometriques`)}
 }
 \value{
 Un data frame avec un identifiant (`ID`) et les colonnes utiles pour visualiser les équations :

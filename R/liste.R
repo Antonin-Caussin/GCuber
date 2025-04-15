@@ -20,8 +20,8 @@
 #' liste_eq(equations_allometriques)
 #'
 #' @export
-liste_eq <- function(equations_df, essence = NULL, type_volume = NULL) {
-  eqs <- equations_df
+liste_eq <- function(equations_allometriques, essence = NULL, type_volume = NULL) {
+  eqs <- equations_allometriques
   if (!is.null(essence)) eqs <- eqs[eqs$Essences == essence, ]
   if (!is.null(type_volume)) eqs <- eqs[eqs$Y == type_volume, ]
   eqs$ID <- seq_len(nrow(eqs))
