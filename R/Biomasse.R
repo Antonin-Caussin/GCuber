@@ -1,3 +1,20 @@
+#' Calcule la biomasse aérienne et le carbone associé à partir des volumes et coefficients
+#'
+#' @param donnees_arbres Un data frame contenant les colonnes 'Essence', 'VC22' ou 'VC22B'
+#' @param essence Essence ciblée (ou NULL pour utiliser celle de chaque ligne)
+#' @param colonne_volume Nom de la colonne de volume à utiliser (NULL utilise celle spécifiée dans les équations internes)
+#' @param afficher_warnings Booléen indiquant si les warnings doivent être affichés (TRUE) ou stockés (FALSE)
+#' @return Le data frame d'entrée avec les colonnes supplémentaires 'Biomasse', 'Carbone' et 'Messages' si afficher_warnings=FALSE
+#' @export
+#'
+#' @examples
+#' donnees <- data.frame(
+#'   Essence = c("Chene", "Hetre", "Pin"),
+#'   VC22 = c(120, 150, 100)
+#' )
+#'
+#' calculer_biomasse(donnees)
+
 calculer_biomasse <- function(donnees_arbres,
                               essence = NULL,
                               colonne_volume = NULL,

@@ -5,16 +5,16 @@
 \title{Calcule les volumes forestiers selon différentes méthodes}
 \usage{
 calculer_volumes(
-  donnees_arbres,
+  df,
   type_volume = "VC22",
   essence = NULL,
-  equations_df = equations_allometriques,
+  equations_df = equations,
   id_equation = 1,
   coefs_conversion = NULL
 )
 }
 \arguments{
-\item{donnees_arbres}{Un data frame contenant les données des arbres}
+\item{df}{Un data frame contenant les données des arbres}
 
 \item{type_volume}{Type de volume à calculer (ex: "VC22", "VC22B", "Ecorce")}
 
