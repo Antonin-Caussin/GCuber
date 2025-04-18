@@ -1,6 +1,6 @@
 #' Calcule les volumes forestiers selon différentes méthodes
 #'
-#' @param donnees_arbres Un data frame contenant les données des arbres
+#' @param df Un data frame contenant les données des arbres
 #' @param type_volume Type de volume à calculer (ex: "VC22", "VC22B", "Ecorce")
 #' @param essence Essence d'arbre spécifique (ou NULL pour utiliser celle des données)
 #' @param equations_df Le data frame contenant les équations allométriques
@@ -9,7 +9,7 @@
 #' @return Un data frame avec les données d'entrée plus une colonne de volume calculé
 #' @export
 
-calculer_volumes <- function(donnees_arbres, type_volume = "VC22", essence = NULL,
+calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              equations_df = equations_allometriques, id_equation = 1,
                              coefs_conversion = NULL) {
 
