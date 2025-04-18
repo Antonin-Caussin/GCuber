@@ -8,9 +8,9 @@
 #'
 #' @export
 liste_eq <- function(essence = NULL, type_volume = NULL) {
-  data("equations_allometriques", package = "GCuber")
+  equations
 
-  eqs <- equations_allometriques
+  eqs <- equations
   if (!is.null(essence)) eqs <- eqs[eqs$Essences == essence, ]
 
   # Utilisation d'un vecteur pour les types de volume spécifiques
