@@ -10,37 +10,37 @@
 #' @export
 
 calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
-                             equations_df = equations_allometriques, id_equation = 1,
+                             equations_df = equations, id_equation = 1,
                              coefs_conversion = NULL) {
 
   # Conversion C150 -> C130 si nécessaire
-  if (!"C130" %in% colnames(donnees_arbres) && "C150" %in% colnames(donnees_arbres)) {
-    if (!"Essence" %in% colnames(donnees_arbres)) {
+  if (!"C130" %in% colnames(df) && "C150" %in% colnames(df)) {
+    if (!"Essence" %in% colnames(df)) {
       stop("Impossible de convertir C150 en C130 sans la colonne 'Essence'.")
     }
     if (is.null(coefs_conversion)) {
       stop("Le tableau 'coefs_conversion' est requis pour convertir C150 en C130.")
     }
 
-    donnees_arbres <- merge(donnees_arbres, coefs_conversion, by = "Essence", all.x = TRUE)
+    df <- merge(df, coefs_conversion, by = "Essence", all.x = TRUE)
 
-    if (any(is.na(donnees_arbres$Coef_C150_C130))) {
+    if (any(is.na(df$Coef_C150_C130))) {
       stop("Coefficient de conversion manquant pour certaines essences.")
     }
 
-    donnees_arbres$C130 <- donnees_arbres$C150 * donnees_arbres$Coef_C150_C130
+    df$C130 <- df$C150 * df$Coef_C150_C130
   }
 
-  if (!"G130" %in% colnames(donnees_arbres) && "C130" %in% colnames(donnees_arbres)) {
-    donnees_arbres$G130 <- (donnees_arbres$C130^2) / (4 * pi)
+  if (!"G130" %in% colnames(df) && "C130" %in% colnames(df)) {
+    df$G130 <- (df$C130^2) / (4 * pi)
   }
 
-  if (!"G150" %in% colnames(donnees_arbres) && "C150" %in% colnames(donnees_arbres)) {
-    donnees_arbres$G150 <- (donnees_arbres$C150^2) / (4 * pi)
+  if (!"G150" %in% colnames(df) && "C150" %in% colnames(df)) {
+    df$G150 <- (df$C150^2) / (4 * pi)
   }
 
   # Vérification des colonnes de base
-  if (!all(c("Essence", "C130") %in% colnames(donnees_arbres))) {
+  if (!all(c("Essence", "C130") %in% colnames(df))) {
     stop("Le fichier doit contenir au moins les colonnes 'Essence' et 'C130'")
   }
 
@@ -54,7 +54,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   # Vérifie si certaines équations nécessitent HDOM
   necessite_hdom <- any(grepl("HDOM", c(eqs_volume$X1, eqs_volume$X2,
                                         eqs_volume$X3, eqs_volume$X4, eqs_volume$X5)))
-  if (necessite_hdom && !("HDOM" %in% colnames(donnees_arbres))) {
+  if (necessite_hdom && !("HDOM" %in% colnames(df))) {
     stop("Certaines équations nécessitent la colonne 'HDOM' absente de vos données.")
   }
 
@@ -66,10 +66,10 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   }
 
   # Initialisation du résultat
-  donnees_arbres$Volume <- NA
+  df$Volume <- NA
 
-  for (i in seq_len(nrow(donnees_arbres))) {
-    essence_arbre <- donnees_arbres$Essence[i]
+  for (i in seq_len(nrow(df))) {
+    essence_arbre <- df$Essence[i]
 
     # Sélection de l’équation
     eq <- if (!is.null(essence)) {
@@ -101,8 +101,8 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
     variables <- list()
     for (v in vars_needed) {
-      if (v %in% names(donnees_arbres)) {
-        variables[[v]] <- donnees_arbres[[v]][i]
+      if (v %in% names(df)) {
+        variables[[v]] <- df[[v]][i]
       } else {
         stop(paste("La variable", v, "est utilisée dans une équation mais absente des données."))
       }
@@ -122,8 +122,8 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
       volume <- 10^(eq$b0 + eq$b1 * log(log_input))
     }
 
-    donnees_arbres$Volume[i] <- volume
+    df$Volume[i] <- volume
   }
 
-  return(donnees_arbres)
+  return(df)
 }

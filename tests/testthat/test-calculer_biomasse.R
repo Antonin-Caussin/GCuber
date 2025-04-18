@@ -4,7 +4,7 @@ test_that("calculer_biomasse fonctionne avec le data frame equations interne", {
   # Les tests dans testthat ont automatiquement accès aux données internes du package
 
   # Créer des données de test avec des essences qui existent réellement dans votre equations
-  essences_dispo <- unique(equations$Essences[equations$Y == "BIOMASSE", equations$Y == "A0"])
+  essences_dispo <- unique(equations$Essences[equations$Y == "BIOMASSE"])
   expect_true(length(essences_dispo) > 0, "Aucune essence trouvée dans le data frame equations")
 
   # Sélectionner une essence pour les tests
