@@ -7,7 +7,6 @@
 calculer_biomasse(
   donnees_arbres,
   essence = NULL,
-  equations_df = equations_allometriques,
   colonne_volume = NULL,
   afficher_warnings = TRUE
 )
@@ -17,9 +16,7 @@ calculer_biomasse(
 
 \item{essence}{Essence ciblée (ou NULL pour utiliser celle de chaque ligne)}
 
-\item{equations_df}{Le data frame contenant les coefficients BEF, EF et Carbone pour chaque essence}
-
-\item{colonne_volume}{Nom de la colonne de volume à utiliser (par défaut NULL - utilise celle spécifiée dans equations_df)}
+\item{colonne_volume}{Nom de la colonne de volume à utiliser (NULL utilise celle spécifiée dans les équations internes)}
 
 \item{afficher_warnings}{Booléen indiquant si les warnings doivent être affichés (TRUE) ou stockés (FALSE)}
 }
@@ -35,14 +32,5 @@ donnees <- data.frame(
   VC22 = c(120, 150, 100)
 )
 
-equations <- data.frame(
-  Y = rep("Biomasse", 3),
-  Essences = c("Chene", "Hetre", "General"),
-  BEF = c(0.7, 0.8, 0.75),
-  EF = c(0.9, 0.85, 0.88),
-  Carbone = c(0.5, 0.48, 0.49),
-  VC_source = c("VC22", "VC22", "VC22")
-)
-
-calculer_biomasse(donnees, equations_df = equations)
+calculer_biomasse(donnees)
 }
