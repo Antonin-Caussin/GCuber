@@ -2,8 +2,7 @@
 #'
 #' @param donnees_arbres Un data frame contenant les colonnes 'Essence', 'VC22' ou 'VC22B'
 #' @param essence Essence ciblée (ou NULL pour utiliser celle de chaque ligne)
-#' @param equations_df Le data frame contenant les coefficients BEF, EF et Carbone pour chaque essence
-#' @param colonne_volume Nom de la colonne de volume à utiliser (par défaut NULL - utilise celle spécifiée dans equations_df)
+#' @param colonne_volume Nom de la colonne de volume à utiliser (NULL utilise celle spécifiée dans les équations internes)
 #' @param afficher_warnings Booléen indiquant si les warnings doivent être affichés (TRUE) ou stockés (FALSE)
 #' @return Le data frame d'entrée avec les colonnes supplémentaires 'Biomasse', 'Carbone' et 'Messages' si afficher_warnings=FALSE
 #' @export
@@ -14,19 +13,9 @@
 #'   VC22 = c(120, 150, 100)
 #' )
 #'
-#' equations <- data.frame(
-#'   Y = rep("Biomasse", 3),
-#'   Essences = c("Chene", "Hetre", "General"),
-#'   BEF = c(0.7, 0.8, 0.75),
-#'   EF = c(0.9, 0.85, 0.88),
-#'   Carbone = c(0.5, 0.48, 0.49),
-#'   VC_source = c("VC22", "VC22", "VC22")
-#' )
-#'
-#' calculer_biomasse(donnees, equations_df = equations)
+#' calculer_biomasse(donnees)
 calculer_biomasse <- function(donnees_arbres,
                               essence = NULL,
-                              equations_df = equations_allometriques,
                               colonne_volume = NULL,
                               afficher_warnings = TRUE) {
 
@@ -35,32 +24,40 @@ calculer_biomasse <- function(donnees_arbres,
     stop("La colonne 'Essence' est requise dans les données")
   }
 
-  # Vérification des colonnes requises dans equations_df
-  colonnes_requises <- c("Y", "Essences", "BEF", "EF", "Carbone")
-  manquantes <- colonnes_requises[!colonnes_requises %in% names(equations_df)]
-  if (length(manquantes) > 0) {
-    stop(paste("Colonnes manquantes dans equations_df:", paste(manquantes, collapse = ", ")))
-  }
+  # Utilisation du data frame interne equations
+  equations_df <- equations
 
   # Initialisation des colonnes de résultats
-  donnees_arbres$Biomasse <- NA
-  donnees_arbres$Carbone <- NA
+  donnees_arbres$Biomasse <- NA_real_
+  donnees_arbres$Carbone <- NA_real_
 
   if (!afficher_warnings) {
-    donnees_arbres$Messages <- ""
+    donnees_arbres$Messages <- character(nrow(donnees_arbres))
   }
 
-  for (i in 1:nrow(donnees_arbres)) {
-    # Déterminer l'essence à utiliser
-    ess <- if (is.null(essence)) donnees_arbres$Essence[i] else essence
+  # Optimisation: traiter toutes les lignes avec la même essence en une fois
+  if (!is.null(essence)) {
+    # Si une essence spécifique est fournie, l'utiliser pour toutes les lignes
+    essences_uniques <- essence
+  } else {
+    # Sinon, obtenir les essences uniques du jeu de données
+    essences_uniques <- unique(donnees_arbres$Essence)
+  }
 
-    # Message d'erreur
-    message_erreur <- NULL
+  for (ess in essences_uniques) {
+    # Identifier les lignes pour cette essence
+    if (!is.null(essence)) {
+      indices <- 1:nrow(donnees_arbres)
+    } else {
+      indices <- which(donnees_arbres$Essence == ess)
+    }
+
+    if (length(indices) == 0) next
 
     # Chercher l'équation correspondant à l'essence
-    eq <- equations_df[equations_df$Y == "Biomasse" & equations_df$Essences == ess, ]
+    eq <- equations_df[equations_df$Y == "BIOMASSE" & equations_df$Essences == ess, ]
     if (nrow(eq) == 0) {
-      eq <- equations_df[equations_df$Y == "Biomasse" & equations_df$Essences == "General", ]
+      eq <- equations_df[equations_df$Y == "BIOMASSE" & equations_df$Essences == "General", ]
     }
 
     if (nrow(eq) == 0) {
@@ -68,17 +65,22 @@ calculer_biomasse <- function(donnees_arbres,
       if (afficher_warnings) {
         warning(message_erreur)
       } else {
-        donnees_arbres$Messages[i] <- paste0(donnees_arbres$Messages[i], message_erreur, "; ")
+        donnees_arbres$Messages[indices] <- paste0(donnees_arbres$Messages[indices], message_erreur, "; ")
       }
       next
     }
 
-    eq <- eq[1, ]
+    eq <- eq[1, ]  # Prendre la première équation si plusieurs correspondances
 
-    # Déterminer quelle colonne de volume utiliser (VC22 ou VC22B)
+    # Déterminer quelle colonne de volume utiliser
     volume_col <- colonne_volume
     if (is.null(volume_col)) {
-      volume_col <- if (!is.null(eq$VC_source)) eq$VC_source else "VC22"
+      # Vérifier si VC_source existe dans equations_df avant de l'utiliser
+      if ("VC_source" %in% names(eq) && !is.na(eq$VC_source)) {
+        volume_col <- eq$VC_source
+      } else {
+        volume_col <- "VC22"  # Valeur par défaut
+      }
     }
 
     if (!(volume_col %in% names(donnees_arbres))) {
@@ -86,45 +88,59 @@ calculer_biomasse <- function(donnees_arbres,
       if (afficher_warnings) {
         warning(message_erreur)
       } else {
-        donnees_arbres$Messages[i] <- paste0(donnees_arbres$Messages[i], message_erreur, "; ")
+        donnees_arbres$Messages[indices] <- paste0(donnees_arbres$Messages[indices], message_erreur, "; ")
       }
       next
     }
 
-    volume <- donnees_arbres[[volume_col]][i]
-    bef <- eq$BEF
+    volumes <- donnees_arbres[[volume_col]][indices]
+    BF <- eq$BF
     ef <- eq$EF
     carbone_facteur <- eq$Carbone
 
-    if (is.na(volume) || is.na(bef) || is.na(ef)) {
+    # Vérification des valeurs manquantes
+    indices_na <- which(is.na(volumes) | is.na(BF) | is.na(ef))
+    if (length(indices_na) > 0) {
+      indices_na_orig <- indices[indices_na]
       message_erreur <- paste("Valeurs manquantes pour le calcul de la biomasse (essence:", ess, ")")
       if (afficher_warnings) {
         warning(message_erreur)
       } else {
-        donnees_arbres$Messages[i] <- paste0(donnees_arbres$Messages[i], message_erreur, "; ")
+        donnees_arbres$Messages[indices_na_orig] <- paste0(donnees_arbres$Messages[indices_na_orig], message_erreur, "; ")
       }
-      next
     }
 
-    # Vérification des valeurs négatives ou nulles
-    if (volume <= 0 || bef <= 0 || ef <= 0) {
-      message_erreur <- paste("Valeurs invalides (≤ 0) pour le calcul de la biomasse (essence:", ess, ")")
-      if (afficher_warnings) {
-        warning(message_erreur)
-      } else {
-        donnees_arbres$Messages[i] <- paste0(donnees_arbres$Messages[i], message_erreur, "; ")
+    # Vérification des valeurs négatives ou nulles (seulement sur les valeurs non-NA)
+    volumes_valides <- volumes[!is.na(volumes)]
+    indices_valides_na <- which(!is.na(volumes))
+
+    if (length(volumes_valides) > 0 && (!is.na(BF) && !is.na(ef))) {
+      indices_invalides <- indices_valides_na[volumes_valides <= 0 | BF <= 0 | ef <= 0]
+
+      if (length(indices_invalides) > 0) {
+        indices_invalides_orig <- indices[indices_invalides]
+        message_erreur <- paste("Valeurs invalides (≤ 0) pour le calcul de la biomasse (essence:", ess, ")")
+        if (afficher_warnings) {
+          warning(message_erreur)
+        } else {
+          donnees_arbres$Messages[indices_invalides_orig] <- paste0(donnees_arbres$Messages[indices_invalides_orig], message_erreur, "; ")
+        }
       }
-      next
-    }
 
-    biomasse <- volume * bef * ef
-    donnees_arbres$Biomasse[i] <- biomasse
+      # Calcul pour les valeurs valides (non NA et > 0)
+      indices_calcul <- setdiff(indices_valides_na, indices_invalides)
+      if (length(indices_calcul) > 0) {
+        indices_calcul_orig <- indices[indices_calcul]
+        biomasses <- volumes[indices_calcul] * BF * ef
 
-    if (!is.na(carbone_facteur)) {
-      donnees_arbres$Carbone[i] <- biomasse * carbone_facteur
+        donnees_arbres$Biomasse[indices_calcul_orig] <- biomasses
+
+        if (!is.na(carbone_facteur)) {
+          donnees_arbres$Carbone[indices_calcul_orig] <- biomasses * carbone_facteur
+        }
+      }
     }
   }
 
   return(donnees_arbres)
 }
-
