@@ -167,7 +167,6 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
         next
       }
       volume <- 10^(eq$b0[1] + eq$b1[1] * log10(C130))
-    }
     } else {
       warning(paste("Type d'equation inconnu (A0 =", a0_value, ") pour la ligne", i))
       next
