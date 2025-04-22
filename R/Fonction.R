@@ -136,9 +136,19 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
     # Calcul du volume selon le type d'équation (A0)
     a0_value <- eq$A0[1]  # Utilisation de l'indice [1] pour s'assurer d'avoir une valeur unique
-
     if (a0_value == 1) {
       # Équation linéaire: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+      volume <- eq$b0[1]
+      for (j in 1:5) {
+        x_col <- paste0("X", j)
+        b_col <- paste0("b", j)
+        if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
+          x_val <- evaluer_expression(eq[[x_col]][1], variables)
+          volume <- volume + eq[[b_col]][1] * x_val
+        }
+      }
+    } else if (a0_value == 2) {
+      # Même équation linéaire que A0=1 mais avec des coefficients différents
       volume <- eq$b0[1]
       for (j in 1:5) {
         x_col <- paste0("X", j)
@@ -149,7 +159,19 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
           volume <- volume + eq[[b_col]][1] * x_val
         }
       }
-    } else if (a0_value == 2) {
+    } else if (a0_value == 3) {
+      # Même équation linéaire que A0=1 et A0=2 mais avec des coefficients différents
+      volume <- eq$b0[1]
+      for (j in 1:5) {
+        x_col <- paste0("X", j)
+        b_col <- paste0("b", j)
+
+        if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
+          x_val <- evaluer_expression(eq[[x_col]][1], variables)
+          volume <- volume + eq[[b_col]][1] * x_val
+        }
+      }
+    } else if (a0_value == 4) {
       # Équation logarithmique: Volume = 10^(b0 + b1*log(X1))
       log_input <- evaluer_expression(eq$X1[1], variables)
       if (log_input <= 0) {
@@ -157,11 +179,6 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
         next
       }
       volume <- 10^(eq$b0[1] + eq$b1[1] * log10(log_input))
-    } else if (a0_value == 3) {
-      # Nouveau type d'équation (à définir selon vos besoins)
-      # Par exemple: Volume = exp(b0 + b1*X1)
-      x_val <- evaluer_expression(eq$X1[1], variables)
-      volume <- exp(eq$b0[1] + eq$b1[1] * x_val)
     } else {
       warning(paste("Type d'équation inconnu (A0 =", a0_value, ") pour la ligne", i))
       next
