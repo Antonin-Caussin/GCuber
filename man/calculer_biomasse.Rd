@@ -2,7 +2,7 @@
 % Please edit documentation in R/Biomasse.R
 \name{calculer_biomasse}
 \alias{calculer_biomasse}
-\title{Calcule la biomasse aérienne et le carbone associé à partir des volumes et coefficients}
+\title{Calcule la biomasse aerienne et le carbone associe à partir des volumes et coefficients}
 \usage{
 calculer_biomasse(
   donnees_arbres,
@@ -14,17 +14,17 @@ calculer_biomasse(
 \arguments{
 \item{donnees_arbres}{Un data frame contenant les colonnes 'Essence', 'VC22' ou 'VC22B'}
 
-\item{essence}{Essence ciblée (ou NULL pour utiliser celle de chaque ligne)}
+\item{essence}{Essence ciblee (ou NULL pour utiliser celle de chaque ligne)}
 
-\item{colonne_volume}{Nom de la colonne de volume à utiliser (NULL utilise celle spécifiée dans les équations internes)}
+\item{colonne_volume}{Nom de la colonne de volume à utiliser (NULL utilise celle specifiee dans les equations internes)}
 
-\item{afficher_warnings}{Booléen indiquant si les warnings doivent être affichés (TRUE) ou stockés (FALSE)}
+\item{afficher_warnings}{Booleen indiquant si les warnings doivent etre affiches (TRUE) ou stockes (FALSE)}
 }
 \value{
-Le data frame d'entrée avec les colonnes supplémentaires 'Biomasse', 'Carbone' et 'Messages' si afficher_warnings=FALSE
+Le data frame d'entree avec les colonnes supplementaires 'Biomasse', 'Carbone' et 'Messages' si afficher_warnings=FALSE
 }
 \description{
-Calcule la biomasse aérienne et le carbone associé à partir des volumes et coefficients
+Calcule la biomasse aerienne et le carbone associe à partir des volumes et coefficients
 }
 \examples{
 donnees <- data.frame(

@@ -1,10 +1,10 @@
-#' Calcule la biomasse aérienne et le carbone associé à partir des volumes et coefficients
+#' Calcule la biomasse aerienne et le carbone associe à partir des volumes et coefficients
 #'
 #' @param donnees_arbres Un data frame contenant les colonnes 'Essence', 'VC22' ou 'VC22B'
-#' @param essence Essence ciblée (ou NULL pour utiliser celle de chaque ligne)
-#' @param colonne_volume Nom de la colonne de volume à utiliser (NULL utilise celle spécifiée dans les équations internes)
-#' @param afficher_warnings Booléen indiquant si les warnings doivent être affichés (TRUE) ou stockés (FALSE)
-#' @return Le data frame d'entrée avec les colonnes supplémentaires 'Biomasse', 'Carbone' et 'Messages' si afficher_warnings=FALSE
+#' @param essence Essence ciblee (ou NULL pour utiliser celle de chaque ligne)
+#' @param colonne_volume Nom de la colonne de volume à utiliser (NULL utilise celle specifiee dans les equations internes)
+#' @param afficher_warnings Booleen indiquant si les warnings doivent etre affiches (TRUE) ou stockes (FALSE)
+#' @return Le data frame d'entree avec les colonnes supplementaires 'Biomasse', 'Carbone' et 'Messages' si afficher_warnings=FALSE
 #' @export
 #'
 #' @examples
@@ -20,15 +20,15 @@ calculer_biomasse <- function(donnees_arbres,
                               colonne_volume = NULL,
                               afficher_warnings = TRUE) {
 
-  # Vérification de la colonne Essence
+  # Verification de la colonne Essence
   if (!"Essence" %in% names(donnees_arbres)) {
-    stop("La colonne 'Essence' est requise dans les données")
+    stop("La colonne 'Essence' est requise dans les donnees")
   }
 
   # Utilisation du data frame interne equations
   equations_df <- equations
 
-  # Initialisation des colonnes de résultats
+  # Initialisation des colonnes de resultats
   donnees_arbres$Biomasse <- NA_real_
   donnees_arbres$Carbone <- NA_real_
 
@@ -36,12 +36,12 @@ calculer_biomasse <- function(donnees_arbres,
     donnees_arbres$Messages <- character(nrow(donnees_arbres))
   }
 
-  # Optimisation: traiter toutes les lignes avec la même essence en une fois
+  # Optimisation: traiter toutes les lignes avec la meme essence en une fois
   if (!is.null(essence)) {
-    # Si une essence spécifique est fournie, l'utiliser pour toutes les lignes
+    # Si une essence specifique est fournie, l'utiliser pour toutes les lignes
     essences_uniques <- essence
   } else {
-    # Sinon, obtenir les essences uniques du jeu de données
+    # Sinon, obtenir les essences uniques du jeu de donnees
     essences_uniques <- unique(donnees_arbres$Essence)
   }
 
@@ -55,14 +55,14 @@ calculer_biomasse <- function(donnees_arbres,
 
     if (length(indices) == 0) next
 
-    # Chercher l'équation correspondant à l'essence
+    # Chercher l'equation correspondant à l'essence
     eq <- equations_df[equations_df$Y == "BIOMASSE" & equations_df$Essences == ess, ]
     if (nrow(eq) == 0) {
       eq <- equations_df[equations_df$Y == "BIOMASSE" & equations_df$Essences == "General", ]
     }
 
     if (nrow(eq) == 0) {
-      message_erreur <- paste("Pas d'équation de biomasse pour l'essence:", ess)
+      message_erreur <- paste("Pas d'equation de biomasse pour l'essence:", ess)
       if (afficher_warnings) {
         warning(message_erreur)
       } else {
@@ -71,14 +71,14 @@ calculer_biomasse <- function(donnees_arbres,
       next
     }
 
-    eq <- eq[1, ]  # Prendre la première équation si plusieurs correspondances
+    eq <- eq[1, ]  # Prendre la premiere equation si plusieurs correspondances
 
-    # Récupérer les facteurs spécifiques à cette essence
+    # Recuperer les facteurs specifiques à cette essence
     bf <- eq$BF
     ef <- eq$EF
     carbone_facteur <- eq$Carbone
 
-    # Vérifier si les facteurs nécessaires sont disponibles
+    # Verifier si les facteurs necessaires sont disponibles
     if (is.na(bf) || is.na(ef) || bf <= 0 || ef <= 0) {
       message_erreur <- paste("Facteurs BF ou EF manquants ou invalides pour l'essence:", ess)
       if (afficher_warnings) {
@@ -89,10 +89,10 @@ calculer_biomasse <- function(donnees_arbres,
       next
     }
 
-    # Déterminer quelle colonne de volume utiliser
+    # Determiner quelle colonne de volume utiliser
     volume_col <- colonne_volume
     if (is.null(volume_col)) {
-      # Utiliser "VC22" comme valeur par défaut
+      # Utiliser "VC22" comme valeur par defaut
       volume_col <- "VC22"
 
       # Si "VC22" n'existe pas mais "VC22B" existe, utiliser "VC22B"
@@ -111,10 +111,10 @@ calculer_biomasse <- function(donnees_arbres,
       next
     }
 
-    # Récupérer les valeurs de volume pour les indices actuels
+    # Recuperer les valeurs de volume pour les indices actuels
     volumes <- donnees_arbres[[volume_col]][indices]
 
-    # Vérifier s'il y a des valeurs NA
+    # Verifier s'il y a des valeurs NA
     indices_na <- which(is.na(volumes))
     if (length(indices_na) > 0) {
       message_erreur <- paste("Valeurs manquantes pour le calcul de la biomasse (essence:", ess, ")")
@@ -126,12 +126,12 @@ calculer_biomasse <- function(donnees_arbres,
       }
     }
 
-    # Vérifier les valeurs <= 0
+    # Verifier les valeurs <= 0
     indices_valides <- which(!is.na(volumes))
     indices_invalides <- indices_valides[volumes[indices_valides] <= 0]
 
     if (length(indices_invalides) > 0) {
-      message_erreur <- paste("Valeurs négatives ou nulles pour le calcul de la biomasse (essence:", ess, ")")
+      message_erreur <- paste("Valeurs negatives ou nulles pour le calcul de la biomasse (essence:", ess, ")")
       if (afficher_warnings) {
         warning(message_erreur)
       } else {

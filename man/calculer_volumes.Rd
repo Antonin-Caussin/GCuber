@@ -2,7 +2,7 @@
 % Please edit documentation in R/Fonction.R
 \name{calculer_volumes}
 \alias{calculer_volumes}
-\title{Calcule les volumes forestiers selon différentes méthodes}
+\title{Calcule les volumes forestiers selon differentes methodes}
 \usage{
 calculer_volumes(
   df,
@@ -14,21 +14,21 @@ calculer_volumes(
 )
 }
 \arguments{
-\item{df}{Un data frame contenant les données des arbres}
+\item{df}{Un data frame contenant les donnees des arbres}
 
 \item{type_volume}{Type de volume à calculer (ex: "VC22", "VC22B", "Ecorce")}
 
-\item{essence}{Essence d'arbre spécifique (ou NULL pour utiliser celle des données)}
+\item{essence}{Essence d'arbre specifique (ou NULL pour utiliser celle des donnees)}
 
-\item{equations_df}{Le data frame contenant les équations allométriques}
+\item{equations_df}{Le data frame contenant les equations allometriques}
 
-\item{id_equation}{Indice de l'équation à utiliser si plusieurs sont disponibles (par défaut = 1)}
+\item{id_equation}{Indice de l'equation à utiliser si plusieurs sont disponibles (par defaut = 1)}
 
 \item{coefs_conversion}{(Optionnel) Data frame de conversion de C150 vers C130}
 }
 \value{
-Un data frame avec les données d'entrée plus une colonne de volume calculé
+Un data frame avec les donnees d'entree plus une colonne de volume calcule
 }
 \description{
-Calcule les volumes forestiers selon différentes méthodes
+Calcule les volumes forestiers selon differentes methodes
 }
