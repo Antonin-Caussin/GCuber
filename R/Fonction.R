@@ -77,6 +77,11 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     stop(paste("Aucune equation trouvee pour le type de volume:", type_volume))
   }
 
+  # S'assurer que les coefficients b0 à b5 sont numériques
+  colonnes_b <- paste0("b", 0:5)
+  eqs_volume[colonnes_b] <- lapply(eqs_volume[colonnes_b], as.numeric)
+
+
   # Initialisation
   df$Equation_Utilisee <- NA_character_
   df$Volume <- NA_real_
