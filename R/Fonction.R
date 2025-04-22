@@ -86,18 +86,37 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   df$Equation_Utilisee <- NA_character_
   df$Volume <- NA_real_
 
-  # Verification des variables requises
-  variables_requises <- unique(unlist(sapply(1:5, function(i) {
-    var_col <- paste0("X", i)
-    unique(unlist(regmatches(as.character(eqs_volume[[var_col]]),
-                             gregexpr("[A-Za-z_][A-Za-z0-9_]*", as.character(eqs_volume[[var_col]])))))
-  })))
+  # Vérifier les variables requises pour l'équation choisie uniquement
+
+  eq_candidates_check <- if (!is.null(essence)) {
+    eqs_volume[eqs_volume$Essences == essence, ]
+  } else {
+    eq_found <- eqs_volume[eqs_volume$Essences %in% df$Essence, ]
+    if (nrow(eq_found) == 0) eq_found <- eqs_volume[eqs_volume$Essences == "General", ]
+    eq_found
+  }
+
+  if (nrow(eq_candidates_check) < id_equation) {
+    stop(paste("id_equation =", id_equation,
+               "dépasse le nombre d'équations disponibles pour l'essence spécifiée"))
+  }
+
+  eq_selected <- eq_candidates_check[id_equation, , drop = FALSE]
+
+  expressions_utilisees <- as.character(unlist(eq_selected[1, paste0("X", 1:5)]))
+  expressions_utilisees <- expressions_utilisees[!is.na(expressions_utilisees) & expressions_utilisees != "0"]
+
+  variables_requises <- unique(unlist(regmatches(expressions_utilisees,
+                                                 gregexpr("[A-Za-z_][A-Za-z0-9_]*", expressions_utilisees))))
 
   for (var in variables_requises) {
-    if (var != "0" && !(var %in% colnames(df))) {
-      stop(paste("La variable", var, "est requise par certaines equations mais absente des donnees."))
+    if (!(var %in% colnames(df))) {
+      stop(paste("La variable", var,
+                 "est requise par l'équation sélectionnée (id_equation =",
+                 id_equation, ") mais absente des données."))
     }
   }
+
 
   # Fonction d'evaluation securisee
   evaluer_expression <- function(expr_text, variables) {
