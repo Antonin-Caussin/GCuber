@@ -6,7 +6,6 @@ test_that("Volume est bien calcule avec a0 = 5", {
     HDOM = c(20, 25),
     HTOT = c(19,26)
   )
-str(equations)
   result <- calculer_volumes(df = df_test, type_volume = "E")
 
   expect_true("Volume" %in% colnames(result))
@@ -38,6 +37,7 @@ test_that("Erreur si type_volume est invalide", {
     "Type de volume invalide"
   )
 })
+
 
 
 test_that("Erreur si variable requise manquante (ex: C130)", {
@@ -73,7 +73,7 @@ test_that("Erreur si coef de conversion manquant", {
 
 
 test_that("Warn si essence inconnue dans les equations", {
-  df_test <- data.frame(Essence = "Inconnue", C130 = 30)
+  df_test <- data.frame(Essence = "Inconnue", C130 = 30, HDOM = 25, HTOT =12)
 
   expect_warning(
     result <- calculer_volumes(df = df_test, type_volume = "VC22"),
@@ -83,17 +83,17 @@ test_that("Warn si essence inconnue dans les equations", {
 
 
 test_that("Warn si log <= 0 pour a0 = 4", {
-  df_test <- data.frame(Essence = "Hetre", C130 = -10, Htot = 30)
+  df_test <- data.frame(Essence = "Pin sylvestre", C130 = -10, HTOT = 30, HDOM = 28)
 
   expect_warning(
-    result <- calculer_volumes(df = df_test, type_volume = "VC22"),
+    result <- calculer_volumes(df = df_test, type_volume = "E"),
     "Valeur negative ou nulle pour logarithme"
   )
 })
 
 
 test_that("Warn si volume NA ou non-fini", {
-  df_test <- data.frame(Essence = "Chene Ind", C130 = NA, Htot = 20)
+  df_test <- data.frame(Essence = "Chene Ind", C130 = NA, HTOT = 20, HDOM = 25)
 
   expect_warning(
     result <- calculer_volumes(df = df_test, type_volume = "VC22"),
@@ -103,7 +103,7 @@ test_that("Warn si volume NA ou non-fini", {
 
 
 test_that("remove_na fonctionne", {
-  df_test <- data.frame(Essence = "Chene Ind", C130 = NA)
+  df_test <- data.frame(Essence = "Chene Ind", C130 = NA, HDOM = 25, HTOT = 22)
 
   result <- calculer_volumes(df = df_test, type_volume = "VC22", remove_na = TRUE)
 
@@ -112,7 +112,7 @@ test_that("remove_na fonctionne", {
 
 
 test_that("Erreur si id_equation trop grand", {
-  df_test <- data.frame(Essence = "Chene Ind", C130 = 30)
+  df_test <- data.frame(Essence = "Chene Ind", C130 = 30, HTOT = 22, HDOM = 25)
 
   expect_error(
     calculer_volumes(df = df_test, type_volume = "VC22", id_equation = 99),
@@ -121,11 +121,10 @@ test_that("Erreur si id_equation trop grand", {
 })
 
 
-test_that("Erreur si variable utilisee dans l’equation absente des donnees", {
-  df_test <- data.frame(Essence = "Chene Ind", Htot = 25)
-
+test_that("Erreur si C130 et C150 sont absents des donnees", {
+  df_test <- data.frame(Essence = "Chene Ind", HTOT = 25, HDOM = 27)
   expect_error(
     calculer_volumes(df = df_test, type_volume = "VC22"),
-    "est utilisee dans une equation mais absente des donnees"
+    "Le fichier doit contenir au moins une colonne 'C130' ou 'C150'"
   )
 })
