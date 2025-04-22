@@ -13,6 +13,15 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              equations_df = equations, id_equation = 1,
                              coefs_conversion = NULL) {
 
+  # Liste des types de volume valides
+  types_volume_valides <- c("VC22", "VC22B", "Ecorce", "V7", "VB", "VTB", "VT")
+
+  # Vérification que le type de volume est valide
+  if (!(type_volume %in% types_volume_valides)) {
+    stop(paste("Type de volume invalide:", type_volume,
+               "\nTypes valides:", paste(types_volume_valides, collapse=", ")))
+  }
+
   # Verification des colonnes minimales requises
   if (!all(c("Essence") %in% colnames(df))) {
     stop("Le fichier doit contenir au moins la colonne 'Essence'")
