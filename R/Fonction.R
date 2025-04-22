@@ -161,12 +161,13 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
         }
       }
     } else if (a0_value == 4) {
-      log_input <- evaluer_expression(eq$X1[1], variables)
-      if (log_input <= 0) {
+      C130 <- evaluer_expression(eq$X1[1], variables)  # Récupère directement la valeur de C130
+      if (C130 <= 0) {
         warning(paste("Valeur negative ou nulle pour logarithme a la ligne", i))
         next
       }
-      volume <- 10^(eq$b0[1] + eq$b1[1] * log10(log_input))
+      volume <- 10^(eq$b0[1] + eq$b1[1] * log10(C130))
+    }
     } else {
       warning(paste("Type d'equation inconnu (A0 =", a0_value, ") pour la ligne", i))
       next

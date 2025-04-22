@@ -1,12 +1,13 @@
-test_that("Volume est bien calculé avec a0 = 5", {
+test_that("Volume est bien calcule avec a0 = 5", {
   df_test <- data.frame(
     ID = 1:2,
-    Essence = c("Chêne", "Chêne"),
+    Essence = c("Chene Ind", "Chene Ind"),
     C130 = c(30, 35),
-    Htot = c(20, 25)
+    HDOM = c(20, 25),
+    HTOT = c(19,26)
   )
-
-  result <- calculer_volumes(df = df_test, type_volume = "VC22")
+str(equations)
+  result <- calculer_volumes(df = df_test, type_volume = "E")
 
   expect_true("Volume" %in% colnames(result))
   expect_true("Equation_Utilisee" %in% colnames(result))
@@ -15,11 +16,12 @@ test_that("Volume est bien calculé avec a0 = 5", {
 })
 
 
-test_that("Volume est bien calculé avec a0 = 4 (log)", {
+test_that("Volume est bien calcule avec a0 = 4 (log)", {
   df_test <- data.frame(
-    Essence = "Hêtre",
+    Essence = "Hetre",
     C130 = 40,
-    Htot = 30
+    HTOT = 30,
+    HDOM = 25
   )
 
   result <- calculer_volumes(df = df_test, type_volume = "VC22")
@@ -29,7 +31,7 @@ test_that("Volume est bien calculé avec a0 = 4 (log)", {
 
 
 test_that("Erreur si type_volume est invalide", {
-  df_test <- data.frame(Essence = "Chêne", C130 = 30)
+  df_test <- data.frame(Essence = "Chene Ind", C130 = 30)
 
   expect_error(
     calculer_volumes(df = df_test, type_volume = "FAUX_VOLUME"),
@@ -39,7 +41,7 @@ test_that("Erreur si type_volume est invalide", {
 
 
 test_that("Erreur si variable requise manquante (ex: C130)", {
-  df_test <- data.frame(Essence = "Chêne")
+  df_test <- data.frame(Essence = "Chene Ind")
 
   expect_error(
     calculer_volumes(df = df_test, type_volume = "VC22"),
@@ -49,8 +51,8 @@ test_that("Erreur si variable requise manquante (ex: C130)", {
 
 
 test_that("Conversion C150 vers C130 fonctionne", {
-  df_test <- data.frame(Essence = "Chêne", C150 = 40)
-  coefs_test <- data.frame(Essence = "Chêne", Coef_C150_C130 = 0.95)
+  df_test <- data.frame(Essence = "Chene Ind", C150 = 40, HDOM= 30, HTOT = 28)
+  coefs_test <- data.frame(Essence = "Chene Ind", Coef_C150_C130 = 0.95)
 
   result <- calculer_volumes(df = df_test, coefs_conversion = coefs_test, type_volume = "VC22")
 
@@ -60,8 +62,8 @@ test_that("Conversion C150 vers C130 fonctionne", {
 
 
 test_that("Erreur si coef de conversion manquant", {
-  df_test <- data.frame(Essence = "Chêne", C150 = 40)
-  coefs_test <- data.frame(Essence = "Hêtre", Coef_C150_C130 = 0.95)
+  df_test <- data.frame(Essence = "Chene Ind", C150 = 40)
+  coefs_test <- data.frame(Essence = "Hetre", Coef_C150_C130 = 0.95)
 
   expect_error(
     calculer_volumes(df = df_test, coefs_conversion = coefs_test, type_volume = "VC22"),
@@ -70,38 +72,38 @@ test_that("Erreur si coef de conversion manquant", {
 })
 
 
-test_that("Warn si essence inconnue dans les équations", {
+test_that("Warn si essence inconnue dans les equations", {
   df_test <- data.frame(Essence = "Inconnue", C130 = 30)
 
   expect_warning(
     result <- calculer_volumes(df = df_test, type_volume = "VC22"),
-    "Pas d'équation trouvée pour l'essence"
+    "Pas d'equation trouvee pour l'essence"
   )
 })
 
 
 test_that("Warn si log <= 0 pour a0 = 4", {
-  df_test <- data.frame(Essence = "Hêtre", C130 = -10, Htot = 30)
+  df_test <- data.frame(Essence = "Hetre", C130 = -10, Htot = 30)
 
   expect_warning(
     result <- calculer_volumes(df = df_test, type_volume = "VC22"),
-    "Valeur négative ou nulle pour logarithme"
+    "Valeur negative ou nulle pour logarithme"
   )
 })
 
 
 test_that("Warn si volume NA ou non-fini", {
-  df_test <- data.frame(Essence = "Chêne", C130 = NA, Htot = 20)
+  df_test <- data.frame(Essence = "Chene Ind", C130 = NA, Htot = 20)
 
   expect_warning(
     result <- calculer_volumes(df = df_test, type_volume = "VC22"),
-    "Résultat de volume non valide"
+    "Resultat de volume non valide"
   )
 })
 
 
 test_that("remove_na fonctionne", {
-  df_test <- data.frame(Essence = "Chêne", C130 = NA)
+  df_test <- data.frame(Essence = "Chene Ind", C130 = NA)
 
   result <- calculer_volumes(df = df_test, type_volume = "VC22", remove_na = TRUE)
 
@@ -110,20 +112,20 @@ test_that("remove_na fonctionne", {
 
 
 test_that("Erreur si id_equation trop grand", {
-  df_test <- data.frame(Essence = "Chêne", C130 = 30)
+  df_test <- data.frame(Essence = "Chene Ind", C130 = 30)
 
   expect_error(
     calculer_volumes(df = df_test, type_volume = "VC22", id_equation = 99),
-    "id_equation = 99 dépasse"
+    "id_equation = 99 depasse"
   )
 })
 
 
-test_that("Erreur si variable utilisée dans l’équation absente des données", {
-  df_test <- data.frame(Essence = "Chêne", Htot = 25)
+test_that("Erreur si variable utilisee dans l’equation absente des donnees", {
+  df_test <- data.frame(Essence = "Chene Ind", Htot = 25)
 
   expect_error(
     calculer_volumes(df = df_test, type_volume = "VC22"),
-    "est utilisée dans une équation mais absente des données"
+    "est utilisee dans une equation mais absente des donnees"
   )
 })
