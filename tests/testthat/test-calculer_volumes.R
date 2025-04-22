@@ -1,132 +1,129 @@
-#' @title Tests pour la fonction calculer_volumes
-#' @description Tests unitaires pour vérifier le comportement de la fonction calculer_volumes
-# Test de la fonction calculer_volumes
-test_that("La fonction calculer_volumes calcule correctement les volumes", {
-
-  # Création de données de test
-  donnees_test <- data.frame(
-    Essence = c("Chene", "Hetre", "Pin", "Inconnu"),
-    C130 = c(120, 150, 100, 80),
-    HDOM = c(15, 18, 14, 12),
-    Volume_autre = c(125, 155, 105, 85)
+test_that("Volume est bien calculé avec a0 = 5", {
+  df_test <- data.frame(
+    ID = 1:2,
+    Essence = c("Chêne", "Chêne"),
+    C130 = c(30, 35),
+    Htot = c(20, 25)
   )
 
-  equations_test <- data.frame(
-    Y = rep("VC22", 3),
-    Essences = c("Chene", "Hetre", "General"),
-    A0 = c(1, 1, 1),  # A0 pour équation polynomiale
-    b0 = c(0.5, 0.6, 0.7),
-    b1 = c(0.1, 0.2, 0.15),
-    b2 = c(0.1, 0.2, 0.3),
-    b3 = c(0.01, 0.02, 0.03),
-    b4 = c(0.001, 0.002, 0.003),
-    b5 = c(0, 0, 0),
-    X1 = c("C130", "C130", "C130"),
-    X2 = c("HDOM", "HDOM", "HDOM"),
-    X3 = c(NA, NA, NA),
-    X4 = c(NA, NA, NA),
-    X5 = c(NA, NA, NA)
-  )
+  result <- calculer_volumes(df = df_test, type_volume = "VC22")
 
-  # Test avec paramètres par défaut
-  resultat <- calculer_volumes(donnees_test, equations_df = equations_test)
-
-  # Vérification que la colonne Volume a été ajoutée
-  expect_true("Volume" %in% names(resultat))
-
-  # Vérification des calculs pour le Chêne
-  # Volume = b0 + b1 * C130 + b2 * HDOM = 0.5 + 0.1 * 120 + 0.1 * 15
-  # Volume = 0.5 + 12 + 1.5 = 14
-  expect_equal(resultat$Volume[1], 0.5 + 0.1 * 120 + 0.1 * 15)
-
-  # Vérification des calculs pour le Hêtre
-  expect_equal(resultat$Volume[2], 0.6 + 0.2 * 150 + 0.2 * 18)
-
-  # Vérification que le Pin utilise l'équation General
-  expect_equal(resultat$Volume[3], 0.7 + 0.15 * 100 + 0.3 * 14)
-
-  # Vérification que "Inconnu" utilise aussi l'équation General
-  expect_equal(resultat$Volume[4], 0.7 + 0.15 * 80 + 0.3 * 12)
+  expect_true("Volume" %in% colnames(result))
+  expect_true("Equation_Utilisee" %in% colnames(result))
+  expect_false(any(is.na(result$Volume)))
+  expect_true(all(result$Volume > 0))
 })
 
-test_that("La fonction gère correctement les données manquantes et invalides", {
 
-  donnees_test <- data.frame(
-    Essence = c("Chene", "Hetre", "Chene", "Hetre"),
-    C130 = c(120, NA, -10, 150)
+test_that("Volume est bien calculé avec a0 = 4 (log)", {
+  df_test <- data.frame(
+    Essence = "Hêtre",
+    C130 = 40,
+    Htot = 30
   )
 
-  equations_test <- data.frame(
-    Y = rep("VC22", 2),
-    Essences = c("Chene", "Hetre"),
-    A0 = c(1, 1),
-    b0 = c(0.5, 0.6),
-    b1 = c(0.1, 0.2),
-    b2 = c(0.1, 0.2),
-    b3 = c(0.01, 0.02),
-    b4 = c(0.001, 0.002),
-    b5 = c(0, 0),
-    X1 = c("C130", "C130"),
-    X2 = c("HDOM", "HDOM"),
-    X3 = c(NA, NA),
-    X4 = c(NA, NA),
-    X5 = c(NA, NA)
-  )
+  result <- calculer_volumes(df = df_test, type_volume = "VC22")
 
-  # Test avec afficher_warnings = FALSE pour capturer les messages
+  expect_true(result$Volume > 0)
+})
+
+
+test_that("Erreur si type_volume est invalide", {
+  df_test <- data.frame(Essence = "Chêne", C130 = 30)
+
+  expect_error(
+    calculer_volumes(df = df_test, type_volume = "FAUX_VOLUME"),
+    "Type de volume invalide"
+  )
+})
+
+
+test_that("Erreur si variable requise manquante (ex: C130)", {
+  df_test <- data.frame(Essence = "Chêne")
+
+  expect_error(
+    calculer_volumes(df = df_test, type_volume = "VC22"),
+    "au moins une colonne 'C130' ou 'C150'"
+  )
+})
+
+
+test_that("Conversion C150 vers C130 fonctionne", {
+  df_test <- data.frame(Essence = "Chêne", C150 = 40)
+  coefs_test <- data.frame(Essence = "Chêne", Coef_C150_C130 = 0.95)
+
+  result <- calculer_volumes(df = df_test, coefs_conversion = coefs_test, type_volume = "VC22")
+
+  expect_equal(result$C130, 40 * 0.95)
+  expect_true(all(result$Volume > 0))
+})
+
+
+test_that("Erreur si coef de conversion manquant", {
+  df_test <- data.frame(Essence = "Chêne", C150 = 40)
+  coefs_test <- data.frame(Essence = "Hêtre", Coef_C150_C130 = 0.95)
+
+  expect_error(
+    calculer_volumes(df = df_test, coefs_conversion = coefs_test, type_volume = "VC22"),
+    "Coefficient de conversion manquant"
+  )
+})
+
+
+test_that("Warn si essence inconnue dans les équations", {
+  df_test <- data.frame(Essence = "Inconnue", C130 = 30)
+
   expect_warning(
-    resultat <- calculer_volumes(donnees_test, equations_df = equations_test),
-    "Valeurs manquantes|Valeurs invalides"
-  )
-
-  # Vérification que les lignes avec des problèmes ont des NA
-  expect_equal(resultat$Volume[1], 0.5 + 0.1 * 120 + 0.1 * 15)
-  expect_true(is.na(resultat$Volume[2]))  # NA volume
-  expect_true(is.na(resultat$Volume[3]))  # Volume négatif
-  expect_equal(resultat$Volume[4], 0.7 + 0.15 * 150 + 0.3 * 18)
-})
-
-test_that("La fonction détecte correctement les colonnes manquantes", {
-  # Test sans colonne Essence
-  donnees_sans_essence <- data.frame(
-    NonEssence = c("Chene", "Hetre"),
-    C130 = c(120, 150)
-  )
-
-  equations_test <- data.frame(
-    Y = rep("VC22", 2),
-    Essences = c("Chene", "Hetre"),
-    A0 = c(1, 1),
-    b0 = c(0.5, 0.6),
-    b1 = c(0.1, 0.2),
-    b2 = c(0.1, 0.2),
-    b3 = c(0.01, 0.02),
-    b4 = c(0.001, 0.002),
-    b5 = c(0, 0),
-    X1 = c("C130", "C130"),
-    X2 = c("HDOM", "HDOM"),
-    X3 = c(NA, NA),
-    X4 = c(NA, NA),
-    X5 = c(NA, NA)
-  )
-
-  # Vérifie que l'erreur est bien levée avec le bon message
-  expect_error(
-    calculer_volumes(donnees_sans_essence, equations_df = equations_test),
-    "La colonne 'Essence' est requise dans les données"
+    result <- calculer_volumes(df = df_test, type_volume = "VC22"),
+    "Pas d'équation trouvée pour l'essence"
   )
 })
 
-test_that("La fonction détecte les équations manquantes ou invalides", {
-  # Test avec equations_df incomplet
-  equations_incomplet <- data.frame(
-    Y = rep("VC22", 2),
-    Essences = c("Chene", "Hetre")
-    # Manque A0, b0, b1, etc.
+
+test_that("Warn si log <= 0 pour a0 = 4", {
+  df_test <- data.frame(Essence = "Hêtre", C130 = -10, Htot = 30)
+
+  expect_warning(
+    result <- calculer_volumes(df = df_test, type_volume = "VC22"),
+    "Valeur négative ou nulle pour logarithme"
   )
+})
+
+
+test_that("Warn si volume NA ou non-fini", {
+  df_test <- data.frame(Essence = "Chêne", C130 = NA, Htot = 20)
+
+  expect_warning(
+    result <- calculer_volumes(df = df_test, type_volume = "VC22"),
+    "Résultat de volume non valide"
+  )
+})
+
+
+test_that("remove_na fonctionne", {
+  df_test <- data.frame(Essence = "Chêne", C130 = NA)
+
+  result <- calculer_volumes(df = df_test, type_volume = "VC22", remove_na = TRUE)
+
+  expect_equal(nrow(result), 0)
+})
+
+
+test_that("Erreur si id_equation trop grand", {
+  df_test <- data.frame(Essence = "Chêne", C130 = 30)
 
   expect_error(
-    calculer_volumes(donnees_test, equations_df = equations_incomplet),
-    "Colonnes manquantes dans equations_df"
+    calculer_volumes(df = df_test, type_volume = "VC22", id_equation = 99),
+    "id_equation = 99 dépasse"
+  )
+})
+
+
+test_that("Erreur si variable utilisée dans l’équation absente des données", {
+  df_test <- data.frame(Essence = "Chêne", Htot = 25)
+
+  expect_error(
+    calculer_volumes(df = df_test, type_volume = "VC22"),
+    "est utilisée dans une équation mais absente des données"
   )
 })
