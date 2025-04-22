@@ -130,7 +130,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
     a0_value <- eq$A0[1]
 
-    if (a0_value %in% c(1, 2, 3)) {
+    if (a0_value %in% c(1, 2, 3, 5)) {
       volume <- eq$b0[1]
       for (j in 1:5) {
         x_col <- paste0("X", j)
