@@ -1,15 +1,30 @@
 #' Calcule les volumes forestiers selon différentes méthodes
 #'
-#' @param df Un data frame contenant les données des arbres
-#' @param type_volume Type de volume à calculer (ex: "VC22", "VC22B", "Ecorce")
-#' @param essence Essence d'arbre spécifique (ou NULL pour utiliser celle des données)
-#' @param equations_df Le data frame contenant les équations allométriques
-#' @param id_equation Indice de l'équation à utiliser si plusieurs sont disponibles (par défaut = 1)
-#' @param coefs_conversion (Optionnel) Data frame de conversion de C150 vers C130
-#' @param remove_na (Optionnel) Si TRUE, supprime les lignes pour lesquelles le volume n'a pas pu être calculé (par défaut = FALSE)
+#' Cette fonction applique des équations allométriques pour estimer le volume
+#' des arbres à partir de différentes variables dendrométriques.
 #'
-#' @return Un data frame avec les données d'entrée plus une colonne `Volume` et `Equation_Utilisee`
+#' @param df Un data frame contenant les données des arbres (ex. C130, Htot, Essence...)
+#' @param type_volume Type de volume à calculer (ex: "VC22", "VC22B", "E", "VC22_HA")
+#' @param essence Essence d'arbre spécifique. Si NULL (par défaut), l'essence est lue ligne par ligne dans `df`.
+#' @param equations_df Le data frame contenant les équations allométriques à appliquer
+#' @param id_equation Indice de l'équation à utiliser si plusieurs sont disponibles (par défaut = 1)
+#' @param coefs_conversion (Optionnel) Data frame pour convertir C150 en C130 (doit contenir "Essence" et "Coef_C150_C130")
+#' @param remove_na (Optionnel) Si TRUE, supprime les lignes où aucun volume n’a pu être calculé (par défaut = FALSE)
+#'
+#' @details
+#' Le champ `A0` dans les équations allométriques indique le type de formule utilisée :
+#' \itemize{
+#'   \item{1, 2, 3, 5 : Formule linéaire du type }{ V = b0 + b1*X1 + b2*X2 + ... }
+#'   \item{4 : Formule logarithmique du type }{ V = 10^(b0 + b1 * log10(X1)) }
+#' }
+#'
+#' @return Un data frame avec les colonnes d’origine augmentées de :
+#' \itemize{
+#'   \item `Volume` : volume calculé selon l’équation choisie
+#'   \item `Equation_Utilisee` : description de l’équation utilisée
+#' }
 #' @export
+
 calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              equations_df = equations, id_equation = 1,
                              coefs_conversion = NULL, remove_na = FALSE) {

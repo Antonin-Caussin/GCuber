@@ -2,7 +2,7 @@
 % Please edit documentation in R/Fonction.R
 \name{calculer_volumes}
 \alias{calculer_volumes}
-\title{Calcule les volumes forestiers selon differentes methodes}
+\title{Calcule les volumes forestiers selon différentes méthodes}
 \usage{
 calculer_volumes(
   df,
@@ -10,25 +10,40 @@ calculer_volumes(
   essence = NULL,
   equations_df = equations,
   id_equation = 1,
-  coefs_conversion = NULL
+  coefs_conversion = NULL,
+  remove_na = FALSE
 )
 }
 \arguments{
-\item{df}{Un data frame contenant les donnees des arbres}
+\item{df}{Un data frame contenant les données des arbres (ex. C130, Htot, Essence...)}
 
-\item{type_volume}{Type de volume à calculer (ex: "VC22", "VC22B", "Ecorce")}
+\item{type_volume}{Type de volume à calculer (ex: "VC22", "VC22B", "E", "VC22_HA")}
 
-\item{essence}{Essence d'arbre specifique (ou NULL pour utiliser celle des donnees)}
+\item{essence}{Essence d'arbre spécifique. Si NULL (par défaut), l'essence est lue ligne par ligne dans `df`.}
 
-\item{equations_df}{Le data frame contenant les equations allometriques}
+\item{equations_df}{Le data frame contenant les équations allométriques à appliquer}
 
-\item{id_equation}{Indice de l'equation à utiliser si plusieurs sont disponibles (par defaut = 1)}
+\item{id_equation}{Indice de l'équation à utiliser si plusieurs sont disponibles (par défaut = 1)}
 
-\item{coefs_conversion}{(Optionnel) Data frame de conversion de C150 vers C130}
+\item{coefs_conversion}{(Optionnel) Data frame pour convertir C150 en C130 (doit contenir "Essence" et "Coef_C150_C130")}
+
+\item{remove_na}{(Optionnel) Si TRUE, supprime les lignes où aucun volume n’a pu être calculé (par défaut = FALSE)}
 }
 \value{
-Un data frame avec les donnees d'entree plus une colonne de volume calcule
+Un data frame avec les colonnes d’origine augmentées de :
+\itemize{
+  \item `Volume` : volume calculé selon l’équation choisie
+  \item `Equation_Utilisee` : description de l’équation utilisée
+}
 }
 \description{
-Calcule les volumes forestiers selon differentes methodes
+Cette fonction applique des équations allométriques pour estimer le volume
+des arbres à partir de différentes variables dendrométriques.
+}
+\details{
+Le champ `A0` dans les équations allométriques indique le type de formule utilisée :
+\itemize{
+  \item{1, 2, 3, 5 : Formule linéaire du type }{ V = b0 + b1*X1 + b2*X2 + ... }
+  \item{4 : Formule logarithmique du type }{ V = 10^(b0 + b1 * log10(X1)) }
+}
 }
