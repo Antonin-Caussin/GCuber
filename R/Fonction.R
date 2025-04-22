@@ -77,7 +77,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     stop(paste("Aucune equation trouvee pour le type de volume:", type_volume))
   }
 
-  # S'assurer que les coefficients b0 à b5 sont numériques
+  # S'assurer que les coefficients b0 à b5 sont numeriques
   colonnes_b <- paste0("b", 0:5)
   eqs_volume[colonnes_b] <- lapply(eqs_volume[colonnes_b], as.numeric)
 
@@ -86,7 +86,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   df$Equation_Utilisee <- NA_character_
   df$Volume <- NA_real_
 
-  # Vérifier les variables requises pour l'équation choisie uniquement
+  # Verifier les variables requises pour l'equation choisie uniquement
 
   eq_candidates_check <- if (!is.null(essence)) {
     eqs_volume[eqs_volume$Essences == essence, ]
@@ -98,7 +98,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
   if (nrow(eq_candidates_check) < id_equation) {
     stop(paste("id_equation =", id_equation,
-               "dépasse le nombre d'équations disponibles pour l'essence spécifiée"))
+               "depasse le nombre d'equations disponibles pour l'essence specifiee"))
   }
 
   eq_selected <- eq_candidates_check[id_equation, , drop = FALSE]
@@ -112,8 +112,8 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   for (var in variables_requises) {
     if (!(var %in% colnames(df))) {
       stop(paste("La variable", var,
-                 "est requise par l'équation sélectionnée (id_equation =",
-                 id_equation, ") mais absente des données."))
+                 "est requise par l'equation selectionnee (id_equation =",
+                 id_equation, ") mais absente des donnees."))
     }
   }
 
@@ -180,7 +180,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
         }
       }
     } else if (a0_value == 4) {
-      C130 <- evaluer_expression(eq$X1[1], variables)  # Récupère directement la valeur de C130
+      C130 <- evaluer_expression(eq$X1[1], variables)  # Recupere directement la valeur de C130
       if (C130 <= 0) {
         warning(paste("Valeur negative ou nulle pour logarithme a la ligne", i))
         next

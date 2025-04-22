@@ -73,7 +73,7 @@ test_that("Erreur si coef de conversion manquant", {
 
 
 test_that("Warn si essence inconnue dans les equations", {
-  df_test <- data.frame(Essence = "Inconnue", C130 = 30, HDOM = 25, HTOT =12)
+  df_test <- data.frame(Essence = "Inconnue", C130 = 30, HDOM = 28, HTOT = 25)
 
   expect_warning(
     result <- calculer_volumes(df = df_test, type_volume = "VC22"),
