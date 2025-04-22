@@ -15,7 +15,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              coefs_conversion = NULL, remove_na = FALSE) {
 
   # Liste des types de volume valides
-  types_volume_valides <- c("VC22", "VC22B", "Ecorce", "V7", "VB", "VTB", "VT")
+  types_volume_valides <- c("VC22", "VC22B", "E", "VC22_HA")
 
   # Vérification du type de volume
   if (!(type_volume %in% types_volume_valides)) {
