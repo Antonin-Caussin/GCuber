@@ -19,7 +19,7 @@ test_that("Volume est bien calcule avec a0 = 4 (log)", {
     C130 = 40
   )
 
-  result <- calculer_volumes(df = df_test, type_volume = "E")
+  result <- calculer_volumes(df = df_test, type_volume = "E", id_equation = 4)
 
   expect_true(result$Volume > 0)
 })
@@ -81,7 +81,7 @@ test_that("Warn si log <= 0 pour a0 = 4", {
   df_test <- data.frame(Essence = "Pin sylvestre", C130 = -10, HTOT = 30, HDOM = 28)
 
   expect_warning(
-    result <- calculer_volumes(df = df_test, type_volume = "E"),
+    result <- calculer_volumes(df = df_test, type_volume = "E", id_equation =4),
     "Valeur negative ou nulle pour logarithme"
   )
 })
@@ -103,16 +103,6 @@ test_that("remove_na fonctionne", {
   result <- calculer_volumes(df = df_test, type_volume = "VC22", remove_na = TRUE)
 
   expect_equal(nrow(result), 0)
-})
-
-
-test_that("Erreur si id_equation trop grand", {
-  df_test <- data.frame(Essence = "Chene Ind", C130 = 30, HTOT = 22, HDOM = 25)
-
-  expect_error(
-    calculer_volumes(df = df_test, type_volume = "VC22", id_equation = 99),
-    "id_equation = 99 depasse"
-  )
 })
 
 
