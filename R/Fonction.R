@@ -87,33 +87,37 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   df$Volume <- NA_real_
 
   # Verifier les variables requises pour l'equation choisie uniquement
-
-  eq_candidates_check <- if (!is.null(essence)) {
-    eqs_volume[eqs_volume$Essences == essence, ]
+  if (!is.null(essence)) {
+    eq_candidates_check <- eqs_volume[eqs_volume$Essences == essence, ]
   } else {
-    eq_found <- eqs_volume[eqs_volume$Essences %in% df$Essence, ]
-    if (nrow(eq_found) == 0) eq_found <- eqs_volume[eqs_volume$Essences == "General", ]
-    eq_found
+    # On cherche les équations correspondant aux essences dans le dataframe
+    # ou l'équation générale si aucune ne correspond
+    unique_essences <- unique(df$Essence)
+    eq_candidates_check <- eqs_volume[eqs_volume$Essences %in% unique_essences, ]
+    if (nrow(eq_candidates_check) == 0)
+      eq_candidates_check <- eqs_volume[eqs_volume$Essences == "General", ]
   }
 
   if (nrow(eq_candidates_check) < id_equation) {
     stop(paste("id_equation =", id_equation,
-               "depasse le nombre d'equations disponibles pour l'essence specifiee"))
+               "dépasse le nombre d'équations disponibles pour l'essence spécifiée"))
   }
 
-  eq_selected <- eq_candidates_check[id_equation, , drop = FALSE]
+  # Vérifier uniquement pour l'équation sélectionnée
+  eq_select <- eq_candidates_check[id_equation, , drop = FALSE]
 
-  expressions_utilisees <- as.character(unlist(eq_selected[1, paste0("X", 1:5)]))
+  # Extraire les variables requises par cette équation spécifique
+  expressions_utilisees <- as.character(unlist(eq_select[1, paste0("X", 1:5)]))
   expressions_utilisees <- expressions_utilisees[!is.na(expressions_utilisees) & expressions_utilisees != "0"]
-
   variables_requises <- unique(unlist(regmatches(expressions_utilisees,
                                                  gregexpr("[A-Za-z_][A-Za-z0-9_]*", expressions_utilisees))))
 
+  # Vérifier si ces variables sont présentes
   for (var in variables_requises) {
     if (!(var %in% colnames(df))) {
       stop(paste("La variable", var,
-                 "est requise par l'equation selectionnee (id_equation =",
-                 id_equation, ") mais absente des donnees."))
+                 "est requise par l'équation sélectionnée (id_equation =",
+                 id_equation, ") mais absente des données."))
     }
   }
 
