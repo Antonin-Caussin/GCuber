@@ -33,21 +33,21 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   # Liste des types de volume valides
   types_volume_valides <- c("VC22", "VC22B", "E", "VC22_HA")
 
-  # Vérifier la cohérence entre type_volume et id_equation
+  # Verifier la coherence entre type_volume et id_equation
   if (type_volume == "VC22" && !(id_equation %in% 1:3)) {
-    stop("Pour le type de volume 'VC22', id_equation doit être entre 1 et 3.")
+    stop("Pour le type de volume 'VC22', id_equation doit etre entre 1 et 3.")
   }
 
   if (type_volume == "E" && !(id_equation %in% 4:5)) {
-    stop("Pour le type de volume 'E', id_equation doit être 4 ou 5.")
+    stop("Pour le type de volume 'E', id_equation doit etre 4 ou 5.")
   }
 
   if (type_volume == "VC22_ha" && id_equation != 1) {
-    stop("Pour le type de volume 'VC22_HA', id_equation doit être 1.")
+    stop("Pour le type de volume 'VC22_HA', id_equation doit etre 1.")
   }
 
   if (type_volume == "VC22B" && id_equation != 1) {
-    stop("Pour le type de volume 'VC22B', id_equation doit être 1.")
+    stop("Pour le type de volume 'VC22B', id_equation doit etre 1.")
   }
 
 
@@ -213,7 +213,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
     a0_value <- eq$A0[1]
 
-    # Ajoutez cette vérification ici
+    # Ajoutez cette verification ici
     if (is.na(a0_value)) {
       warning(paste("Valeur A0 manquante pour l'essence", essence_arbre, "à la ligne", i))
       next
@@ -243,13 +243,13 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
       warning(paste("Resultat de volume non valide a la ligne", i, ":", volume))
       next
     }
-    cat("  Volume calculé:", volume, "\n")
-    colonne_volume <- type_volume  # Utilise le nom du type de volume spécifié en paramètre
+    cat("  Volume calcule:", volume, "\n")
+    colonne_volume <- type_volume  # Utilise le nom du type de volume specifie en parametre
     if (!(colonne_volume %in% names(df))) {
-      df[[colonne_volume]] <- NA_real_  # Crée la colonne si elle n'existe pas
+      df[[colonne_volume]] <- NA_real_  # Cree la colonne si elle n'existe pas
     }
     df[[colonne_volume]] <- volume
-    cat("  Volume stocké:", df[[colonne_volume]], "\n")
+    cat("  Volume stocke:", df[[colonne_volume]], "\n")
   }
 
   # La colonne Essence est conservee meme si elle a ete creee pendant l'execution

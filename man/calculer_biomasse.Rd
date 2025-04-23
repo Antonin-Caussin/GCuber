@@ -7,7 +7,7 @@
 calculer_biomasse(
   donnees_arbres,
   essence = NULL,
-  colonne_volume = NULL,
+  volume = NULL,
   afficher_warnings = TRUE
 )
 }
@@ -16,7 +16,7 @@ calculer_biomasse(
 
 \item{essence}{Essence ciblee (ou NULL pour utiliser celle de chaque ligne)}
 
-\item{colonne_volume}{Nom de la colonne de volume à utiliser (NULL utilise celle specifiee dans les equations internes)}
+\item{volume}{Nom de la colonne de volume à utiliser (NULL utilise celle specifiee dans les equations internes)}
 
 \item{afficher_warnings}{Booleen indiquant si les warnings doivent etre affiches (TRUE) ou stockes (FALSE)}
 }
