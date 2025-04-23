@@ -2,11 +2,9 @@ test_that("Volume est bien calcule avec a0 = 5", {
   df_test <- data.frame(
     ID = 1:2,
     Essence = c("Chene Ind", "Chene Ind"),
-    C130 = c(30, 35),
-    HDOM = c(20, 25),
-    HTOT = c(19,26)
+    C130 = c(30, 35)
   )
-  result <- calculer_volumes(df = df_test, type_volume = "E")
+  result <- calculer_volumes(df = df_test, type_volume = "VC22")
 
   expect_true("Volume" %in% colnames(result))
   expect_true("Equation_Utilisee" %in% colnames(result))
@@ -18,12 +16,10 @@ test_that("Volume est bien calcule avec a0 = 5", {
 test_that("Volume est bien calcule avec a0 = 4 (log)", {
   df_test <- data.frame(
     Essence = "Hetre",
-    C130 = 40,
-    HTOT = 30,
-    HDOM = 25
+    C130 = 40
   )
 
-  result <- calculer_volumes(df = df_test, type_volume = "VC22")
+  result <- calculer_volumes(df = df_test, type_volume = "E")
 
   expect_true(result$Volume > 0)
 })
@@ -51,7 +47,7 @@ test_that("Erreur si variable requise manquante (ex: C130)", {
 
 
 test_that("Conversion C150 vers C130 fonctionne", {
-  df_test <- data.frame(Essence = "Chene Ind", C150 = 40, HDOM= 30, HTOT = 28)
+  df_test <- data.frame(Essence = "Chene Ind", C150 = 40)
   coefs_test <- data.frame(Essence = "Chene Ind", Coef_C150_C130 = 0.95)
 
   result <- calculer_volumes(df = df_test, coefs_conversion = coefs_test, type_volume = "VC22")
@@ -72,12 +68,11 @@ test_that("Erreur si coef de conversion manquant", {
 })
 
 
-test_that("Warn si essence inconnue dans les equations", {
-  df_test <- data.frame(Essence = "Inconnue", C130 = 30, HDOM = 28, HTOT = 25)
-
-  expect_warning(
-    result <- calculer_volumes(df = df_test, type_volume = "VC22"),
-    "Pas d'equation trouvee pour l'essence"
+test_that("Erreur si essence inconnue n'a pas d'équation", {
+  df_test <- data.frame(Essence = "Inconnue", C130 = 30)
+  expect_error(
+    calculer_volumes(df = df_test, type_volume = "VC22"),
+    "depasse le nombre d'equations disponibles pour l'essence specifiee"
   )
 })
 
