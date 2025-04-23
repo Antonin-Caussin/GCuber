@@ -73,7 +73,6 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
       na_values <- unique(df[[colonne_essence_trouvee]][is.na(df$Essence)])
       warning(paste("Aucune correspondance trouvée pour les valeurs suivantes de",
                     colonne_essence_trouvee, ":", paste(na_values, collapse=", ")))
-
     }
   }
 
