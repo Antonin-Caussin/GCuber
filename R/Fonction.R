@@ -244,8 +244,12 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
       next
     }
     cat("  Volume calculé:", volume, "\n")
-    df$Volume[i] <- volume
-    cat("  Volume stocké:", df$Volume[i], "\n")
+    colonne_volume <- type_volume  # Utilise le nom du type de volume spécifié en paramètre
+    if (!(colonne_volume %in% names(df))) {
+      df[[colonne_volume]] <- NA_real_  # Crée la colonne si elle n'existe pas
+    }
+    df[[colonne_volume]] <- volume
+    cat("  Volume stocké:", df[[colonne_volume]], "\n")
   }
 
   # La colonne Essence est conservee meme si elle a ete creee pendant l'execution
