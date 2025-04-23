@@ -43,7 +43,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   }
 
   if (type_volume == "VC22_ha" && id_equation != 1) {
-    stop("Pour le type de volume 'VC22_ha', id_equation doit être 1.")
+    stop("Pour le type de volume 'VC22_HA', id_equation doit être 1.")
   }
 
   if (type_volume == "VC22B" && id_equation != 1) {
@@ -188,18 +188,10 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
       eqs_volume[eqs_volume$Essences == essence, ]
     } else {
       eq_found <- eqs_volume[eqs_volume$Essences == essence_arbre, ]
-      if (nrow(eq_found) == 0) eq_found <- eqs_volume[eqs_volume$Essences == "General", ]
-      eq_found
     }
-
     if (nrow(eq_candidates) == 0) {
       warning(paste("Pas d'equation trouvee pour l'essence:", essence_arbre))
       next
-    }
-
-    if (nrow(eq_candidates) < id_equation) {
-      stop(paste("id_equation =", id_equation, "depasse le nombre d'equations disponibles (",
-                 nrow(eq_candidates), ") pour", essence_arbre))
     }
 
     eq <- eq_candidates[id_equation, , drop = FALSE]
@@ -220,7 +212,11 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
     a0_value <- eq$A0[1]
 
-    if (a0_value %in% c(1, 2, 3, 5)) {
+    # Ajoutez cette vérification ici
+    if (is.na(a0_value)) {
+      warning(paste("Valeur A0 manquante pour l'essence", essence_arbre, "à la ligne", i))
+      next
+    } else if (a0_value %in% c(1, 2, 3, 5)) {
       volume <- eq$b0[1]
       for (j in 1:5) {
         x_col <- paste0("X", j)
