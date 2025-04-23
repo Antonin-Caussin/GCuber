@@ -39,21 +39,21 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                "\nTypes valides:", paste(types_volume_valides, collapse = ", ")))
   }
 
-  # Vérification et préparation des identifiants d'essence
+  # Verification et preparation des identifiants d'essence
   colonnes_id_essence <- c("Essence", "Code", "Abr")
   colonne_essence_trouvee <- NULL
 
-  # Vérifie quelles colonnes d'identification sont présentes dans df
+  # Verifie quelles colonnes d'identification sont presentes dans df
   colonnes_presentes <- intersect(colonnes_id_essence, colnames(df))
 
   if (length(colonnes_presentes) == 0) {
     stop("Le fichier doit contenir au moins une des colonnes suivantes: 'Essence', 'Code', ou 'Abr'")
   }
 
-  # Utilise la première colonne présente comme identifiant d'essence
+  # Utilise la premiere colonne presente comme identifiant d'essence
   colonne_essence_trouvee <- colonnes_presentes[1]
 
-  # Si nécessaire, ajoute une colonne Essence standardisée pour correspondre aux équations
+  # Si necessaire, ajoute une colonne Essence standardisee pour correspondre aux equations
   if (colonne_essence_trouvee != "Essence") {
     # Extrait les correspondances uniques des essences depuis equations_df
     if (!all(c("Essences", colonne_essence_trouvee) %in% colnames(equations_df))) {
@@ -61,22 +61,22 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                  colonne_essence_trouvee, "'", sep=""))
     }
 
-    # Crée un dataframe de correspondance à partir de equations_df
+    # Cree un dataframe de correspondance à partir de equations_df
     mapping_df <- unique(equations_df[, c("Essences", colonne_essence_trouvee)])
     names(mapping_df)[names(mapping_df) == "Essences"] <- "Essence"  # Standardise le nom
 
-    # Crée une colonne temporaire Essence pour les calculs
+    # Cree une colonne temporaire Essence pour les calculs
     df <- merge(df, mapping_df, by = colonne_essence_trouvee, all.x = TRUE)
 
-    # Vérifier si des correspondances n'ont pas été trouvées
+    # Verifier si des correspondances n'ont pas ete trouvees
     if (any(is.na(df$Essence))) {
       na_values <- unique(df[[colonne_essence_trouvee]][is.na(df$Essence)])
-      warning(paste("Aucune correspondance trouvée pour les valeurs suivantes de",
+      warning(paste("Aucune correspondance trouvee pour les valeurs suivantes de",
                     colonne_essence_trouvee, ":", paste(na_values, collapse=", ")))
     }
   }
 
-  # Verification des colonnes requises pour le diamètre
+  # Verification des colonnes requises pour le diametre
   if (!any(c("C130", "C150") %in% colnames(df))) {
     stop("Le fichier doit contenir au moins une colonne 'C130' ou 'C150'")
   }
@@ -124,8 +124,8 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   if (!is.null(essence)) {
     eq_candidates_check <- eqs_volume[eqs_volume$Essences == essence, ]
   } else {
-    # On cherche les équations correspondant aux essences dans le dataframe
-    # ou l'équation générale si aucune ne correspond
+    # On cherche les equations correspondant aux essences dans le dataframe
+    # ou l'equation generale si aucune ne correspond
     unique_essences <- unique(df$Essence)
     eq_candidates_check <- eqs_volume[eqs_volume$Essences %in% unique_essences, ]
     if (nrow(eq_candidates_check) == 0)
@@ -134,24 +134,24 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
   if (nrow(eq_candidates_check) < id_equation) {
     stop(paste("id_equation =", id_equation,
-               "dépasse le nombre d'équations disponibles pour l'essence spécifiée"))
+               "depasse le nombre d'equations disponibles pour l'essence specifiee"))
   }
 
-  # Vérifier uniquement pour l'équation sélectionnée
+  # Verifier uniquement pour l'equation selectionnee
   eq_select <- eq_candidates_check[id_equation, , drop = FALSE]
 
-  # Extraire les variables requises par cette équation spécifique
+  # Extraire les variables requises par cette equation specifique
   expressions_utilisees <- as.character(unlist(eq_select[1, paste0("X", 1:5)]))
   expressions_utilisees <- expressions_utilisees[!is.na(expressions_utilisees) & expressions_utilisees != "0"]
   variables_requises <- unique(unlist(regmatches(expressions_utilisees,
                                                  gregexpr("[A-Za-z_][A-Za-z0-9_]*", expressions_utilisees))))
 
-  # Vérifier si ces variables sont présentes
+  # Verifier si ces variables sont presentes
   for (var in variables_requises) {
     if (!(var %in% colnames(df))) {
       stop(paste("La variable", var,
-                 "est requise par l'équation sélectionnée (id_equation =",
-                 id_equation, ") mais absente des données."))
+                 "est requise par l'equation selectionnee (id_equation =",
+                 id_equation, ") mais absente des donnees."))
     }
   }
 
@@ -237,8 +237,8 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     df$Volume[i] <- volume
   }
 
-  # La colonne Essence est conservée même si elle a été créée pendant l'exécution
-  # Aucun code de nettoyage n'est nécessaire ici
+  # La colonne Essence est conservee meme si elle a ete creee pendant l'execution
+  # Aucun code de nettoyage n'est necessaire ici
 
   # Nettoyage final si demande
   if (remove_na) {

@@ -15,7 +15,8 @@ calculer_volumes(
 )
 }
 \arguments{
-\item{df}{Un data frame contenant les donnees des arbres (ex. C130, Htot, Essence...)}
+\item{df}{Un data frame contenant les donnees des arbres avec au moins une colonne d'identification
+d'essence ("Essence", "Code", ou "Abr")}
 
 \item{type_volume}{Type de volume a calculer (ex: "VC22", "VC22B", "E", "VC22_HA")}
 
@@ -27,13 +28,13 @@ calculer_volumes(
 
 \item{coefs_conversion}{(Optionnel) Data frame pour convertir C150 en C130 (doit contenir "Essence" et "Coef_C150_C130")}
 
-\item{remove_na}{(Optionnel) Si TRUE, supprime les lignes où aucun volume n’a pu etre calcule (par defaut = FALSE)}
+\item{remove_na}{(Optionnel) Si TRUE, supprime les lignes où aucun volume n'a pu etre calcule (par defaut = FALSE)}
 }
 \value{
-Un data frame avec les colonnes d’origine augmentees de :
+Un data frame avec les colonnes d'origine augmentees de :
 \itemize{
-  \item `Volume` : volume calcule selon l’equation choisie
-  \item `Equation_Utilisee` : description de l’equation utilisee
+  \item `Volume` : volume calcule selon l'equation choisie
+  \item `Equation_Utilisee` : description de l'equation utilisee
 }
 }
 \description{
