@@ -116,11 +116,11 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
   # Calcul des surfaces terrieres si necessaires
   if (!"G130" %in% colnames(df) && "C130" %in% colnames(df)) {
-    df$G130 <- (df$C130^2) / (4 * pi)
+    df$G130 <- (df$C130^2) / ((4 * pi)*10000)
   }
 
   if (!"G150" %in% colnames(df) && "C150" %in% colnames(df)) {
-    df$G150 <- (df$C150^2) / (4 * pi)
+    df$G150 <- (df$C150^2) / ((4 * pi)*10000)
   }
 
   # Filtrer les equations
@@ -183,6 +183,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   # Calcul pour chaque ligne
   for (i in seq_len(nrow(df))) {
     essence_arbre <- df$Essence[i]
+    cat("Traitement ligne", i, "essence:", essence_arbre, "\n")
 
     eq_candidates <- if (!is.null(essence)) {
       eqs_volume[eqs_volume$Essences == essence, ]
@@ -242,8 +243,9 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
       warning(paste("Resultat de volume non valide a la ligne", i, ":", volume))
       next
     }
-
+    cat("  Volume calculé:", volume, "\n")
     df$Volume[i] <- volume
+    cat("  Volume stocké:", df$Volume[i], "\n")
   }
 
   # La colonne Essence est conservee meme si elle a ete creee pendant l'execution
