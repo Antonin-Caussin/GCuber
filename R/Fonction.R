@@ -3,13 +3,14 @@
 #' Cette fonction applique des equations allometriques pour estimer le volume
 #' des arbres a partir de differentes variables dendrometriques.
 #'
-#' @param df Un data frame contenant les donnees des arbres (ex. C130, Htot, Essence...)
+#' @param df Un data frame contenant les donnees des arbres avec au moins une colonne d'identification
+#'        d'essence ("Essence", "Code", ou "Abr")
 #' @param type_volume Type de volume a calculer (ex: "VC22", "VC22B", "E", "VC22_HA")
 #' @param essence Essence d'arbre specifique. Si NULL (par defaut), l'essence est lue ligne par ligne dans `df`.
 #' @param equations_df Le data frame contenant les equations allometriques a appliquer
 #' @param id_equation Indice de l'equation a utiliser si plusieurs sont disponibles (par defaut = 1)
 #' @param coefs_conversion (Optionnel) Data frame pour convertir C150 en C130 (doit contenir "Essence" et "Coef_C150_C130")
-#' @param remove_na (Optionnel) Si TRUE, supprime les lignes où aucun volume n’a pu etre calcule (par defaut = FALSE)
+#' @param remove_na (Optionnel) Si TRUE, supprime les lignes où aucun volume n'a pu etre calcule (par defaut = FALSE)
 #'
 #' @details
 #' Le champ `A0` dans les equations allometriques indique le type de formule utilisee :
@@ -18,10 +19,10 @@
 #'   \item{4 : Formule logarithmique du type }{ V = 10^(b0 + b1 * log10(X1)) }
 #' }
 #'
-#' @return Un data frame avec les colonnes d’origine augmentees de :
+#' @return Un data frame avec les colonnes d'origine augmentees de :
 #' \itemize{
-#'   \item `Volume` : volume calcule selon l’equation choisie
-#'   \item `Equation_Utilisee` : description de l’equation utilisee
+#'   \item `Volume` : volume calcule selon l'equation choisie
+#'   \item `Equation_Utilisee` : description de l'equation utilisee
 #' }
 #' @export
 
@@ -38,11 +39,45 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                "\nTypes valides:", paste(types_volume_valides, collapse = ", ")))
   }
 
-  # Verification des colonnes requises
-  if (!all(c("Essence") %in% colnames(df))) {
-    stop("Le fichier doit contenir au moins la colonne 'Essence'")
+  # Vérification et préparation des identifiants d'essence
+  colonnes_id_essence <- c("Essence", "Code", "Abr")
+  colonne_essence_trouvee <- NULL
+
+  # Vérifie quelles colonnes d'identification sont présentes dans df
+  colonnes_presentes <- intersect(colonnes_id_essence, colnames(df))
+
+  if (length(colonnes_presentes) == 0) {
+    stop("Le fichier doit contenir au moins une des colonnes suivantes: 'Essence', 'Code', ou 'Abr'")
   }
 
+  # Utilise la première colonne présente comme identifiant d'essence
+  colonne_essence_trouvee <- colonnes_presentes[1]
+
+  # Si nécessaire, ajoute une colonne Essence standardisée pour correspondre aux équations
+  if (colonne_essence_trouvee != "Essence") {
+    # Extrait les correspondances uniques des essences depuis equations_df
+    if (!all(c("Essences", colonne_essence_trouvee) %in% colnames(equations_df))) {
+      stop(paste("Le dataframe 'equations_df' doit contenir les colonnes 'Essences' et '",
+                 colonne_essence_trouvee, "'", sep=""))
+    }
+
+    # Crée un dataframe de correspondance à partir de equations_df
+    mapping_df <- unique(equations_df[, c("Essences", colonne_essence_trouvee)])
+    names(mapping_df)[names(mapping_df) == "Essences"] <- "Essence"  # Standardise le nom
+
+    # Crée une colonne temporaire Essence pour les calculs
+    df <- merge(df, mapping_df, by = colonne_essence_trouvee, all.x = TRUE)
+
+    # Vérifier si des correspondances n'ont pas été trouvées
+    if (any(is.na(df$Essence))) {
+      na_values <- unique(df[[colonne_essence_trouvee]][is.na(df$Essence)])
+      warning(paste("Aucune correspondance trouvée pour les valeurs suivantes de",
+                    colonne_essence_trouvee, ":", paste(na_values, collapse=", ")))
+
+    }
+  }
+
+  # Verification des colonnes requises pour le diamètre
   if (!any(c("C130", "C150") %in% colnames(df))) {
     stop("Le fichier doit contenir au moins une colonne 'C130' ou 'C150'")
   }
@@ -202,6 +237,9 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
     df$Volume[i] <- volume
   }
+
+  # La colonne Essence est conservée même si elle a été créée pendant l'exécution
+  # Aucun code de nettoyage n'est nécessaire ici
 
   # Nettoyage final si demande
   if (remove_na) {
