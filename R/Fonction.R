@@ -33,6 +33,24 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   # Liste des types de volume valides
   types_volume_valides <- c("VC22", "VC22B", "E", "VC22_HA")
 
+  # Vérifier la cohérence entre type_volume et id_equation
+  if (type_volume == "VC22" && !(id_equation %in% 1:3)) {
+    stop("Pour le type de volume 'VC22', id_equation doit être entre 1 et 3.")
+  }
+
+  if (type_volume == "E" && !(id_equation %in% 4:5)) {
+    stop("Pour le type de volume 'E', id_equation doit être 4 ou 5.")
+  }
+
+  if (type_volume == "VC22_ha" && id_equation != 1) {
+    stop("Pour le type de volume 'VC22_ha', id_equation doit être 1.")
+  }
+
+  if (type_volume == "VC22B" && id_equation != 1) {
+    stop("Pour le type de volume 'VC22B', id_equation doit être 1.")
+  }
+
+
   # Verification du type de volume
   if (!(type_volume %in% types_volume_valides)) {
     stop(paste("Type de volume invalide:", type_volume,
@@ -130,11 +148,6 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     eq_candidates_check <- eqs_volume[eqs_volume$Essences %in% unique_essences, ]
     if (nrow(eq_candidates_check) == 0)
       eq_candidates_check <- eqs_volume[eqs_volume$Essences == "General", ]
-  }
-
-  if (nrow(eq_candidates_check) < id_equation) {
-    stop(paste("id_equation =", id_equation,
-               "depasse le nombre d'equations disponibles pour l'essence specifiee"))
   }
 
   # Verifier uniquement pour l'equation selectionnee
