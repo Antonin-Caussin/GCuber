@@ -2,7 +2,7 @@
 #'
 #' @param donnees_arbres Un data frame contenant les colonnes 'Essence', 'VC22' ou 'VC22B'
 #' @param essence Essence ciblee (ou NULL pour utiliser celle de chaque ligne)
-#' @param colonne_volume Nom de la colonne de volume à utiliser (NULL utilise celle specifiee dans les equations internes)
+#' @param volume Nom de la colonne de volume à utiliser (NULL utilise celle specifiee dans les equations internes)
 #' @param afficher_warnings Booleen indiquant si les warnings doivent etre affiches (TRUE) ou stockes (FALSE)
 #' @return Le data frame d'entree avec les colonnes supplementaires 'Biomasse', 'Carbone' et 'Messages' si afficher_warnings=FALSE
 #' @export
@@ -17,7 +17,7 @@
 
 calculer_biomasse <- function(donnees_arbres,
                               essence = NULL,
-                              colonne_volume = NULL,
+                              volume = NULL,
                               afficher_warnings = TRUE) {
 
   # Verification de la colonne Essence
@@ -90,7 +90,7 @@ calculer_biomasse <- function(donnees_arbres,
     }
 
     # Determiner quelle colonne de volume utiliser
-    volume_col <- colonne_volume
+    volume_col <- volume
     if (is.null(volume_col)) {
       # Utiliser "VC22" comme valeur par defaut
       volume_col <- "VC22"
