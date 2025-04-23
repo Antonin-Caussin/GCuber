@@ -123,4 +123,3 @@ test_that("Erreur si C130 et C150 sont absents des donnees", {
     "Le fichier doit contenir au moins une colonne 'C130' ou 'C150'"
   )
 })
-
