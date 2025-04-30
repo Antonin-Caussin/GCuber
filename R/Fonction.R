@@ -1,7 +1,8 @@
 calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              equations_df = equations, id_equation = 1,
                              coefs_conversion = NULL, remove_na = FALSE,
-                             C130 = "C130", C150 = "C150",
+                             col_c130 = "C130", col_c150 = "C150",
+                             col_htot = "HTOT", col_hdom = "HDOM",
                              col_essence = NULL, col_code = NULL, col_abr = NULL) {
 
   # Liste des types de volume valides
@@ -63,11 +64,11 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   }
 
   # Vérifier si les colonnes de diamètre existent
-  C130_exists <- C130 %in% colnames(df)
-  C150_exists <- C150 %in% colnames(df)
+  col_c130_exists <- col_c130 %in% colnames(df)
+  col_c150_exists <- col_c150 %in% colnames(df)
 
-  if (!C130_exists && !C150_exists) {
-    stop(paste("Aucune des colonnes de diamètre spécifiées ('", C130, "' ou '", C150, "') n'existe dans les données.", sep=""))
+  if (!col_c130_exists && !col_c150_exists) {
+    stop(paste("Aucune des colonnes de diamètre spécifiées ('", col_c130, "' ou '", col_c150, "') n'existe dans les données.", sep=""))
   }
 
   # Créer une copie de df pour éviter de modifier le dataframe original
@@ -100,7 +101,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   }
 
   # Conversion C150 en C130 si nécessaire
-  if (!C130_exists && C150_exists) {
+  if (!col_c130_exists && col_c150_exists) {
     if (is.null(coefs_conversion)) {
       stop("Le tableau 'coefs_conversion' est requis pour convertir C150 en C130.")
     }
@@ -112,12 +113,25 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     }
 
     # Créer C130 à partir de C150
-    df_result$C130 <- df_result[[C150]] * df_result$Coef_C150_C130
-  } else if (C130_exists) {
+    df_result$C130 <- df_result[[col_c150]] * df_result$Coef_C150_C130
+  } else if (col_c130_exists) {
     # Copier la colonne spécifiée vers C130 si elle n'est pas déjà nommée "C130"
-    if (C130 != "C130") {
-      df_result$C130 <- df_result[[C130]]
+    if (col_c130 != "C130") {
+      df_result$C130 <- df_result[[col_c130]]
     }
+  }
+
+  # Vérifier et gérer les colonnes de hauteur
+  col_htot_exists <- col_htot %in% colnames(df_result)
+  col_hdom_exists <- col_hdom %in% colnames(df_result)
+
+  # Copier les colonnes de hauteur si nécessaire
+  if (col_htot_exists && col_htot != "HTOT") {
+    df_result$HTOT <- df_result[[col_htot]]
+  }
+
+  if (col_hdom_exists && col_hdom != "HDOM") {
+    df_result$HDOM <- df_result[[col_hdom]]
   }
 
   # Calcul des surfaces terrieres si necessaires
@@ -125,9 +139,9 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     df_result$G130 <- (df_result$C130^2) / ((4 * pi)*10000)
   }
 
-  if (!"G150" %in% colnames(df_result) && C150_exists) {
+  if (!"G150" %in% colnames(df_result) && col_c150_exists) {
     # Utiliser le nom de colonne spécifié pour C150
-    df_result$G150 <- (df_result[[C150]]^2) / ((4 * pi)*10000)
+    df_result$G150 <- (df_result[[col_c150]]^2) / ((4 * pi)*10000)
   }
 
   # Filtrer les equations
