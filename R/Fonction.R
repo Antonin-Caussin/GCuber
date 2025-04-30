@@ -1,31 +1,3 @@
-#' Calcule les volumes forestiers selon differentes methodes
-#'
-#' Cette fonction applique des equations allometriques pour estimer le volume
-#' des arbres a partir de differentes variables dendrometriques.
-#'
-#' @param df Un data frame contenant les donnees des arbres avec au moins une colonne d'identification
-#'        d'essence ("Essence", "Code", ou "Abr")
-#' @param type_volume Type de volume a calculer (ex: "VC22", "VC22B", "E", "VC22_HA")
-#' @param essence Essence d'arbre specifique. Si NULL (par defaut), l'essence est lue ligne par ligne dans `df`.
-#' @param equations_df Le data frame contenant les equations allometriques a appliquer
-#' @param id_equation Indice de l'equation a utiliser si plusieurs sont disponibles (par defaut = 1)
-#' @param coefs_conversion (Optionnel) Data frame pour convertir C150 en C130 (doit contenir "Essence" et "Coef_C150_C130")
-#' @param remove_na (Optionnel) Si TRUE, supprime les lignes où aucun volume n'a pu etre calcule (par defaut = FALSE)
-#'
-#' @details
-#' Le champ `A0` dans les equations allometriques indique le type de formule utilisee :
-#' \itemize{
-#'   \item{1, 2, 3, 5 : Formule lineaire du type }{ V = b0 + b1*X1 + b2*X2 + ... }
-#'   \item{4 : Formule logarithmique du type }{ V = 10^(b0 + b1 * log10(X1)) }
-#' }
-#'
-#' @return Un data frame avec les colonnes d'origine augmentees de :
-#' \itemize{
-#'   \item `Volume` : volume calcule selon l'equation choisie
-#'   \item `Equation_Utilisee` : description de l'equation utilisee
-#' }
-#' @export
-
 calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              equations_df = equations, id_equation = 1,
                              coefs_conversion = NULL, remove_na = FALSE) {
@@ -38,9 +10,9 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     stop("Pour le type de volume 'VC22', id_equation doit etre entre 1 et 3.")
   }
 
-  if (type_volume == "E" && !(id_equation %in% 4:5)) {
-    stop("Pour le type de volume 'E', id_equation doit etre 4 ou 5.")
-  }
+  #if (type_volume == "E" && !(id_equation %in% 4:5)) {
+  #stop("Pour le type de volume 'E', id_equation doit etre 4 ou 5.")
+  #}
 
   if (type_volume == "VC22_ha" && id_equation != 1) {
     stop("Pour le type de volume 'VC22_HA', id_equation doit etre 1.")
@@ -71,7 +43,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   # Utilise la premiere colonne presente comme identifiant d'essence
   colonne_essence_trouvee <- colonnes_presentes[1]
 
-  # Si necessaire, ajoute une colonne Essence standardisee pour correspondre aux equations
+  # Si necessaire, ajoute une colonne Essence pour correspondre aux equations
   if (colonne_essence_trouvee != "Essence") {
     # Extrait les correspondances uniques des essences depuis equations_df
     if (!all(c("Essences", colonne_essence_trouvee) %in% colnames(equations_df))) {
@@ -79,7 +51,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                  colonne_essence_trouvee, "'", sep=""))
     }
 
-    # Cree un dataframe de correspondance à partir de equations_df
+    # Cree un dataframe de correspondance a partir de equations_df
     mapping_df <- unique(equations_df[, c("Essences", colonne_essence_trouvee)])
     names(mapping_df)[names(mapping_df) == "Essences"] <- "Essence"  # Standardise le nom
 
@@ -129,45 +101,18 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     stop(paste("Aucune equation trouvee pour le type de volume:", type_volume))
   }
 
-  # S'assurer que les coefficients b0 à b5 sont numeriques
+  # S'assurer que les coefficients b0 a b5 sont numeriques
   colonnes_b <- paste0("b", 0:5)
   eqs_volume[colonnes_b] <- lapply(eqs_volume[colonnes_b], as.numeric)
 
 
   # Initialisation
   df$Equation_Utilisee <- NA_character_
-  df$Volume <- NA_real_
 
-  # Verifier les variables requises pour l'equation choisie uniquement
-  if (!is.null(essence)) {
-    eq_candidates_check <- eqs_volume[eqs_volume$Essences == essence, ]
-  } else {
-    # On cherche les equations correspondant aux essences dans le dataframe
-    # ou l'equation generale si aucune ne correspond
-    unique_essences <- unique(df$Essence)
-    eq_candidates_check <- eqs_volume[eqs_volume$Essences %in% unique_essences, ]
-    if (nrow(eq_candidates_check) == 0)
-      eq_candidates_check <- eqs_volume[eqs_volume$Essences == "General", ]
+  # Initialisation de la colonne de volume spécifiée par l'utilisateur
+  if (!(type_volume %in% names(df))) {
+    df[[type_volume]] <- NA_real_
   }
-
-  # Verifier uniquement pour l'equation selectionnee
-  eq_select <- eq_candidates_check[id_equation, , drop = FALSE]
-
-  # Extraire les variables requises par cette equation specifique
-  expressions_utilisees <- as.character(unlist(eq_select[1, paste0("X", 1:5)]))
-  expressions_utilisees <- expressions_utilisees[!is.na(expressions_utilisees) & expressions_utilisees != "0"]
-  variables_requises <- unique(unlist(regmatches(expressions_utilisees,
-                                                 gregexpr("[A-Za-z_][A-Za-z0-9_]*", expressions_utilisees))))
-
-  # Verifier si ces variables sont presentes
-  for (var in variables_requises) {
-    if (!(var %in% colnames(df))) {
-      stop(paste("La variable", var,
-                 "est requise par l'equation selectionnee (id_equation =",
-                 id_equation, ") mais absente des donnees."))
-    }
-  }
-
 
   # Fonction d'evaluation securisee
   evaluer_expression <- function(expr_text, variables) {
@@ -188,14 +133,27 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     eq_candidates <- if (!is.null(essence)) {
       eqs_volume[eqs_volume$Essences == essence, ]
     } else {
-      eq_found <- eqs_volume[eqs_volume$Essences == essence_arbre, ]
-    }
-    if (nrow(eq_candidates) == 0) {
-      warning(paste("Pas d'equation trouvee pour l'essence:", essence_arbre))
-      next
+      eqs_volume[eqs_volume$Essences == essence_arbre, ]
     }
 
-    eq <- eq_candidates[id_equation, , drop = FALSE]
+    if (nrow(eq_candidates) == 0) {
+      # Si aucune équation spécifique n'est trouvée, utiliser l'équation générale
+      eq_candidates <- eqs_volume[eqs_volume$Essences == "General", ]
+      if (nrow(eq_candidates) == 0) {
+        warning(paste("Pas d'equation trouvee pour l'essence:", essence_arbre))
+        next
+      }
+    }
+
+    # Vérifier si l'index d'équation demandé est disponible
+    if (id_equation > nrow(eq_candidates)) {
+      warning(paste("L'équation avec id", id_equation, "n'existe pas pour l'essence", essence_arbre,
+                    ". Utilisation de l'équation 1 à la place."))
+      eq <- eq_candidates[1, , drop = FALSE]
+    } else {
+      eq <- eq_candidates[id_equation, , drop = FALSE]
+    }
+
     df$Equation_Utilisee[i] <- paste0(eq$Essences, ":", eq$Y, ":A0=", eq$A0)
 
     exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
@@ -215,7 +173,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
     # Ajoutez cette verification ici
     if (is.na(a0_value)) {
-      warning(paste("Valeur A0 manquante pour l'essence", essence_arbre, "à la ligne", i))
+      warning(paste("Valeur A0 manquante pour l'essence", essence_arbre, "a la ligne", i))
       next
     } else if (a0_value %in% c(1, 2, 3, 5)) {
       volume <- eq$b0[1]
@@ -243,21 +201,18 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
       warning(paste("Resultat de volume non valide a la ligne", i, ":", volume))
       next
     }
-    cat("  Volume calcule:", volume, "\n")
-    colonne_volume <- type_volume  # Utilise le nom du type de volume specifie en parametre
-    if (!(colonne_volume %in% names(df))) {
-      df[[colonne_volume]] <- NA_real_  # Cree la colonne si elle n'existe pas
-    }
-    df[[colonne_volume]] <- volume
-    cat("  Volume stocke:", df[[colonne_volume]], "\n")
-  }
 
-  # La colonne Essence est conservee meme si elle a ete creee pendant l'execution
-  # Aucun code de nettoyage n'est necessaire ici
+    cat("  Volume calcule:", volume, "\n")
+
+    # Stocker le volume uniquement pour cette ligne, dans la colonne spécifiée par type_volume
+    df[[type_volume]][i] <- volume
+
+    cat("  Volume stocke a la ligne", i, ":", df[[type_volume]][i], "\n")
+  }
 
   # Nettoyage final si demande
   if (remove_na) {
-    df <- df[!is.na(df$Volume), ]
+    df <- df[!is.na(df[[type_volume]]), ]
   }
 
   return(df)

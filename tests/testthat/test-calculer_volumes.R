@@ -19,7 +19,7 @@ test_that("Volume est bien calcule avec a0 = 4 (log)", {
     C130 = 40
   )
 
-  result <- calculer_volumes(df = df_test, type_volume = "E", id_equation = 4)
+  result <- calculer_volumes(df = df_test, type_volume = "E", id_equation = 5)
 
   expect_true(result$Volume > 0)
 })
