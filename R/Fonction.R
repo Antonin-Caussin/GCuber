@@ -1,9 +1,194 @@
+#' Calcule différents types de volumes d'arbres à partir de données dendrométriques
+#'
+#' Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
+#' dendrométriques en utilisant diverses équations allométriques. Elle gère la diversité
+#' des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
+#' à différentes structures de données d'entrée.
+#'
+#' @param df Un data frame contenant les données dendrométriques des arbres.
+#' @param type_volume Le type de volume à calculer. Valeurs valides : "VC22", "VC22B", "E", "VC22_HA". Par défaut : "VC22".
+#' @param essence Optionnel. Si spécifié, les calculs seront effectués uniquement avec les équations correspondant
+#'        à cette essence. Par défaut : NULL (utilise les essences indiquées dans les données).
+#' @param equations_df Un data frame contenant les équations allométriques à utiliser. Par défaut : equations.
+#' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence. Par défaut : 1.
+#' @param coefs_conversion Table de conversion entre C150 et C130. Requis si les données contiennent C150
+#'        mais pas C130. Par défaut : NULL.
+#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doivent être supprimées.
+#'        Par défaut : FALSE.
+#' @param C130 Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".
+#' @param C150 Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".
+#' @param HTOT Nom de la colonne contenant la hauteur totale. Par défaut : "HTOT".
+#' @param HDOM Nom de la colonne contenant la hauteur dominante. Par défaut : "HDOM".
+#' @param specimens Optionnel. Nom de la colonne contenant l'identifiant des essences
+#'        (nom complet, code ou abréviation). Par défaut : NULL.
+#'
+#' @details
+#' \subsection{Types de volume supportés}{
+#'   \itemize{
+#'     \item \strong{VC22} : Volume commercial jusqu'à une découpe de 22 cm de circonférence.
+#'     \item \strong{VC22B} : Variante du volume commercial.
+#'     \item \strong{E} : Volume total de l'arbre.
+#'     \item \strong{VC22_HA} : Volume commercial par hectare.
+#'   }
+#' }
+#'
+#' \subsection{Structure des données d'entrée requise}{
+#'   La fonction nécessite au minimum :
+#'   \itemize{
+#'     \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}
+#'           ou par défaut "Essence", "Code" ou "Abr").
+#'     \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
+#'   }
+#' }
+#'
+#' \subsection{Structure du data frame des équations}{
+#'   Le data frame \code{equations_df} doit contenir au minimum les colonnes suivantes :
+#'   \itemize{
+#'     \item \code{Essences} : Nom de l'essence ou "General" pour l'équation générique.
+#'     \item \code{Y} : Type de volume ("VC22", "VC22B", "E", "VC22_HA").
+#'     \item \code{A0} : Type d'équation (1-5).
+#'     \item \code{X1} à \code{X5} : Expressions des variables indépendantes.
+#'     \item \code{b0} à \code{b5} : Coefficients de l'équation.
+#'   }
+#'
+#'   Si \code{specimens} spécifie une colonne autre que "Essence", \code{equations_df} doit
+#'   également contenir cette colonne pour permettre la correspondance.
+#' }
+#'
+#' \subsection{Structure du data frame des coefficients de conversion}{
+#'   Si \code{coefs_conversion} est fourni, il doit contenir au minimum :
+#'   \itemize{
+#'     \item \code{Essence} : Nom de l'essence.
+#'     \item \code{Coef_C150_C130} : Coefficient de conversion de C150 à C130.
+#'   }
+#' }
+#'
+#' \subsection{Types d'équations supportés (valeurs de A0)}{
+#'   \enumerate{
+#'     \item Équation linéaire standard : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Équation linéaire variante 1
+#'     \item Équation linéaire variante 2
+#'     \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
+#'     \item Équation linéaire variante 3
+#'   }
+#' }
+#'
+#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suivantes :
+#' \itemize{
+#'   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
+#'   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
+#'   \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
+#'   \item Si le mapping d'essence a été nécessaire, une colonne \code{Essence} est ajoutée.
+#' }
+#'
+#' Calcule différents types de volumes d'arbres à partir de données dendrométriques
+#'
+#' Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
+#' dendrométriques en utilisant diverses équations allométriques. Elle gère la diversité
+#' des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
+#' à différentes structures de données d'entrée.
+#'
+#' @param df Un data frame contenant les données dendrométriques des arbres.
+#' @param type_volume Le type de volume à calculer. Valeurs valides : "VC22", "VC22B", "E", "VC22_HA". Par défaut : "VC22".
+#' @param essence Optionnel. Si spécifié, les calculs seront effectués uniquement avec les équations correspondant
+#'        à cette essence. Par défaut : NULL (utilise les essences indiquées dans les données).
+#' @param equations_df Un data frame contenant les équations allométriques à utiliser. Par défaut : equations.
+#' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence. Par défaut : 1.
+#' @param coefs_conversion Table de conversion entre C150 et C130. Requis si les données contiennent C150
+#'        mais pas C130. Par défaut : NULL.
+#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doivent être supprimées.
+#'        Par défaut : FALSE.
+#' @param C130 Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".
+#' @param C150 Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".
+#' @param HTOT Nom de la colonne contenant la hauteur totale. Par défaut : "HTOT".
+#' @param HDOM Nom de la colonne contenant la hauteur dominante. Par défaut : "HDOM".
+#' @param specimens Optionnel. Nom de la colonne contenant l'identifiant des essences
+#'        (nom complet, code ou abréviation). Par défaut : NULL.
+#'
+#' @details
+#' \subsection{Types de volume supportés}{
+#'   \itemize{
+#'     \item \strong{VC22} : Volume commercial jusqu'à une découpe de 22 cm de circonférence.
+#'     \item \strong{VC22B} : Variante du volume commercial.
+#'     \item \strong{E} : Volume total de l'arbre.
+#'     \item \strong{VC22_HA} : Volume commercial par hectare.
+#'   }
+#' }
+#'
+#' \subsection{Structure des données d'entrée requise}{
+#'   La fonction nécessite au minimum :
+#'   \itemize{
+#'     \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}
+#'           ou par défaut "Essence", "Code" ou "Abr").
+#'     \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
+#'   }
+#' }
+#'
+#' \subsection{Types d'équations supportés}{
+#'   \enumerate{
+#'     \item Équation linéaire standard : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
+#'   }
+#' }
+#'
+#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suivantes :
+#' \itemize{
+#'   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
+#'   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
+#'   \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
+#'   \item Si le mapping d'essence a été nécessaire, une colonne \code{Essence} est ajoutée.
+#' }
+#'
+#' @examples
+#' # Exemple de base avec données standard
+#' # Supposons que nous avons un data frame "donnees_arbres" avec des colonnes C130 et Essence
+#' \dontrun{
+#' resultats <- calculer_volumes(
+#'   df = donnees_arbres,
+#'   type_volume = "VC22"
+#' )
+#'
+#' # Exemple avec noms de colonnes personnalisés
+#' resultats <- calculer_volumes(
+#'   df = donnees_arbres,
+#'   type_volume = "E",
+#'   id_equation = 2,
+#'   C130 = "Circonference130",
+#'   HTOT = "HauteurTotale",
+#'   specimens = "NomEssence"
+#' )
+#'
+#' # Exemple avec conversion C150 à C130
+#' resultats <- calculer_volumes(
+#'   df = donnees_arbres,
+#'   type_volume = "VC22",
+#'   C150 = "Circ150"
+#' )
+#' }
+#'
+#' @note
+#' La fonction affiche des messages d'information pendant l'exécution pour faciliter le débogage.
+#' Des avertissements sont émis si des correspondances d'essences ne sont pas trouvées ou si
+#' le calcul du volume échoue pour certaines lignes.
+#' Pour les essences non trouvées dans les équations, la fonction tente d'utiliser une équation
+#' générique ("General").
+#'
+#' @seealso
+#' Fonctions connexes pour la gestion forestière et les calculs dendrométriques.
+#'
+#' @author Caussin Antonin
+#' @references
+#' Dagnelie, P., Rondeux, J., & Thill, A. (1985). Tables de cubage des arbres et des peuplements forestiers. Gembloux, Belgique: Presses agronomiques de Gembloux.
+#'
+#' @importFrom stats na.omit
+#' @export
+
 calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              equations_df = equations, id_equation = 1,
                              coefs_conversion = NULL, remove_na = FALSE,
-                             col_c130 = "C130", col_c150 = "C150",
-                             col_htot = "HTOT", col_hdom = "HDOM",
-                             col_essence = NULL, col_code = NULL, col_abr = NULL) {
+                             C130 = "C130", C150 = "C150",
+                             HTOT = "HTOT", HDOM = "HDOM",
+                             specimens = NULL) {
 
   # Liste des types de volume valides
   types_volume_valides <- c("VC22", "VC22B", "E", "VC22_HA")
@@ -34,14 +219,53 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   # Définir un mapping entre les noms de colonnes standard et les noms fournis par l'utilisateur
   col_mapping <- list()
 
-  # Colonnes d'identification d'essence
+  # Gestion du paramètre specimens pour l'identification des essences
   colonnes_id_essence <- list()
-  if (!is.null(col_essence)) colonnes_id_essence[["Essence"]] <- col_essence
-  if (!is.null(col_code)) colonnes_id_essence[["Code"]] <- col_code
-  if (!is.null(col_abr)) colonnes_id_essence[["Abr"]] <- col_abr
+  type_specimens <- NULL
 
-  # Si aucune colonne d'identification n'est spécifiée, chercher les colonnes standard
-  if (length(colonnes_id_essence) == 0) {
+  if (!is.null(specimens)) {
+    # Vérifier que la colonne spécifiée existe dans le dataframe
+    if (!(specimens %in% colnames(df))) {
+      stop(paste("La colonne spécifiée '", specimens, "' n'existe pas dans les données.", sep=""))
+    }
+
+    # Analyser le contenu de la colonne pour déterminer le type d'identifiant
+    # Prendre un échantillon de valeurs non-NA pour l'analyse
+    sample_values <- na.omit(df[[specimens]])
+
+    if (length(sample_values) == 0) {
+      stop(paste("La colonne '", specimens, "' ne contient que des valeurs manquantes.", sep=""))
+    }
+
+    # Déterminer le type d'identifiant basé sur la nature des données
+    if (is.numeric(sample_values)) {
+      # Si les valeurs sont numériques, c'est probablement un code
+      type_specimens <- "Code"
+    } else if (is.character(sample_values) || is.factor(sample_values)) {
+      # Convertir en caractère si c'est un facteur
+      if (is.factor(sample_values)) {
+        sample_values <- as.character(sample_values)
+      }
+
+      # Calculer la longueur moyenne des chaînes
+      mean_length <- mean(nchar(sample_values))
+
+      if (mean_length <= 4) {
+        # Si longueur moyenne <= 4, c'est probablement une abréviation
+        type_specimens <- "Abr"
+      } else {
+        # Sinon, c'est probablement le nom complet de l'essence
+        type_specimens <- "Essence"
+      }
+    } else {
+      stop(paste("Le type de données dans la colonne '", specimens, "' n'est pas reconnu.", sep=""))
+    }
+
+    # Ajouter au mapping
+    colonnes_id_essence[[type_specimens]] <- specimens
+    cat("Type d'identifiant détecté dans la colonne '", specimens, "': ", type_specimens, "\n", sep="")
+  } else {
+    # Si specimens n'est pas spécifié, chercher les colonnes standard
     standard_cols <- c("Essence", "Code", "Abr")
     for (std_col in standard_cols) {
       if (std_col %in% colnames(df)) {
@@ -64,11 +288,11 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   }
 
   # Vérifier si les colonnes de diamètre existent
-  col_c130_exists <- col_c130 %in% colnames(df)
-  col_c150_exists <- col_c150 %in% colnames(df)
+  C130_exists <- C130 %in% colnames(df)
+  C150_exists <- C150 %in% colnames(df)
 
-  if (!col_c130_exists && !col_c150_exists) {
-    stop(paste("Aucune des colonnes de diamètre spécifiées ('", col_c130, "' ou '", col_c150, "') n'existe dans les données.", sep=""))
+  if (!C130_exists && !C150_exists) {
+    stop(paste("Aucune des colonnes de diamètre spécifiées ('", C130, "' ou '", C150, "') n'existe dans les données.", sep=""))
   }
 
   # Créer une copie de df pour éviter de modifier le dataframe original
@@ -101,7 +325,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   }
 
   # Conversion C150 en C130 si nécessaire
-  if (!col_c130_exists && col_c150_exists) {
+  if (!C130_exists && C150_exists) {
     if (is.null(coefs_conversion)) {
       stop("Le tableau 'coefs_conversion' est requis pour convertir C150 en C130.")
     }
@@ -113,25 +337,25 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     }
 
     # Créer C130 à partir de C150
-    df_result$C130 <- df_result[[col_c150]] * df_result$Coef_C150_C130
-  } else if (col_c130_exists) {
+    df_result$C130 <- df_result[[C150]] * df_result$Coef_C150_C130
+  } else if (C130_exists) {
     # Copier la colonne spécifiée vers C130 si elle n'est pas déjà nommée "C130"
-    if (col_c130 != "C130") {
-      df_result$C130 <- df_result[[col_c130]]
+    if (C130 != "C130") {
+      df_result$C130 <- df_result[[C130]]
     }
   }
 
   # Vérifier et gérer les colonnes de hauteur
-  col_htot_exists <- col_htot %in% colnames(df_result)
-  col_hdom_exists <- col_hdom %in% colnames(df_result)
+  HTOT_exists <- HTOT %in% colnames(df_result)
+  HDOM_exists <- HDOM %in% colnames(df_result)
 
   # Copier les colonnes de hauteur si nécessaire
-  if (col_htot_exists && col_htot != "HTOT") {
-    df_result$HTOT <- df_result[[col_htot]]
+  if (HTOT_exists && HTOT != "HTOT") {
+    df_result$HTOT <- df_result[[HTOT]]
   }
 
-  if (col_hdom_exists && col_hdom != "HDOM") {
-    df_result$HDOM <- df_result[[col_hdom]]
+  if (HDOM_exists && HDOM != "HDOM") {
+    df_result$HDOM <- df_result[[HDOM]]
   }
 
   # Calcul des surfaces terrieres si necessaires
@@ -139,9 +363,9 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     df_result$G130 <- (df_result$C130^2) / ((4 * pi)*10000)
   }
 
-  if (!"G150" %in% colnames(df_result) && col_c150_exists) {
+  if (!"G150" %in% colnames(df_result) && C150_exists) {
     # Utiliser le nom de colonne spécifié pour C150
-    df_result$G150 <- (df_result[[col_c150]]^2) / ((4 * pi)*10000)
+    df_result$G150 <- (df_result[[C150]]^2) / ((4 * pi)*10000)
   }
 
   # Filtrer les equations
