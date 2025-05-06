@@ -326,25 +326,87 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
   # Conversion C150 en C130 si nécessaire
   if (!C130_exists && C150_exists) {
-    if (is.null(coefs_conversion)) {
-      stop("Le tableau 'coefs_conversion' est requis pour convertir C150 en C130.")
+    cat("Conversion de C150 en C130 nécessaire...\n")
+
+    # Extraire les coefficients par essence
+    coefs_df <- unique(equations_df[, c("Essences", "NumEquation", "Hv", "IV")])
+    names(coefs_df)[names(coefs_df) == "Essences"] <- "Essence"
+
+    # Initialiser la colonne C130 avec NA
+    df_result$C130 <- NA_real_
+
+    # Effectuer la conversion ligne par ligne
+    for (i in seq_len(nrow(df_result))) {
+      essence_arbre <- df_result$Essence[i]
+      c150_value <- df_result[[C150]][i]
+
+      if (!is.na(essence_arbre) && !is.na(c150_value)) {
+        # Trouver les coefficients pour cette essence
+        coef_row <- coefs_df[coefs_df$Essence == essence_arbre, ]
+
+        if (nrow(coef_row) > 0 && !is.na(coef_row$Hv[1]) && !is.na(coef_row$IV[1])) {
+          # Récupérer les coefficients
+          hv_coef <- coef_row$Hv[1]
+          iv_coef <- coef_row$IV[1]
+
+          # Appliquer la formule de conversion
+          # Utilisez les colonnes Hv et IV comme coefficients
+          df_result$C130[i] <- hv_coef * c150_value + iv_coef
+
+        } else {
+          warning(paste("Impossible de convertir C150 en C130 pour l'essence:", essence_arbre,
+                        "à la ligne", i, ". Coefficients manquants."))
+        }
+      }
     }
 
-    df_result <- merge(df_result, coefs_conversion, by = "Essence", all.x = TRUE)
-
-    if (any(is.na(df_result$Coef_C150_C130))) {
-      stop("Coefficient de conversion manquant pour certaines essences.")
+    # Vérifier si certaines conversions ont échoué
+    if (any(is.na(df_result$C130))) {
+      warning("Certaines conversions C150 à C130 ont échoué. Vérifiez les données.")
     }
 
-    # Créer C130 à partir de C150
-    df_result$C130 <- df_result[[C150]] * df_result$Coef_C150_C130
-  } else if (C130_exists) {
-    # Copier la colonne spécifiée vers C130 si elle n'est pas déjà nommée "C130"
-    if (C130 != "C130") {
-      df_result$C130 <- df_result[[C130]]
-    }
+    cat("Conversion C150 → C130 terminée.\n")
   }
 
+  # Conversion C130 en C150 si nécessaire
+  if (!C150_exists && C130_exists) {
+    cat("Conversion de C130 en C150 nécessaire...\n")
+
+    # Extraire les coefficients par essence
+    coefs_df <- unique(equations_df[, c("Essences", "NumEquation", "Hv", "IV")])
+    names(coefs_df)[names(coefs_df) == "Essences"] <- "Essence"
+
+    # Initialiser la colonne C150 avec NA
+    df_result[[C150]] <- NA_real_
+
+    # Effectuer la conversion ligne par ligne
+    for (i in seq_len(nrow(df_result))) {
+      essence_arbre <- df_result$Essence[i]
+      c130_value <- df_result$C130[i]
+
+      if (!is.na(essence_arbre) && !is.na(c130_value)) {
+        # Trouver les coefficients pour cette essence
+        coef_row <- coefs_df[coefs_df$Essence == essence_arbre, ]
+
+        if (nrow(coef_row) > 0 && !is.na(coef_row$Hv[1]) && !is.na(coef_row$IV[1])) {
+          # Récupérer les coefficients
+          hv_coef <- coef_row$Hv[1]
+          iv_coef <- coef_row$IV[1]
+
+          # Appliquer la formule de conversion inverse (C130 vers C150)
+          # Pour inverser C130 = hv_coef * C150 + iv_coef
+          # Nous obtenons C150 = (C130 - iv_coef) / hv_coef
+          df_result[[C150]][i] <- (c130_value - iv_coef) / hv_coef
+
+        } else {
+          warning(paste("Impossible de convertir C130 en C150 pour l'essence:", essence_arbre,
+                        "à la ligne", i, ". Coefficients manquants."))
+        }
+      }
+    }
+
+    cat("Conversion C130 → C150 terminée.\n")
+  }
   # Vérifier et gérer les colonnes de hauteur
   HTOT_exists <- HTOT %in% colnames(df_result)
   HDOM_exists <- HDOM %in% colnames(df_result)
