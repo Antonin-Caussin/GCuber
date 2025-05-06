@@ -9,7 +9,7 @@
 #' @param type_volume Le type de volume à calculer. Valeurs valides : "VC22", "VC22B", "E", "VC22_HA". Par défaut : "VC22".
 #' @param essence Optionnel. Si spécifié, les calculs seront effectués uniquement avec les équations correspondant
 #'        à cette essence. Par défaut : NULL (utilise les essences indiquées dans les données).
-#' @param equations_df Un data frame contenant les équations allométriques à utiliser. Par défaut : equations.
+#' @param equations_df Un data frame contenant les équations allométriques à utiliser. Par défaut : le data frame interne "equations"
 #' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence. Par défaut : 1.
 #' @param coefs_conversion Table de conversion entre C150 et C130. Requis si les données contiennent C150
 #'        mais pas C130. Par défaut : NULL.
@@ -38,96 +38,16 @@
 #'     \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}
 #'           ou par défaut "Essence", "Code" ou "Abr").
 #'     \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
-#'   }
-#' }
-#'
-#' \subsection{Structure du data frame des équations}{
-#'   Le data frame \code{equations_df} doit contenir au minimum les colonnes suIVantes :
-#'   \itemize{
-#'     \item \code{Essences} : Nom de l'essence ou "General" pour l'équation générique.
-#'     \item \code{Y} : Type de volume ("VC22", "VC22B", "E", "VC22_HA").
-#'     \item \code{A0} : Type d'équation (1-5).
-#'     \item \code{X1} à \code{X5} : Expressions des variables indépendantes.
-#'     \item \code{b0} à \code{b5} : Coefficients de l'équation.
-#'   }
-#'
-#'   Si \code{specimens} spécifie une colonne autre que "Essence", \code{equations_df} doit
-#'   également contenir cette colonne pour permettre la correspondance.
-#' }
-#'
-#' \subsection{Structure du data frame des coefficients de conversion}{
-#'   Si \code{coefs_conversion} est fourni, il doit contenir au minimum :
-#'   \itemize{
-#'     \item \code{Essence} : Nom de l'essence.
-#'     \item \code{Coef_C150_C130} : Coefficient de conversion de C150 à C130.
 #'   }
 #' }
 #'
 #' \subsection{Types d'équations supportés (valeurs de A0)}{
 #'   \enumerate{
-#'     \item Équation linéaire standard : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'     \item Équation linéaire variante 1
-#'     \item Équation linéaire variante 2
+#'     \item Équation linéaire standard à 1 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Équation linéaire standard à 2 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Équation linéaire standard à 3 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
 #'     \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
-#'     \item Équation linéaire variante 3
-#'   }
-#' }
-#'
-#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVantes :
-#' \itemize{
-#'   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
-#'   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
-#'   \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
-#'   \item Si le mapping d'essence a été nécessaire, une colonne \code{Essence} est ajoutée.
-#' }
-#'
-#' Calcule différents types de volumes d'arbres à partir de données dendrométriques
-#'
-#' Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-#' dendrométriques en utilisant dIVerses équations allométriques. Elle gère la dIVersité
-#' des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
-#' à différentes structures de données d'entrée.
-#'
-#' @param df Un data frame contenant les données dendrométriques des arbres.
-#' @param type_volume Le type de volume à calculer. Valeurs valides : "VC22", "VC22B", "E", "VC22_HA". Par défaut : "VC22".
-#' @param essence Optionnel. Si spécifié, les calculs seront effectués uniquement avec les équations correspondant
-#'        à cette essence. Par défaut : NULL (utilise les essences indiquées dans les données).
-#' @param equations_df Un data frame contenant les équations allométriques à utiliser. Par défaut : equations.
-#' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence. Par défaut : 1.
-#' @param coefs_conversion Table de conversion entre C150 et C130. Requis si les données contiennent C150
-#'        mais pas C130. Par défaut : NULL.
-#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doIVent être supprimées.
-#'        Par défaut : FALSE.
-#' @param C130 Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".
-#' @param C150 Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".
-#' @param HTOT Nom de la colonne contenant la hauteur totale. Par défaut : "HTOT".
-#' @param HDOM Nom de la colonne contenant la hauteur dominante. Par défaut : "HDOM".
-#' @param specimens Optionnel. Nom de la colonne contenant l'identifiant des essences
-#'        (nom complet, code ou abréviation). Par défaut : NULL.
-#'
-#' @details
-#' \subsection{Types de volume supportés}{
-#'   \itemize{
-#'     \item \strong{VC22} : Volume commercial jusqu'à une découpe de 22 cm de circonférence.
-#'     \item \strong{VC22B} : Variante du volume commercial.
-#'     \item \strong{E} : Volume total de l'arbre.
-#'     \item \strong{VC22_HA} : Volume commercial par hectare.
-#'   }
-#' }
-#'
-#' \subsection{Structure des données d'entrée requise}{
-#'   La fonction nécessite au minimum :
-#'   \itemize{
-#'     \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}
-#'           ou par défaut "Essence", "Code" ou "Abr").
-#'     \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
-#'   }
-#' }
-#'
-#' \subsection{Types d'équations supportés}{
-#'   \enumerate{
-#'     \item Équation linéaire standard : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'     \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
+#'     \item Équation linéaire standard à une entrée pour le volume d'ecorce : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
 #'   }
 #' }
 #'
@@ -185,7 +105,7 @@
 
 calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              equations_df = equations, id_equation = 1,
-                             coefs_conversion = NULL, remove_na = FALSE,
+                              remove_na = FALSE,
                              C130 = "C130", C150 = "C150",
                              HTOT = "HTOT", HDOM = "HDOM",
                              specimens = NULL) {

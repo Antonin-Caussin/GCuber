@@ -56,21 +56,6 @@ Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVante
   \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
   \item Si le mapping d'essence a été nécessaire, une colonne \code{Essence} est ajoutée.
 }
-
-Calcule différents types de volumes d'arbres à partir de données dendrométriques
-
-Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-dendrométriques en utilisant dIVerses équations allométriques. Elle gère la dIVersité
-des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
-à différentes structures de données d'entrée.
-
-Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVantes :
-\itemize{
-  \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
-  \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
-  \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
-  \item Si le mapping d'essence a été nécessaire, une colonne \code{Essence} est ajoutée.
-}
 }
 \description{
 Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
@@ -97,60 +82,13 @@ des essences forestières, les différentes méthodes de mesure (C130, C150) et 
   }
 }
 
-\subsection{Structure du data frame des équations}{
-  Le data frame \code{equations_df} doit contenir au minimum les colonnes suIVantes :
-  \itemize{
-    \item \code{Essences} : Nom de l'essence ou "General" pour l'équation générique.
-    \item \code{Y} : Type de volume ("VC22", "VC22B", "E", "VC22_HA").
-    \item \code{A0} : Type d'équation (1-5).
-    \item \code{X1} à \code{X5} : Expressions des variables indépendantes.
-    \item \code{b0} à \code{b5} : Coefficients de l'équation.
-  }
-
-  Si \code{specimens} spécifie une colonne autre que "Essence", \code{equations_df} doit
-  également contenir cette colonne pour permettre la correspondance.
-}
-
-\subsection{Structure du data frame des coefficients de conversion}{
-  Si \code{coefs_conversion} est fourni, il doit contenir au minimum :
-  \itemize{
-    \item \code{Essence} : Nom de l'essence.
-    \item \code{Coef_C150_C130} : Coefficient de conversion de C150 à C130.
-  }
-}
-
 \subsection{Types d'équations supportés (valeurs de A0)}{
   \enumerate{
-    \item Équation linéaire standard : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-    \item Équation linéaire variante 1
-    \item Équation linéaire variante 2
+    \item Équation linéaire standard à 1 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+    \item Équation linéaire standard à 2 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+    \item Équation linéaire standard à 3 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
     \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
-    \item Équation linéaire variante 3
-  }
-}
-
-\subsection{Types de volume supportés}{
-  \itemize{
-    \item \strong{VC22} : Volume commercial jusqu'à une découpe de 22 cm de circonférence.
-    \item \strong{VC22B} : Variante du volume commercial.
-    \item \strong{E} : Volume total de l'arbre.
-    \item \strong{VC22_HA} : Volume commercial par hectare.
-  }
-}
-
-\subsection{Structure des données d'entrée requise}{
-  La fonction nécessite au minimum :
-  \itemize{
-    \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}
-          ou par défaut "Essence", "Code" ou "Abr").
-    \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
-  }
-}
-
-\subsection{Types d'équations supportés}{
-  \enumerate{
-    \item Équation linéaire standard : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-    \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
+    \item Équation linéaire standard à une entrée pour le volume d'ecorce : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
   }
 }
 }
