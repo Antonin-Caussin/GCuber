@@ -1,7 +1,7 @@
 #' Calcule différents types de volumes d'arbres à partir de données dendrométriques
 #'
 #' Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-#' dendrométriques en utilisant diverses équations allométriques. Elle gère la diversité
+#' dendrométriques en utilisant dIVerses équations allométriques. Elle gère la dIVersité
 #' des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
 #' à différentes structures de données d'entrée.
 #'
@@ -13,7 +13,7 @@
 #' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence. Par défaut : 1.
 #' @param coefs_conversion Table de conversion entre C150 et C130. Requis si les données contiennent C150
 #'        mais pas C130. Par défaut : NULL.
-#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doivent être supprimées.
+#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doIVent être supprimées.
 #'        Par défaut : FALSE.
 #' @param C130 Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".
 #' @param C150 Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".
@@ -42,7 +42,7 @@
 #' }
 #'
 #' \subsection{Structure du data frame des équations}{
-#'   Le data frame \code{equations_df} doit contenir au minimum les colonnes suivantes :
+#'   Le data frame \code{equations_df} doit contenir au minimum les colonnes suIVantes :
 #'   \itemize{
 #'     \item \code{Essences} : Nom de l'essence ou "General" pour l'équation générique.
 #'     \item \code{Y} : Type de volume ("VC22", "VC22B", "E", "VC22_HA").
@@ -73,7 +73,7 @@
 #'   }
 #' }
 #'
-#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suivantes :
+#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVantes :
 #' \itemize{
 #'   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
 #'   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
@@ -84,7 +84,7 @@
 #' Calcule différents types de volumes d'arbres à partir de données dendrométriques
 #'
 #' Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-#' dendrométriques en utilisant diverses équations allométriques. Elle gère la diversité
+#' dendrométriques en utilisant dIVerses équations allométriques. Elle gère la dIVersité
 #' des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
 #' à différentes structures de données d'entrée.
 #'
@@ -96,7 +96,7 @@
 #' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence. Par défaut : 1.
 #' @param coefs_conversion Table de conversion entre C150 et C130. Requis si les données contiennent C150
 #'        mais pas C130. Par défaut : NULL.
-#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doivent être supprimées.
+#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doIVent être supprimées.
 #'        Par défaut : FALSE.
 #' @param C130 Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".
 #' @param C150 Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".
@@ -131,7 +131,7 @@
 #'   }
 #' }
 #'
-#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suivantes :
+#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVantes :
 #' \itemize{
 #'   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
 #'   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
@@ -316,7 +316,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     # Verifier si des correspondances n'ont pas ete trouvees
     if (any(is.na(df_result$Essence))) {
       na_values <- unique(df_result[[col_id_essence]][is.na(df_result$Essence)])
-      warning(paste("Aucune correspondance trouvee pour les valeurs suivantes de",
+      warning(paste("Aucune correspondance trouvee pour les valeurs suIVantes de",
                     col_id_essence, ":", paste(na_values, collapse=", ")))
     }
   } else {
@@ -329,7 +329,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     cat("Conversion de C150 en C130 nécessaire...\n")
 
     # Extraire les coefficients par essence
-    coefs_df <- unique(equations_df[, c("Essences", "NumEquation", "Hv", "IV")])
+    coefs_df <- unique(equations_df[, c("Essences", "NumEquation", "HV", "IV")])
     names(coefs_df)[names(coefs_df) == "Essences"] <- "Essence"
 
     # Initialiser la colonne C130 avec NA
@@ -344,14 +344,14 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
         # Trouver les coefficients pour cette essence
         coef_row <- coefs_df[coefs_df$Essence == essence_arbre, ]
 
-        if (nrow(coef_row) > 0 && !is.na(coef_row$Hv[1]) && !is.na(coef_row$IV[1])) {
+        if (nrow(coef_row) > 0 && !is.na(coef_row$HV[1]) && !is.na(coef_row$IV[1])) {
           # Récupérer les coefficients
-          hv_coef <- coef_row$Hv[1]
-          iv_coef <- coef_row$IV[1]
+          HV_coef <- coef_row$HV[1]
+          IV_coef <- coef_row$IV[1]
 
           # Appliquer la formule de conversion
-          # Utilisez les colonnes Hv et IV comme coefficients
-          df_result$C130[i] <- hv_coef * c150_value + iv_coef
+          # Utilisez les colonnes HV et IV comme coefficients
+          df_result$C130[i] <- HV_coef * c150_value + IV_coef
 
         } else {
           warning(paste("Impossible de convertir C150 en C130 pour l'essence:", essence_arbre,
@@ -373,7 +373,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     cat("Conversion de C130 en C150 nécessaire...\n")
 
     # Extraire les coefficients par essence
-    coefs_df <- unique(equations_df[, c("Essences", "NumEquation", "Hv", "IV")])
+    coefs_df <- unique(equations_df[, c("Essences", "NumEquation", "HV", "IV")])
     names(coefs_df)[names(coefs_df) == "Essences"] <- "Essence"
 
     # Initialiser la colonne C150 avec NA
@@ -388,15 +388,15 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
         # Trouver les coefficients pour cette essence
         coef_row <- coefs_df[coefs_df$Essence == essence_arbre, ]
 
-        if (nrow(coef_row) > 0 && !is.na(coef_row$Hv[1]) && !is.na(coef_row$IV[1])) {
+        if (nrow(coef_row) > 0 && !is.na(coef_row$HV[1]) && !is.na(coef_row$IV[1])) {
           # Récupérer les coefficients
-          hv_coef <- coef_row$Hv[1]
-          iv_coef <- coef_row$IV[1]
+          HV_coef <- coef_row$HV[1]
+          IV_coef <- coef_row$IV[1]
 
           # Appliquer la formule de conversion inverse (C130 vers C150)
-          # Pour inverser C130 = hv_coef * C150 + iv_coef
-          # Nous obtenons C150 = (C130 - iv_coef) / hv_coef
-          df_result[[C150]][i] <- (c130_value - iv_coef) / hv_coef
+          # Pour inverser C130 = HV_coef * C150 + IV_coef
+          # Nous obtenons C150 = (C130 - IV_coef) / HV_coef
+          df_result[[C150]][i] <- (c130_value - IV_coef) / HV_coef
 
         } else {
           warning(paste("Impossible de convertir C130 en C150 pour l'essence:", essence_arbre,
@@ -522,7 +522,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
     } else if (a0_value == 4) {
       C130 <- evaluer_expression(eq$X1[1], variables)  # Recupere directement la valeur de C130
       if (C130 <= 0) {
-        warning(paste("Valeur negative ou nulle pour logarithme a la ligne", i))
+        warning(paste("Valeur negatIVe ou nulle pour logarithme a la ligne", i))
         next
       }
       volume <- 10^(eq$b0[1] + eq$b1[1] * log10(C130))
