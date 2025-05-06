@@ -34,7 +34,7 @@ calculer_volumes(
 \item{coefs_conversion}{Table de conversion entre C150 et C130. Requis si les données contiennent C150
 mais pas C130. Par défaut : NULL.}
 
-\item{remove_na}{Booléen indiquant si les lignes avec des volumes non calculés doivent être supprimées.
+\item{remove_na}{Booléen indiquant si les lignes avec des volumes non calculés doIVent être supprimées.
 Par défaut : FALSE.}
 
 \item{C130}{Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".}
@@ -49,7 +49,7 @@ Par défaut : FALSE.}
 (nom complet, code ou abréviation). Par défaut : NULL.}
 }
 \value{
-Un data frame similaire à \code{df} avec les colonnes supplémentaires suivantes :
+Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVantes :
 \itemize{
   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
@@ -60,11 +60,11 @@ Un data frame similaire à \code{df} avec les colonnes supplémentaires suivante
 Calcule différents types de volumes d'arbres à partir de données dendrométriques
 
 Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-dendrométriques en utilisant diverses équations allométriques. Elle gère la diversité
+dendrométriques en utilisant dIVerses équations allométriques. Elle gère la dIVersité
 des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
 à différentes structures de données d'entrée.
 
-Un data frame similaire à \code{df} avec les colonnes supplémentaires suivantes :
+Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVantes :
 \itemize{
   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
@@ -74,7 +74,7 @@ Un data frame similaire à \code{df} avec les colonnes supplémentaires suivante
 }
 \description{
 Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-dendrométriques en utilisant diverses équations allométriques. Elle gère la diversité
+dendrométriques en utilisant dIVerses équations allométriques. Elle gère la dIVersité
 des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
 à différentes structures de données d'entrée.
 }
@@ -98,7 +98,7 @@ des essences forestières, les différentes méthodes de mesure (C130, C150) et 
 }
 
 \subsection{Structure du data frame des équations}{
-  Le data frame \code{equations_df} doit contenir au minimum les colonnes suivantes :
+  Le data frame \code{equations_df} doit contenir au minimum les colonnes suIVantes :
   \itemize{
     \item \code{Essences} : Nom de l'essence ou "General" pour l'équation générique.
     \item \code{Y} : Type de volume ("VC22", "VC22B", "E", "VC22_HA").
