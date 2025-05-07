@@ -1,10 +1,114 @@
+#' Calcule différents types de volumes d'arbres à partir de données dendrométriques
+#'
+#' Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
+#' dendrométriques en utilisant dIVerses équations allométriques. Elle gère la dIVersité
+#' des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
+#' à différentes structures de données d'entrée.
+#'
+#' @param df Un data frame contenant les données dendrométriques des arbres.
+#' @param type_volume Le type de volume à calculer. Valeurs valides : "VC22", "VC22B", "E", "VC22_HA". Par défaut : "VC22".
+#' @param essence Optionnel. Si spécifié, les calculs seront effectués uniquement avec les équations correspondant
+#'        à cette essence. Par défaut : NULL (utilise les essences indiquées dans les données).
+#' @param equations_df Un data frame contenant les équations allométriques à utiliser. Par défaut : le data frame interne "equations"
+#' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence, representant le nombre d'entrée. Par défaut : 1.
+#' @param coefs_conversion Table de conversion entre C150 et C130. Requis si les données contiennent C150
+#'        mais pas C130. Par défaut : NULL.
+#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doIVent être supprimées.
+#'        Par défaut : FALSE.
+#' @param C130 Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".
+#' @param C150 Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".
+#' @param HTOT Nom de la colonne contenant la hauteur totale. Par défaut : "HTOT".
+#' @param HDOM Nom de la colonne contenant la hauteur dominante. Par défaut : "HDOM".
+#' @param specimens Optionnel. Nom de la colonne contenant l'identifiant des essences
+#'        (nom complet, code ou abréviation). Par défaut : NULL.
+#'
+#' @details
+#' \subsection{Types de volume supportés}{
+#'   \itemize{
+#'     \item \strong{VC22} : Volume commercial jusqu'à une découpe de 22 cm de circonférence.
+#'     \item \strong{VC22B} : Variante du volume commercial.
+#'     \item \strong{E} : Volume total de l'arbre.
+#'     \item \strong{VC22_HA} : Volume commercial par hectare.
+#'   }
+#' }
+#'
+#' \subsection{Structure des données d'entrée requise}{
+#'   La fonction nécessite au minimum :
+#'   \itemize{
+#'     \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}
+#'           ou par défaut "Essence", "Code" ou "Abr").
+#'     \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
+#'   }
+#' }
+#'
+#' \subsection{Types d'équations supportés (valeurs de A0)}{
+#'   \enumerate{
+#'     \item Équation linéaire standard à 1 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Équation linéaire standard à 2 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Équation linéaire standard à 3 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
+#'     \item Équation linéaire standard à une entrée pour le volume d'ecorce : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'   }
+#' }
+#'
+#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVantes :
+#' \itemize{
+#'   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
+#'   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
+#'   \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
+#'   \item Si le mapping d'essence a été nécessaire, une colonne \code{Essence} est ajoutée.
+#' }
+#'
+#' @examples
+#' # Exemple de base avec données standard
+#' # Supposons que nous avons un data frame "donnees_arbres" avec des colonnes C130 et Essence
+#' \dontrun{
+#' resultats <- calculer_volumes(
+#'   df = donnees_arbres,
+#'   type_volume = "VC22"
+#' )
+#'
+#' # Exemple avec noms de colonnes personnalisés
+#' resultats <- calculer_volumes(
+#'   df = donnees_arbres,
+#'   type_volume = "E",
+#'   id_equation = 2,
+#'   C130 = "Circonference130",
+#'   HTOT = "HauteurTotale",
+#'   specimens = "NomEssence"
+#' )
+#'
+#' # Exemple avec conversion C150 à C130
+#' resultats <- calculer_volumes(
+#'   df = donnees_arbres,
+#'   type_volume = "VC22",
+#'   C150 = "Circ150"
+#' )
+#' }
+#'
+#' @note
+#' La fonction affiche des messages d'information pendant l'exécution pour faciliter le débogage.
+#' Des avertissements sont émis si des correspondances d'essences ne sont pas trouvées ou si
+#' le calcul du volume échoue pour certaines lignes.
+#' Pour les essences non trouvées dans les équations, la fonction tente d'utiliser une équation
+#' générique ("General").
+#'
+#' @seealso
+#' Fonctions connexes pour la gestion forestière et les calculs dendrométriques.
+#'
+#' @author Caussin Antonin
+#' @references
+#' Dagnelie, P., Rondeux, J., & Thill, A. (1985). Tables de cubage des arbres et des peuplements forestiers. Gembloux, Belgique: Presses agronomiques de Gembloux.
+#'
+#' @importFrom stats na.omit
+#' @export
+
 calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
                              equations_df = equations, id_equation = 1,
                              remove_na = FALSE,
                              C130 = "C130", C150 = "C150",
                              HTOT = "HTOT", HDOM = "HDOM",
-                             specimens = NULL,
-                             verbose = FALSE) {  # Ajout du paramètre verbose pour contrôler l'affichage
+                             specimens = NULL) {
 
   # Liste des types de volume valides
   types_volume_valides <- c("VC22", "VC22B", "E", "VC22_HA")
@@ -278,7 +382,7 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
   # Calcul pour chaque ligne
   for (i in seq_len(nrow(df_result))) {
     essence_arbre <- df_result$Essence[i]
-    if (verbose) cat("Traitement ligne", i, "essence:", essence_arbre, "\n")
+    cat("Traitement ligne", i, "essence:", essence_arbre, "\n")
 
     eq_candidates <- if (!is.null(essence)) {
       eqs_volume[eqs_volume$Essences == essence, ]
@@ -321,89 +425,18 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
 
     a0_value <- eq$A0[1]
 
-    # DÉBUT DE LA PARTIE AJOUTÉE: Visualisation de l'équation et des coefficients
-    if (verbose || type_volume == "VC22B") {  # Afficher pour VC22B ou si verbose=TRUE
-      cat("\n-------------------------------------------------------\n")
-      cat("DÉTAILS DE L'ÉQUATION POUR LA LIGNE", i, "\n")
-      cat("Essence: ", essence_arbre, "\n")
-      cat("Type de volume: ", type_volume, "\n")
-      cat("Type d'équation (A0): ", a0_value, "\n")
-      cat("Coefficients:\n")
-      for (j in 0:5) {
-        b_col <- paste0("b", j)
-        if (!is.na(eq[[b_col]][1])) {
-          cat("  b", j, " = ", eq[[b_col]][1], "\n", sep="")
-        }
-      }
-
-      cat("Variables utilisées:\n")
-      for (j in 1:5) {
-        x_col <- paste0("X", j)
-        if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
-          expr_val <- eq[[x_col]][1]
-          cat("  X", j, " = ", expr_val, sep="")
-          # Tenter d'évaluer l'expression
-          tryCatch({
-            val <- evaluer_expression(expr_val, variables)
-            cat(" = ", val, "\n", sep="")
-          }, error = function(e) {
-            cat(" [ERREUR: ", e$message, "]\n", sep="")
-          })
-        }
-      }
-
-      # Si c'est une équation linéaire, montrer la formule complète
-      if (a0_value %in% c(1, 2, 3, 5)) {
-        cat("Formule: Volume = ", eq$b0[1], sep="")
-        for (j in 1:5) {
-          x_col <- paste0("X", j)
-          b_col <- paste0("b", j)
-          if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
-            x_val <- tryCatch(evaluer_expression(eq[[x_col]][1], variables), error = function(e) "?")
-            b_val <- eq[[b_col]][1]
-            sign <- if (b_val >= 0) " + " else " - "
-            b_abs <- abs(b_val)
-            cat(sign, b_abs, " * ", eq[[x_col]][1], " [", x_val, "]", sep="")
-          }
-        }
-        cat("\n")
-      } else if (a0_value == 4) {
-        # Formule logarithmique
-        cat("Formule: Volume = 10^(", eq$b0[1], " + ", eq$b1[1], " * log10(C130))\n", sep="")
-        C130_val <- tryCatch(evaluer_expression("C130", variables), error = function(e) "?")
-        cat("  avec C130 = ", C130_val, "\n", sep="")
-      }
-    }
-    # FIN DE LA PARTIE AJOUTÉE
-
     # Ajoutez cette verification ici
     if (is.na(a0_value)) {
       warning(paste("Valeur A0 manquante pour l'essence", essence_arbre, "a la ligne", i))
       next
     } else if (a0_value %in% c(1, 2, 3, 5)) {
       volume <- eq$b0[1]
-
-      # AJOUT: Visualisation du calcul détaillé
-      if (verbose || type_volume == "VC22B") {
-        cat("Calcul détaillé:\n")
-        cat("  Départ avec b0 =", eq$b0[1], "\n")
-        cumul_volume <- eq$b0[1]
-      }
-
       for (j in 1:5) {
         x_col <- paste0("X", j)
         b_col <- paste0("b", j)
         if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
           x_val <- evaluer_expression(eq[[x_col]][1], variables)
-          term_val <- eq[[b_col]][1] * x_val
-          volume <- volume + term_val
-
-          # AJOUT: Visualisation des étapes intermédiaires
-          if (verbose || type_volume == "VC22B") {
-            cumul_volume <- cumul_volume + term_val
-            cat("  + b", j, " * X", j, " = ", eq[[b_col]][1], " * ", x_val, " = ", term_val,
-                " (cumul: ", cumul_volume, ")\n", sep="")
-          }
+          volume <- volume + eq[[b_col]][1] * x_val
         }
       }
     } else if (a0_value == 4) {
@@ -413,15 +446,6 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
         next
       }
       volume <- 10^(eq$b0[1] + eq$b1[1] * log10(C130))
-
-      # AJOUT: Visualisation du calcul logarithmique
-      if (verbose || type_volume == "VC22B") {
-        cat("Calcul logarithmique:\n")
-        cat("  log10(C130) =", log10(C130), "\n")
-        cat("  ", eq$b0[1], " + ", eq$b1[1], " * ", log10(C130), " = ",
-            eq$b0[1] + eq$b1[1] * log10(C130), "\n", sep="")
-        cat("  10^(", eq$b0[1] + eq$b1[1] * log10(C130), ") = ", volume, "\n", sep="")
-      }
     } else {
       warning(paste("Type d'equation inconnu (A0 =", a0_value, ") pour la ligne", i))
       next
@@ -432,23 +456,12 @@ calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
       next
     }
 
-    # AJOUT: Affichage du résultat final
-    if (verbose || type_volume == "VC22B") {
-      cat("RÉSULTAT FINAL pour la ligne", i, ": Volume", type_volume, "=", volume, "\n")
-      if (volume < 0) {
-        cat("⚠️ ATTENTION: Volume négatif détecté! ⚠️\n")
-      } else if (volume < 0.001) {
-        cat("⚠️ ATTENTION: Volume anormalement petit détecté! ⚠️\n")
-      }
-      cat("-------------------------------------------------------\n\n")
-    } else {
-      if (verbose) cat("  Volume calcule:", volume, "\n")
-    }
+    cat("  Volume calcule:", volume, "\n")
 
     # Stocker le volume uniquement pour cette ligne, dans la colonne spécifiée par type_volume
     df_result[[type_volume]][i] <- volume
 
-    if (verbose) cat("  Volume stocke a la ligne", i, ":", df_result[[type_volume]][i], "\n")
+    cat("  Volume stocke a la ligne", i, ":", df_result[[type_volume]][i], "\n")
   }
 
   # Nettoyage final si demande
