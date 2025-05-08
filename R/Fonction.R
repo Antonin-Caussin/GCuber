@@ -104,11 +104,14 @@
 #' @export
 
 calculer_volumes <- function(df, type_volume = "VC22", essence = NULL,
-                             equations_df = equations, id_equation = 1,
+                             id_equation = 1,
                              remove_na = FALSE,
                              C130 = "C130", C150 = "C150",
                              HTOT = "HTOT", HDOM = "HDOM",
                              specimens = NULL) {
+
+  # Utilisation du data frame interne equations
+  equations_df <- equations
 
   # Liste des types de volume valides
   types_volume_valides <- c("VC22", "VC22B", "E", "VC22_HA")
