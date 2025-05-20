@@ -244,7 +244,7 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL, #argument 
       essence_arbre <- df_result$Essence[i]
       c150_value <- df_result[[C150]][i]
 
-      if (!is.na(essence_arbre) && !is.na(c150_value)) {
+      if (all(!is.na(c(essence_arbre, c150_value)))) {
         # Trouver les coefficients pour cette essence
         coef_row <- coefs_df[coefs_df$Essence == essence_arbre, ]
 
