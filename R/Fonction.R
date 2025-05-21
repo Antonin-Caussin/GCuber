@@ -1,102 +1,3 @@
-#' Calcule différents types de volumes à partir de données dendrométriques
-#'
-#' Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-#' dendrométriques en utilisant diverses équations allométriques. Elle gère la diversité
-#' des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
-#' à différentes structures de données d'entrée.
-#'
-#' @param df Un data frame contenant les données dendrométriques des arbres.
-#' @param type_volume Le type de volume à calculer. Valeurs valides : "V22", "V22B", "E", "V22_HA". Par défaut : "V22".
-#' @param essence Si spécifié, les calculs seront effectués uniquement avec les équations correspondant
-#'        à cette essence. Par défaut : NULL (utilise les essences indiquées dans les données).
-#' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence, representant le nombre d'entrée. Par défaut : 1.
-#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doIVent être supprimées.
-#'        Par défaut : FALSE.
-#' @param C130 Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".
-#' @param C150 Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".
-#' @param HTOT Nom de la colonne contenant la hauteur totale. Par défaut : "HTOT".
-#' @param HDOM Nom de la colonne contenant la hauteur dominante. Par défaut : "HDOM".
-#' @param specimens Nom de la colonne contenant l'identifiant des essences(nom complet, code ou abréviation). Par défaut : NULL.
-#'
-#' @details
-#' \subsection{Types de volume supportés}{
-#'   \itemize{
-#'     \item \strong{V22} : Volume marchand jusqu'à une découpe de 22 cm de circonférence.
-#'     \item \strong{V22B} : Volume des branches jusqu'a une découpe de 22cm de circonférence.
-#'     \item \strong{E} : Volume d'écorce de l'arbre.
-#'     \item \strong{V22_HA} : Volume marchand par hectare.
-#'   }
-#' }
-#'
-#' \subsection{Structure des données d'entrée requise}{
-#'   La fonction nécessite au minimum :
-#'   \itemize{
-#'     \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}.
-#'     \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
-#'   }
-#' }
-#'
-#' \subsection{Types d'équations supportés (valeurs de A0)}{
-#'   \enumerate{
-#'     \item Équation linéaire standard à 1 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'     \item Équation linéaire standard à 2 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'     \item Équation linéaire standard à 3 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'     \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
-#'     \item Équation linéaire standard à une entrée pour le volume d'ecorce : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'   }
-#' }
-#'
-#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suivantes :
-#' \itemize{
-#'   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
-#'   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
-#'   \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
-#'   \item Si le mapping d'essence a été nécessaire, une colonne \code{Species} est ajoutée.
-#' }
-#'
-#' @examples
-#' # Exemple de base avec données standard
-#' # Supposons que nous avons un data frame "donnees_arbres" avec des colonnes C130 et Essence
-#' \dontrun{
-#' resultats <- calculer_volumes(
-#'   df = donnees_arbres,
-#'   type_volume = "V22",
-#'   C130 = circ2024
-#' )
-#'
-#' # Exemple avec noms de colonnes personnalisés
-#' resultats <- calculer_volumes(
-#'   df = donnees_arbres,
-#'   type_volume = "E",
-#'   id_equation = 2,
-#'   C130 = "Circonference130",
-#'   HTOT = "HauteurTotale",
-#'   specimens = "NomEssence"
-#' )
-#'
-#' # Exemple avec conversion C150 à C130
-#' resultats <- calculer_volumes(
-#'   df = donnees_arbres,
-#'   type_volume = "V22",
-#'   C150 = "Circ150"
-#' )
-#' }
-#'
-#' @note
-#' La fonction affiche des messages d'information pendant l'exécution pour faciliter le débogage.
-#' Des avertissements sont émis si des correspondances d'essences ne sont pas trouvées ou si
-#' le calcul du volume échoue pour certaines lignes.
-#'
-#' @seealso
-#' Fonctions connexes pour la gestion forestière et les calculs dendrométriques.
-#'
-#' @author Caussin Antonin
-#' @references
-#' Dagnelie, P., Rondeux, J., & Thill, A. (1985). Tables de cubage des arbres et des peuplements forestiers. Gembloux, Belgique: Presses agronomiques de Gembloux.
-#'
-#' @importFrom stats na.omit
-#' @export
-
 calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
                              id_equation = 1,
                              remove_na = FALSE,
@@ -110,14 +11,13 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
   # Liste des types de volume valides
   types_volume_valides <- c("V22", "V22B", "E", "V22_HA")
 
-  # Verifier la coherence entre type_volume et id_equation
+  # Verifier la coherence entre type_volume et id_equation, sauf pour le type E qui sera géré spécialement
   if (type_volume == "V22" && !(id_equation %in% 1:3)) {
     stop("Pour le type de volume 'V22', id_equation doit etre entre 1 et 3.")
   }
 
-  #if (type_volume == "E" && !(id_equation %in% 4:5)) {
-  #stop("Pour le type de volume 'E', id_equation doit etre 4 ou 5.")
-  #}
+  # Pour le type "E", nous ne vérifions pas la cohérence ici car elle sera gérée dynamiquement
+  # en fonction de l'espèce dans la boucle de calcul
 
   if (type_volume == "V22_ha" && id_equation != 1) {
     stop("Pour le type de volume 'V22_HA', id_equation doit etre 1.")
@@ -439,7 +339,6 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
   }
 
   # Modification de la fonction evaluer_expression pour plus de débogage
-  # Modification de la fonction evaluer_expression pour plus de débogage
   evaluer_expression <- function(expr_text, variables) {
     if (is.na(expr_text) || expr_text == "0" || expr_text == 0) return(0)
 
@@ -481,6 +380,36 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
     # Initialisation de la variable volume pour cette ligne
     volume <- 0
 
+    # Pour le volume de type "E", déterminer dynamiquement l'équation à utiliser
+    # selon l'espèce, en priorité celle spécifiée par id_equation si valide
+    local_id_equation <- id_equation
+
+    if (type_volume == "E") {
+      # Trouver toutes les équations disponibles pour cette essence et ce type de volume
+      eq_candidates_E <- eqs_volume[eqs_volume$Essences == essence_arbre, ]
+
+      # Filtrer uniquement les équations avec A0 = 4 ou A0 = 5
+      eq_candidates_E_filtered <- eq_candidates_E[eq_candidates_E$A0 %in% c(4, 5), ]
+
+      if (nrow(eq_candidates_E_filtered) > 0) {
+        # Si l'utilisateur a spécifié id_equation = 4 ou 5 et que cette équation existe pour cette essence
+        if (local_id_equation %in% c(4, 5) && any(eq_candidates_E_filtered$A0 == local_id_equation)) {
+          # Utiliser l'équation spécifiée
+          cat("  Utilisation de l'équation A0 =", local_id_equation, "spécifiée par l'utilisateur pour", essence_arbre, "\n")
+        } else {
+          # Sinon, choisir automatiquement entre 4 et 5 selon la disponibilité
+          # Priorité à l'équation 4 si disponible
+          if (any(eq_candidates_E_filtered$A0 == 4)) {
+            local_id_equation <- 4
+            cat("  Selection automatique de l'équation A0 = 4 pour", essence_arbre, "\n")
+          } else {
+            local_id_equation <- 5
+            cat("  Selection automatique de l'équation A0 = 5 pour", essence_arbre, "\n")
+          }
+        }
+      }
+      # Si aucune équation 4 ou 5 n'est trouvée, on garde l'id_equation original
+    }
 
     eq_candidates <- if (!is.null(essence)) {
       eqs_volume[eqs_volume$Essences == essence, ]
@@ -502,13 +431,43 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
       }
     }
 
-    # Vérifier si l'index d'équation demandé est disponible
-    if (id_equation > nrow(eq_candidates)) {
-      warning(paste("L'équation avec id", id_equation, "n'existe pas pour l'essence", essence_arbre,
-                    ". Utilisation de l'équation 1 à la place."))
-      eq <- eq_candidates[1, , drop = FALSE]
+    # Pour le type "E", utiliser l'équation avec A0 correspondant à local_id_equation
+    if (type_volume == "E" && local_id_equation %in% c(4, 5)) {
+      eq_by_a0 <- eq_candidates[eq_candidates$A0 == local_id_equation, ]
+      if (nrow(eq_by_a0) > 0) {
+        eq <- eq_by_a0[1, , drop = FALSE]  # Prendre la première équation si plusieurs correspondent
+        cat("  Utilisation de l'équation A0 =", local_id_equation, "pour", essence_arbre, "\n")
+      } else {
+        # Si aucune équation avec le A0 spécifique n'est trouvée
+        warning(paste("Pas d'équation avec A0 =", local_id_equation, "trouvée pour l'essence", essence_arbre))
+
+        # Essayer avec l'autre type d'équation (4 ou 5)
+        other_a0 <- if (local_id_equation == 4) 5 else 4
+        eq_by_other_a0 <- eq_candidates[eq_candidates$A0 == other_a0, ]
+
+        if (nrow(eq_by_other_a0) > 0) {
+          eq <- eq_by_other_a0[1, , drop = FALSE]
+          cat("  Utilisation de l'équation alternative A0 =", other_a0, "pour", essence_arbre, "\n")
+        } else {
+          # Si toujours aucune équation, utiliser la première disponible
+          if (nrow(eq_candidates) > 0) {
+            eq <- eq_candidates[1, , drop = FALSE]
+            cat("  Utilisation de l'équation par défaut pour", essence_arbre, "\n")
+          } else {
+            warning(paste("Aucune équation trouvée pour l'essence", essence_arbre))
+            next
+          }
+        }
+      }
     } else {
-      eq <- eq_candidates[id_equation, , drop = FALSE]
+      # Pour les autres types de volume, comportement standard
+      if (local_id_equation > nrow(eq_candidates)) {
+        warning(paste("L'équation avec id", local_id_equation, "n'existe pas pour l'essence", essence_arbre,
+                      ". Utilisation de l'équation 1 à la place."))
+        eq <- eq_candidates[1, , drop = FALSE]
+      } else {
+        eq <- eq_candidates[local_id_equation, , drop = FALSE]
+      }
     }
 
     df_result$Equation_Utilisee[i] <- paste0(eq$Essences, ":", eq$Y, ":A0=", eq$A0)
