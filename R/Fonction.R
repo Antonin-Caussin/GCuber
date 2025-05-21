@@ -104,6 +104,13 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
                              HTOT = "HTOT", HDOM = "HDOM",
                              specimens = NULL) {
 
+  # Avertissement pour type_volume = "E" avec id_equation incompatible
+  if (type_volume == "E" && id_equation %in% c(1, 2, 3,4,5)) {
+    warning(paste("ATTENTION: Pour le type de volume 'E', il n'est pas necessaire de specifier l'id_equation",
+                  "Vous avez spécifié id_equation =", id_equation,
+                  "qui pourrait ne pas être adapté ou ne pas traiter tout le jeu de donnés. La fonction tentera d'utiliser l'équation 4 et/ou 5 si disponible."))
+  }
+
   # Utilisation du data frame interne equations
   equations_df <- equations
 
@@ -480,9 +487,7 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
     volume <- 0
 
     # Pour le volume de type "E", déterminer dynamiquement l'équation à utiliser
-    # selon l'espèce, en priorité celle spécifiée par id_equation si valide
-    local_id_equation <- id_equation
-
+    # selon l'espèce, toujours l'équation 4 ou 5 spécifique à chaque essence
     if (type_volume == "E") {
       # Trouver toutes les équations disponibles pour cette essence et ce type de volume
       eq_candidates_E <- eqs_volume[eqs_volume$Essences == essence_arbre, ]
@@ -491,23 +496,21 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
       eq_candidates_E_filtered <- eq_candidates_E[eq_candidates_E$A0 %in% c(4, 5), ]
 
       if (nrow(eq_candidates_E_filtered) > 0) {
-        # Si l'utilisateur a spécifié id_equation = 4 ou 5 et que cette équation existe pour cette essence
-        if (local_id_equation %in% c(4, 5) && any(eq_candidates_E_filtered$A0 == local_id_equation)) {
-          # Utiliser l'équation spécifiée
-          cat("  Utilisation de l'équation A0 =", local_id_equation, "spécifiée par l'utilisateur pour", essence_arbre, "\n")
+        # Déterminer quelle équation (4 ou 5) est associée à cette essence
+        if (any(eq_candidates_E_filtered$A0 == 4)) {
+          local_id_equation <- 4
+          cat(" Utilisation de l'équation A0 = 4 pour", essence_arbre, "\n")
         } else {
-          # Sinon, choisir automatiquement entre 4 et 5 selon la disponibilité
-          # Priorité à l'équation 4 si disponible
-          if (any(eq_candidates_E_filtered$A0 == 4)) {
-            local_id_equation <- 4
-            cat("  Selection automatique de l'équation A0 = 4 pour", essence_arbre, "\n")
-          } else {
-            local_id_equation <- 5
-            cat("  Selection automatique de l'équation A0 = 5 pour", essence_arbre, "\n")
-          }
+          local_id_equation <- 5
+          cat(" Utilisation de l'équation A0 = 5 pour", essence_arbre, "\n")
         }
+      } else {
+        # Si aucune équation 4 ou 5 n'est trouvée pour cette essence, garder l'id_equation original
+        cat(" Aucune équation de type 4 ou 5 trouvée pour", essence_arbre, ". Utilisation de l'équation par défaut.\n")
       }
-      # Si aucune équation 4 ou 5 n'est trouvée, on garde l'id_equation original
+    } else {
+      # Pour les autres types de volume, garder l'équation spécifiée par l'utilisateur
+      local_id_equation <- id_equation
     }
 
     eq_candidates <- if (!is.null(essence)) {
