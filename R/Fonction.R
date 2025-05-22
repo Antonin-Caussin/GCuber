@@ -1,306 +1,306 @@
-#' Calcule différents types de volumes à partir de données dendrométriques
+#' Calculate different types of volumes from dendrometric data
 #'
-#' Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-#' dendrométriques en utilisant diverses équations allométriques. Elle gère la diversité
-#' des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
-#' à différentes structures de données d'entrée.
+#' This function allows calculating different types of tree volumes from
+#' dendrometric data using various allometric equations. It handles the diversity
+#' of forest species, different measurement methods (C130, C150) and can adapt
+#' to different input data structures.
 #'
-#' @param df Un data frame contenant les données dendrométriques des arbres.
-#' @param type_volume Le type de volume à calculer. Valeurs valides : "V22", "V22B", "E", "V22_HA". Par défaut : "V22".
-#' @param essence Si spécifié, les calculs seront effectués uniquement avec les équations correspondant
-#'        à cette essence. Par défaut : NULL (utilise les essences indiquées dans les données).
-#' @param id_equation L'identifiant de l'équation à utiliser pour chaque essence, representant le nombre d'entrée. Par défaut : 1.
-#' @param remove_na Booléen indiquant si les lignes avec des volumes non calculés doIVent être supprimées.
-#'        Par défaut : FALSE.
-#' @param C130 Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".
-#' @param C150 Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".
-#' @param HTOT Nom de la colonne contenant la hauteur totale. Par défaut : "HTOT".
-#' @param HDOM Nom de la colonne contenant la hauteur dominante. Par défaut : "HDOM".
-#' @param specimens Nom de la colonne contenant l'identifiant des essences(nom complet, code ou abréviation). Par défaut : NULL.
+#' @param df A data frame containing the dendrometric data of the trees.
+#' @param type_volume The type of volume to calculate. Valid values: "V22", "V22B", "E", "V22_HA". Default: "V22".
+#' @param species If specified, calculations will be performed only with equations corresponding
+#'        to this species. Default: NULL (uses species indicated in the data).
+#' @param id_equation The identifier of the equation to use for each species, representing the entry number. Default: 1.
+#' @param remove_na Boolean indicating if rows with uncalculated volumes should be removed.
+#'        Default: FALSE.
+#' @param C130 Name of the column containing circumference at 130 cm. Default: "C130".
+#' @param C150 Name of the column containing circumference at 150 cm. Default: "C150".
+#' @param HTOT Name of the column containing total height. Default: "HTOT".
+#' @param HDOM Name of the column containing dominant height. Default: "HDOM".
+#' @param specimens Name of the column containing species identifier (full name, code or abbreviation). Default: NULL.
 #'
 #' @details
-#' \subsection{Types de volume supportés}{
+#' \subsection{Supported volume types}{
 #'   \itemize{
-#'     \item \strong{V22} : Volume marchand jusqu'à une découpe de 22 cm de circonférence.
-#'     \item \strong{V22B} : Volume des branches jusqu'a une découpe de 22cm de circonférence.
-#'     \item \strong{E} : Volume d'écorce de l'arbre.
-#'     \item \strong{V22_HA} : Volume marchand par hectare.
+#'     \item \strong{V22} : Merchantable volume up to a 22 cm circumference cut.
+#'     \item \strong{V22B} : Branch volume up to a 22cm circumference cut.
+#'     \item \strong{E} : Tree bark volume.
+#'     \item \strong{V22_HA} : Merchantable volume per hectare.
 #'   }
 #' }
 #'
-#' \subsection{Structure des données d'entrée requise}{
-#'   La fonction nécessite au minimum :
+#' \subsection{Required input data structure}{
+#'   The function requires at minimum:
 #'   \itemize{
-#'     \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}.
-#'     \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
+#'     \item A forest species identification column (specified via \code{specimens}).
+#'     \item A diameter column (either \code{C130} or \code{C150}).
 #'   }
 #' }
 #'
-#' \subsection{Types d'équations supportés (valeurs de A0)}{
+#' \subsection{Supported equation types (A0 values)}{
 #'   \enumerate{
-#'     \item Équation linéaire standard à 1 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'     \item Équation linéaire standard à 2 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'     \item Équation linéaire standard à 3 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-#'     \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
-#'     \item Équation linéaire standard à une entrée pour le volume d'ecorce : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Standard linear equation with 1 entry: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Standard linear equation with 2 entries: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Standard linear equation with 3 entries: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+#'     \item Logarithmic equation : Volume = 10^(b0 + b1*log10(C130))
+#'     \item Standard linear equation with one entry for bark volume : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
 #'   }
 #' }
 #'
-#' @return Un data frame similaire à \code{df} avec les colonnes supplémentaires suivantes :
+#' @return A data frame similar to \code{df} with the following additional columns:
 #' \itemize{
-#'   \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
-#'   \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
-#'   \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
-#'   \item Si le mapping d'essence a été nécessaire, une colonne \code{Species} est ajoutée.
+#'   \item The column specified by \code{type_volume} containing the calculated volumes.
+#'   \item \code{Equation_Used} : Information about the equation used for each row.
+#'   \item If a C150 to C130 conversion was performed, a \code{C130} column is added.
+#'   \item If species mapping was necessary, a \code{Species} column is added.
 #' }
 #'
 #' @examples
-#' # Exemple de base avec données standard
-#' # Supposons que nous avons un data frame "donnees_arbres" avec des colonnes C130 et Essence
+#' # Basic example with standard data
+#' # Suppose we have a data frame "tree_data" with C130 and Species columns
 #' \dontrun{
-#' resultats <- calculer_volumes(
-#'   df = donnees_arbres,
+#' results <- calculate_volumes(
+#'   df = tree_data,
 #'   type_volume = "V22",
 #'   C130 = circ2024
 #' )
 #'
-#' # Exemple avec noms de colonnes personnalisés
-#' resultats <- calculer_volumes(
-#'   df = donnees_arbres,
+#' # Example with custom column names
+#' results <- calculate_volumes(
+#'   df = tree_data,
 #'   type_volume = "E",
 #'   id_equation = 2,
-#'   C130 = "Circonference130",
-#'   HTOT = "HauteurTotale",
-#'   specimens = "NomEssence"
+#'   C130 = "Circumference130",
+#'   HTOT = "TotalHeight",
+#'   specimens = "SpeciesName"
 #' )
 #'
-#' # Exemple avec conversion C150 à C130
-#' resultats <- calculer_volumes(
-#'   df = donnees_arbres,
+#' # Example with C150 to C130 conversion
+#' results <- calculate_volumes(
+#'   df = tree_data,
 #'   type_volume = "V22",
 #'   C150 = "Circ150"
 #' )
 #' }
 #'
 #' @note
-#' La fonction affiche des messages d'information pendant l'exécution pour faciliter le débogage.
-#' Des avertissements sont émis si des correspondances d'essences ne sont pas trouvées ou si
-#' le calcul du volume échoue pour certaines lignes.
+#' The function displays information messages during execution to facilitate debugging.
+#' Warnings are issued if species matches are not found or if
+#' volume calculation fails for certain rows.
 #'
 #' @seealso
-#' Fonctions connexes pour la gestion forestière et les calculs dendrométriques.
+#' Related functions for forest management and dendrometric calculations.
 #'
 #' @author Caussin Antonin
 #' @references
-#' Dagnelie, P., Rondeux, J., & Thill, A. (1985). Tables de cubage des arbres et des peuplements forestiers. Gembloux, Belgique: Presses agronomiques de Gembloux.
+#' Dagnelie, P., Rondeux, J., & Thill, A. (1985). Tables de cubage des arbres et des peuplements forestiers. Gembloux, Belgium: Presses agronomiques de Gembloux.
 #'
 #' @importFrom stats na.omit
 #' @export
 
-calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
-                             id_equation = 1,
-                             remove_na = FALSE,
-                             C130 = "C130", C150 = "C150",
-                             HTOT = "HTOT", HDOM = "HDOM",
-                             specimens = NULL) {
+calculate_volumes <- function(df, type_volume = "V22", species = NULL,
+                              id_equation = 1,
+                              remove_na = FALSE,
+                              C130 = "C130", C150 = "C150",
+                              HTOT = "HTOT", HDOM = "HDOM",
+                              specimens = NULL) {
 
-  # Avertissement pour type_volume = "E" avec id_equation incompatible
-  if (type_volume == "E" && id_equation %in% c(1, 2, 3,4,5)) {
-    warning(paste("ATTENTION: Pour le type de volume 'E', il n'est pas necessaire de specifier l'id_equation",
-                  "Vous avez spécifié id_equation =", id_equation,
-                  "qui pourrait ne pas être adapté ou ne pas traiter tout le jeu de donnés. La fonction tentera d'utiliser l'équation 4 et/ou 5 si disponible."))
+  # Warning for type_volume = "E" with incompatible id_equation
+  if (type_volume == "E" && id_equation %in% c(1, 2, 3, 4, 5)) {
+    warning(paste("WARNING: For volume type 'E', it is not necessary to specify id_equation",
+                  "You have specified id_equation =", id_equation,
+                  "which might not be suitable or might not process the entire dataset. The function will attempt to use equation 4 and/or 5 if available."))
   }
 
-  # Utilisation du data frame interne equations
+  # Use internal equations data frame
   equations_df <- equations
 
-  # Liste des types de volume valides
-  types_volume_valides <- c("V22", "V22B", "E", "V22_HA")
+  # List of valid volume types
+  valid_volume_types <- c("V22", "V22B", "E", "V22_HA")
 
-  # Verifier la coherence entre type_volume et id_equation, sauf pour le type E qui sera géré spécialement
+  # Check consistency between type_volume and id_equation, except for type E which will be handled specially
   if (type_volume == "V22" && !(id_equation %in% 1:3)) {
-    stop("Pour le type de volume 'V22', id_equation doit etre entre 1 et 3.")
+    stop("For volume type 'V22', id_equation must be between 1 and 3.")
   }
 
-  # Pour le type "E", nous ne vérifions pas la cohérence ici car elle sera gérée dynamiquement
-  # en fonction de l'espèce dans la boucle de calcul
+  # For type "E", we don't check consistency here as it will be handled dynamically
+  # based on species in the calculation loop
 
   if (type_volume == "V22_ha" && id_equation != 1) {
-    stop("Pour le type de volume 'V22_HA', id_equation doit etre 1.")
+    stop("For volume type 'V22_HA', id_equation must be 1.")
   }
 
   if (type_volume == "V22B" && id_equation != 1) {
-    stop("Pour le type de volume 'V22B', id_equation doit etre 1.")
+    stop("For volume type 'V22B', id_equation must be 1.")
   }
 
-  # Verification du type de volume
-  if (!(type_volume %in% types_volume_valides)) {
-    stop(paste("Type de volume invalide:", type_volume,
-               "\nTypes valides:", paste(types_volume_valides, collapse = ", ")))
+  # Volume type verification
+  if (!(type_volume %in% valid_volume_types)) {
+    stop(paste("Invalid volume type:", type_volume,
+               "\nValid types:", paste(valid_volume_types, collapse = ", ")))
   }
 
-  # DEBUG: Afficher le type de volume choisi
-  cat("Type de volume sélectionné:", type_volume, "\n")
+  # DEBUG: Display chosen volume type
+  cat("Selected volume type:", type_volume, "\n")
 
-  # Gestion du paramètre specimens pour l'identification des essences
-  colonnes_id_essence <- list()
-  type_specimens <- NULL
+  # Handle specimens parameter for species identification
+  species_id_columns <- list()
+  specimens_type <- NULL
 
   if (!is.null(specimens)) {
-    # Vérifier que la colonne spécifiée existe dans le dataframe
+    # Check that the specified column exists in the dataframe
     if (!(specimens %in% colnames(df))) {
-      stop(paste("La colonne spécifiée '", specimens, "' n'existe pas dans les données.", sep=""))
+      stop(paste("The specified column '", specimens, "' does not exist in the data.", sep=""))
     }
 
-    # Analyser le contenu de la colonne pour déterminer le type d'identifiant
-    # Prendre un échantillon de valeurs non-NA pour l'analyse
+    # Analyze column content to determine identifier type
+    # Take a sample of non-NA values for analysis
     sample_values <- na.omit(df[[specimens]])
 
     if (length(sample_values) == 0) {
-      stop(paste("La colonne '", specimens, "' ne contient que des valeurs manquantes.", sep=""))
+      stop(paste("Column '", specimens, "' contains only missing values.", sep=""))
     }
 
-    # Déterminer le type d'identifiant basé sur la nature des données
+    # Determine identifier type based on data nature
     if (is.numeric(sample_values)) {
-      # Si les valeurs sont numériques, c'est probablement un code
-      type_specimens <- "Code"
+      # If values are numeric, it's probably a code
+      specimens_type <- "Code"
     } else if (is.character(sample_values) || is.factor(sample_values)) {
-      # Convertir en caractère si c'est un facteur
+      # Convert to character if it's a factor
       if (is.factor(sample_values)) {
         sample_values <- as.character(sample_values)
       }
 
-      # Calculer la longueur moyenne des chaînes
+      # Calculate average string length
       mean_length <- mean(nchar(sample_values))
 
       if (mean_length <= 4) {
-        # Si longueur moyenne <= 4, c'est probablement une abréviation
-        type_specimens <- "Abr"
+        # If average length <= 4, it's probably an abbreviation
+        specimens_type <- "Abr"
       } else {
-        # Sinon, c'est probablement le nom complet de l'essence
-        type_specimens <- "Essence"
+        # Otherwise, it's probably the full species name
+        specimens_type <- "Species"
       }
     } else {
-      stop(paste("Le type de données dans la colonne '", specimens, "' n'est pas reconnu.", sep=""))
+      stop(paste("The data type in column '", specimens, "' is not recognized.", sep=""))
     }
 
-    # Ajouter au mapping
-    colonnes_id_essence[[type_specimens]] <- specimens
-    cat("Type d'identifiant détecté dans la colonne '", specimens, "': ", type_specimens, "\n", sep="")
+    # Add to mapping
+    species_id_columns[[specimens_type]] <- specimens
+    cat("Identifier type detected in column '", specimens, "': ", specimens_type, "\n", sep="")
   }
 
-  if (length(colonnes_id_essence) == 0) {
-    stop("Aucune colonne d'identification d'essence spécifiée ou trouvée dans les données.")
+  if (length(species_id_columns) == 0) {
+    stop("No species identification column specified or found in the data.")
   }
 
-  # Sélectionner la première colonne d'identification disponible
-  colonne_essence_utilisee <- names(colonnes_id_essence)[1]
-  col_id_essence <- colonnes_id_essence[[colonne_essence_utilisee]]
+  # Select the first available identification column
+  used_species_column <- names(species_id_columns)[1]
+  species_id_col <- species_id_columns[[used_species_column]]
 
-  # DEBUG: Afficher les colonnes d'identification
-  cat("Colonne d'identification utilisée:", colonne_essence_utilisee, "(", col_id_essence, ")\n")
+  # DEBUG: Display identification columns
+  cat("Identification column used:", used_species_column, "(", species_id_col, ")\n")
 
-  # Créer une copie de df pour éviter de modifier le dataframe original
+  # Create a copy of df to avoid modifying the original dataframe
   df_result <- df
 
-  # Si nécessaire, ajoute une colonne Species pour correspondre aux équations
-  if (colonne_essence_utilisee != "Essence" || col_id_essence != "Essence") {
-    # Extrait les correspondances uniques des essences depuis equations_df
-    if (!all(c("Essences", colonne_essence_utilisee) %in% colnames(equations_df))) {
-      stop(paste("Le dataframe 'equations_df' doit contenir les colonnes 'Essences' et '",
-                 colonne_essence_utilisee, "'", sep=""))
+  # If necessary, add a Species column to match equations
+  if (used_species_column != "Species" || species_id_col != "Species") {
+    # Extract unique species correspondences from equations_df
+    if (!all(c("Species", used_species_column) %in% colnames(equations_df))) {
+      stop(paste("The 'equations_df' dataframe must contain columns 'Species' and '",
+                 used_species_column, "'", sep=""))
     }
 
-    # DEBUG: Vérifier l'existence des colonnes nécessaires
-    cat("Colonnes disponibles dans equations_df:", paste(colnames(equations_df), collapse=", "), "\n")
+    # DEBUG: Check existence of necessary columns
+    cat("Available columns in equations_df:", paste(colnames(equations_df), collapse=", "), "\n")
 
-    # Cree un dataframe de correspondance a partir de equations_df
-    mapping_df <- unique(equations_df[, c("Essences", colonne_essence_utilisee)])
-    names(mapping_df)[names(mapping_df) == "Essences"] <- "Species"  # Renommer en Species au lieu de Essence
+    # Create a correspondence dataframe from equations_df
+    mapping_df <- unique(equations_df[, c("Species", used_species_column)])
+    names(mapping_df)[names(mapping_df) == "Species"] <- "Species"  # Keep as Species
 
-    # DEBUG: Afficher un aperçu du mapping
-    cat("Aperçu du mapping des essences:\n")
+    # DEBUG: Display mapping overview
+    cat("Species mapping overview:\n")
     print(head(mapping_df))
 
-    # Cree une colonne temporaire Species pour les calculs
-    if (col_id_essence != colonne_essence_utilisee) {
-      # Renommer temporairement la colonne dans mapping_df pour qu'elle corresponde au nom dans df_result
-      names(mapping_df)[names(mapping_df) == colonne_essence_utilisee] <- col_id_essence
+    # Create a temporary Species column for calculations
+    if (species_id_col != used_species_column) {
+      # Temporarily rename column in mapping_df to match name in df_result
+      names(mapping_df)[names(mapping_df) == used_species_column] <- species_id_col
     }
 
-    # Conserver l'original avant merge pour éviter les duplications
+    # Keep original before merge to avoid duplications
     orig_colnames <- colnames(df_result)
 
-    # Utiliser merge avec all.x=TRUE pour garder toutes les lignes de df_result
-    df_result <- merge(df_result, mapping_df, by = col_id_essence, all.x = TRUE)
+    # Use merge with all.x=TRUE to keep all rows from df_result
+    df_result <- merge(df_result, mapping_df, by = species_id_col, all.x = TRUE)
 
-    # Vérifier si le merge a créé des colonnes dupliquées (.x, .y)
+    # Check if merge created duplicated columns (.x, .y)
     if ("Species.x" %in% colnames(df_result)) {
-      # Nettoyer les noms de colonnes dupliqués
+      # Clean duplicated column names
       names(df_result)[names(df_result) == "Species.x"] <- "Species"
 
-      # Supprimer la colonne dupliquée si elle existe
+      # Remove duplicated column if it exists
       if ("Species.y" %in% colnames(df_result)) {
         df_result$Species.y <- NULL
       }
     }
 
-    # Verifier si des correspondances n'ont pas ete trouvees
+    # Check if some correspondences were not found
     if (any(is.na(df_result$Species))) {
-      na_values <- unique(df_result[[col_id_essence]][is.na(df_result$Species)])
-      warning(paste("Aucune correspondance trouvée pour les valeurs suivantes de",
-                    col_id_essence, ":", paste(na_values, collapse=", ")))
+      na_values <- unique(df_result[[species_id_col]][is.na(df_result$Species)])
+      warning(paste("No correspondence found for the following values of",
+                    species_id_col, ":", paste(na_values, collapse=", ")))
     }
   } else {
-    # Si la colonne s'appelle déjà "Essence", la renommer en "Species"
-    names(df_result)[names(df_result) == "Essence"] <- "Species"
+    # If column is already called "Species", keep it
+    names(df_result)[names(df_result) == "Species"] <- "Species"
   }
 
-  # DEBUG: Vérifier les colonnes après mapping
-  cat("Colonnes après mapping:", paste(colnames(df_result), collapse=", "), "\n")
+  # DEBUG: Check columns after mapping
+  cat("Columns after mapping:", paste(colnames(df_result), collapse=", "), "\n")
 
-  # Vérifier si les colonnes de diamètre existent
+  # Check if diameter columns exist
   C130_exists <- C130 %in% colnames(df)
   C150_exists <- C150 %in% colnames(df)
 
   if (!C130_exists && !C150_exists) {
-    stop(paste("Aucune des colonnes de diamètre spécifiées ('", C130, "' ou '", C150, "') n'existe dans les données.", sep=""))
+    stop(paste("None of the specified diameter columns ('", C130, "' or '", C150, "') exist in the data.", sep=""))
   }
 
-  # Conversion C150 en C130 si nécessaire
+  # C150 to C130 conversion if necessary
   if (!C130_exists && C150_exists) {
-    cat("Conversion de C150 en C130 nécessaire...\n")
+    cat("C150 to C130 conversion necessary...\n")
 
-    # Vérifier que les colonnes HV et IV existent
-    if(!all(c("Essences", "HV", "IV") %in% colnames(equations_df))) {
-      stop("Les colonnes 'Essences', 'HV' et 'IV' doivent exister dans le dataframe d'équations")
+    # Check that HV and IV columns exist
+    if(!all(c("Species", "HV", "IV") %in% colnames(equations_df))) {
+      stop("Columns 'Species', 'HV' and 'IV' must exist in the equations dataframe")
     }
 
-    # Extraire les coefficients par essence
-    coefs_df <- unique(equations_df[, c("Essences", "HV", "IV")])
-    names(coefs_df)[names(coefs_df) == "Essences"] <- "Species"
+    # Extract coefficients by species
+    coefs_df <- unique(equations_df[, c("Species", "HV", "IV")])
+    names(coefs_df)[names(coefs_df) == "Species"] <- "Species"
 
-    # DEBUG: Afficher les coefficients
-    cat("Aperçu des coefficients de conversion:\n")
+    # DEBUG: Display coefficients
+    cat("Conversion coefficients overview:\n")
     print(head(coefs_df))
 
-    # Initialiser la colonne C130 avec NA
+    # Initialize C130 column with NA
     df_result$C130 <- NA_real_
 
-    # Effectuer la conversion ligne par ligne
+    # Perform conversion row by row
     for (i in seq_len(nrow(df_result))) {
-      essence_arbre <- df_result$Species[i]
+      tree_species <- df_result$Species[i]
 
-      if (!is.na(essence_arbre)) {
+      if (!is.na(tree_species)) {
         c150_value <- df_result[[C150]][i]
 
         if (!is.na(c150_value)) {
-          # Trouver les coefficients pour cette essence
-          coef_row <- coefs_df[coefs_df$Species == essence_arbre, ]
+          # Find coefficients for this species
+          coef_row <- coefs_df[coefs_df$Species == tree_species, ]
 
-          # DEBUG: Pour les premières lignes, afficher les détails
+          # DEBUG: For first rows, display details
           if (i <= 5) {
-            cat("Ligne", i, "- Essence:", essence_arbre, "- Coefficients trouvés:",
+            cat("Row", i, "- Species:", tree_species, "- Coefficients found:",
                 nrow(coef_row), "\n")
             if (nrow(coef_row) > 0) {
               cat("  HV:", coef_row$HV[1], "IV:", coef_row$IV[1], "\n")
@@ -308,64 +308,64 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
           }
 
           if (nrow(coef_row) > 0 && !is.na(coef_row$HV[1]) && !is.na(coef_row$IV[1])) {
-            # Récupérer les coefficients
+            # Get coefficients
             HV_coef <- coef_row$HV[1]
             IV_coef <- coef_row$IV[1]
 
-            # Appliquer la formule de conversion
+            # Apply conversion formula
             df_result$C130[i] <- HV_coef * c150_value + IV_coef
 
-            # DEBUG: Afficher le résultat de la conversion
+            # DEBUG: Display conversion result
             if (i <= 5) {
               cat("  Conversion:", c150_value, "->", df_result$C130[i], "\n")
             }
           } else {
-            warning(paste("Impossible de convertir C150 en C130 pour l'essence:", essence_arbre,
-                          "à la ligne", i, ". Coefficients manquants."))
+            warning(paste("Unable to convert C150 to C130 for species:", tree_species,
+                          "at row", i, ". Missing coefficients."))
           }
         }
       }
     }
 
-    # Vérifier si certaines conversions ont échoué
+    # Check if some conversions failed
     failed_conversions <- sum(is.na(df_result$C130))
     if (failed_conversions > 0) {
-      warning(paste(failed_conversions, "conversions C150 à C130 ont échoué. Vérifiez les données."))
+      warning(paste(failed_conversions, "C150 to C130 conversions failed. Check the data."))
     }
 
-    cat("Conversion C150 → C130 terminée.\n")
+    cat("C150 → C130 conversion completed.\n")
   }
 
-  # Conversion C130 en C150 si nécessaire
+  # C130 to C150 conversion if necessary
   if (!C150_exists && C130_exists) {
-    cat("Conversion de C130 en C150 nécessaire...\n")
+    cat("C130 to C150 conversion necessary...\n")
 
-    # Vérifier que les colonnes HV et IV existent
-    if(!all(c("Essences", "HV", "IV") %in% colnames(equations_df))) {
-      stop("Les colonnes 'Essences', 'HV' et 'IV' doivent exister dans le dataframe d'équations")
+    # Check that HV and IV columns exist
+    if(!all(c("Species", "HV", "IV") %in% colnames(equations_df))) {
+      stop("Columns 'Species', 'HV' and 'IV' must exist in the equations dataframe")
     }
 
-    # Extraire les coefficients par essence
-    coefs_df <- unique(equations_df[, c("Essences", "HV", "IV")])
-    names(coefs_df)[names(coefs_df) == "Essences"] <- "Species"
+    # Extract coefficients by species
+    coefs_df <- unique(equations_df[, c("Species", "HV", "IV")])
+    names(coefs_df)[names(coefs_df) == "Species"] <- "Species"
 
-    # Initialiser la colonne C150 avec NA
+    # Initialize C150 column with NA
     df_result[[C150]] <- NA_real_
 
-    # Effectuer la conversion ligne par ligne
+    # Perform conversion row by row
     for (i in seq_len(nrow(df_result))) {
-      essence_arbre <- df_result$Species[i]
+      tree_species <- df_result$Species[i]
 
-      if (!is.na(essence_arbre)) {
+      if (!is.na(tree_species)) {
         c130_value <- df_result$C130[i]
 
         if (!is.na(c130_value)) {
-          # Trouver les coefficients pour cette essence
-          coef_row <- coefs_df[coefs_df$Species == essence_arbre, ]
+          # Find coefficients for this species
+          coef_row <- coefs_df[coefs_df$Species == tree_species, ]
 
-          # DEBUG: Pour les premières lignes, afficher les détails
+          # DEBUG: For first rows, display details
           if (i <= 5) {
-            cat("Ligne", i, "- Essence:", essence_arbre, "- Coefficients trouvés:",
+            cat("Row", i, "- Species:", tree_species, "- Coefficients found:",
                 nrow(coef_row), "\n")
             if (nrow(coef_row) > 0) {
               cat("  HV:", coef_row$HV[1], "IV:", coef_row$IV[1], "\n")
@@ -373,36 +373,36 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
           }
 
           if (nrow(coef_row) > 0 && !is.na(coef_row$HV[1]) && !is.na(coef_row$IV[1])) {
-            # Récupérer les coefficients
+            # Get coefficients
             HV_coef <- coef_row$HV[1]
             IV_coef <- coef_row$IV[1]
 
-            # Appliquer la formule de conversion inverse (C130 vers C150)
-            # Pour inverser C130 = HV_coef * C150 + IV_coef
-            # Nous obtenons C150 = (C130 - IV_coef) / HV_coef
+            # Apply inverse conversion formula (C130 to C150)
+            # To reverse C130 = HV_coef * C150 + IV_coef
+            # We get C150 = (C130 - IV_coef) / HV_coef
             df_result[[C150]][i] <- (c130_value - IV_coef) / HV_coef
 
-            # DEBUG: Afficher le résultat de la conversion
+            # DEBUG: Display conversion result
             if (i <= 5) {
-              cat("  Conversion inverse:", c130_value, "->", df_result[[C150]][i], "\n")
+              cat("  Inverse conversion:", c130_value, "->", df_result[[C150]][i], "\n")
             }
 
           } else {
-            warning(paste("Impossible de convertir C130 en C150 pour l'essence:", essence_arbre,
-                          "à la ligne", i, ". Coefficients manquants."))
+            warning(paste("Unable to convert C130 to C150 for species:", tree_species,
+                          "at row", i, ". Missing coefficients."))
           }
         }
       }
     }
 
-    cat("Conversion C130 → C150 terminée.\n")
+    cat("C130 → C150 conversion completed.\n")
   }
 
-  # Vérifier et gérer les colonnes de hauteur
+  # Check and handle height columns
   HTOT_exists <- HTOT %in% colnames(df_result)
   HDOM_exists <- HDOM %in% colnames(df_result)
 
-  # Copier les colonnes de hauteur si nécessaire
+  # Copy height columns if necessary
   if (HTOT_exists && HTOT != "HTOT") {
     df_result$HTOT <- df_result[[HTOT]]
   }
@@ -411,54 +411,54 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
     df_result$HDOM <- df_result[[HDOM]]
   }
 
-  # Calcul des surfaces terrieres si necessaires
+  # Calculate basal areas if necessary
   if (!"G130" %in% colnames(df_result) && "C130" %in% colnames(df_result)) {
     df_result$G130 <- (df_result$C130^2) / ((4 * pi)*10000)
   }
 
   if (!"G150" %in% colnames(df_result) && C150_exists) {
-    # Utiliser le nom de colonne spécifié pour C150
+    # Use the column name specified for C150
     df_result$G150 <- (df_result[[C150]]^2) / ((4 * pi)*10000)
   }
 
-  # Filtrer les equations
-  eqs_volume <- equations_df[equations_df$Y == type_volume, ]
-  # DEBUG: Afficher les équations trouvées
-  cat("Nombre d'équations trouvées pour", type_volume, ":", nrow(eqs_volume), "\n")
-  cat("Aperçu des équations disponibles:\n")
-  print(head(eqs_volume[, c("Essences", "Y", "A0")]))
+  # Filter equations
+  volume_eqs <- equations_df[equations_df$Y == type_volume, ]
+  # DEBUG: Display found equations
+  cat("Number of equations found for", type_volume, ":", nrow(volume_eqs), "\n")
+  cat("Overview of available equations:\n")
+  print(head(volume_eqs[, c("Species", "Y", "A0")]))
 
-  if (nrow(eqs_volume) == 0) {
-    stop(paste("Aucune équation trouvée pour le type de volume:", type_volume))
+  if (nrow(volume_eqs) == 0) {
+    stop(paste("No equation found for volume type:", type_volume))
   }
 
-  # S'assurer que les coefficients b0 a b5 sont numeriques
-  colonnes_b <- paste0("b", 0:5)
-  eqs_volume[colonnes_b] <- lapply(eqs_volume[colonnes_b], as.numeric)
+  # Ensure coefficients b0 to b5 are numeric
+  b_columns <- paste0("b", 0:5)
+  volume_eqs[b_columns] <- lapply(volume_eqs[b_columns], as.numeric)
 
-  # Initialisation
-  df_result$Equation_Utilisee <- NA_character_
+  # Initialization
+  df_result$Equation_Used <- NA_character_
 
-  # Initialisation de la colonne de volume spécifiée par l'utilisateur
+  # Initialize volume column specified by user
   if (!(type_volume %in% names(df_result))) {
     df_result[[type_volume]] <- NA_real_
   }
 
-  # Modification de la fonction evaluer_expression pour plus de débogage
-  evaluer_expression <- function(expr_text, variables) {
+  # Modify evaluate_expression function for more debugging
+  evaluate_expression <- function(expr_text, variables) {
     if (is.na(expr_text) || expr_text == "0" || expr_text == 0) return(0)
 
-    # Vérifier si l'expression est valide syntaxiquement
+    # Check if expression is syntactically valid
     if (expr_text == "/") {
-      warning("Expression invalide détectée: '/'")
+      warning("Invalid expression detected: '/'")
       return(NA)
     }
 
-    # Vérifier que toutes les variables nécessaires sont présentes et non NA
+    # Check that all necessary variables are present and not NA
     var_names <- all.vars(parse(text = expr_text))
     for (v in var_names) {
       if (!v %in% names(variables) || is.na(variables[[v]])) {
-        warning(paste("Variable manquante ou NA:", v, "pour l'expression:", expr_text))
+        warning(paste("Missing or NA variable:", v, "for expression:", expr_text))
         return(NA)
       }
     }
@@ -467,113 +467,137 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
     tryCatch({
       eval(parse(text = expr_text), envir = env)
     }, error = function(e) {
-      warning(paste("Erreur lors de l'evaluation de l'expression:", expr_text, "-", e$message))
-      return(NA)
-    })
-    env <- list2env(variables)
-    tryCatch({
-      eval(parse(text = expr_text), envir = env)
-    }, error = function(e) {
-      warning(paste("Erreur lors de l'evaluation de l'expression:", expr_text, "-", e$message))
+      warning(paste("Error evaluating expression:", expr_text, "-", e$message))
       return(NA)
     })
   }
 
-  # Calcul pour chaque ligne
+  # Calculation for each row
   for (i in seq_len(nrow(df_result))) {
-    essence_arbre <- df_result$Species[i]  # Utilisation de Species au lieu de Essence
+    tree_species <- df_result$Species[i]  # Use Species instead of Essence
 
-    # Initialisation de la variable volume pour cette ligne
-    volume <- 0
-
-    # Pour le volume de type "E", déterminer dynamiquement l'équation à utiliser
-    # selon l'espèce, toujours l'équation 4 ou 5 spécifique à chaque essence
+    # Initialize variable according to type
     if (type_volume == "E") {
-      # Trouver toutes les équations disponibles pour cette essence et ce type de volume
-      eq_candidates_E <- eqs_volume[eqs_volume$Essences == essence_arbre, ]
+      thickness <- 0  # For type E, we calculate thickness
+      cat("Thickness calculation for row", i, "- Species:", tree_species, "\n")
+    } else {
+      volume <- 0     # For other types, we calculate volume
+    }
 
-      # Filtrer uniquement les équations avec A0 = 4 ou A0 = 5
+    # For type "E" (thickness), use only equations 4 or 5
+    if (type_volume == "E") {
+      # Find available equations for this species and type E
+      eq_candidates_E <- volume_eqs[volume_eqs$Species == tree_species, ]
+
+      # For type E, filter only equations with A0 = 4 or A0 = 5
       eq_candidates_E_filtered <- eq_candidates_E[eq_candidates_E$A0 %in% c(4, 5), ]
 
       if (nrow(eq_candidates_E_filtered) > 0) {
-        # Déterminer quelle équation (4 ou 5) est associée à cette essence
+        # Priority to equation 4, otherwise equation 5
         if (any(eq_candidates_E_filtered$A0 == 4)) {
           local_id_equation <- 4
-          cat(" Utilisation de l'équation A0 = 4 pour", essence_arbre, "\n")
+          cat("  Using equation A0 = 4 for thickness calculation -", tree_species, "\n")
         } else {
           local_id_equation <- 5
-          cat(" Utilisation de l'équation A0 = 5 pour", essence_arbre, "\n")
+          cat("  Using equation A0 = 5 for thickness calculation -", tree_species, "\n")
         }
       } else {
-        # Si aucune équation 4 ou 5 n'est trouvée pour cette essence, garder l'id_equation original
-        cat(" Aucune équation de type 4 ou 5 trouvée pour", essence_arbre, ". Utilisation de l'équation par défaut.\n")
+        # If no equation 4 or 5 is found for this species
+        warning(paste("No equation of type 4 or 5 found for thickness calculation of species", tree_species))
+
+        # Try with general equation if available
+        eq_candidates_general <- volume_eqs[volume_eqs$Species == "General" & volume_eqs$A0 %in% c(4, 5), ]
+        if (nrow(eq_candidates_general) > 0) {
+          eq_candidates_E_filtered <- eq_candidates_general
+          local_id_equation <- eq_candidates_general$A0[1]
+          cat("  Using general equation A0 =", local_id_equation, "for", tree_species, "\n")
+        } else {
+          warning(paste("Unable to calculate thickness for species", tree_species, "- No appropriate equation found"))
+          next
+        }
       }
+
+      eq_candidates <- eq_candidates_E_filtered
     } else {
-      # Pour les autres types de volume, garder l'équation spécifiée par l'utilisateur
+      # For other volume types, standard behavior
       local_id_equation <- id_equation
+
+      eq_candidates <- if (!is.null(species)) {
+        volume_eqs[volume_eqs$Species == species, ]
+      } else {
+        volume_eqs[volume_eqs$Species == tree_species, ]
+      }
     }
 
-    eq_candidates <- if (!is.null(essence)) {
-      eqs_volume[eqs_volume$Essences == essence, ]
-    } else {
-      eqs_volume[eqs_volume$Essences == essence_arbre, ]
-    }
-
-    # DEBUG: Afficher les équations candidates pour cette essence
+    # DEBUG: Display candidate equations for this species
     if (i <= 5) {
-      cat("  Nombre d'équations candidates:", nrow(eq_candidates), "\n")
+      if (type_volume == "E") {
+        cat("  Number of candidate equations for thickness:", nrow(eq_candidates), "\n")
+      } else {
+        cat("  Number of candidate equations for volume:", nrow(eq_candidates), "\n")
+      }
     }
 
     if (nrow(eq_candidates) == 0) {
-      # Si aucune équation spécifique n'est trouvée, utiliser l'équation générale
-      eq_candidates <- eqs_volume[eqs_volume$Essences == "General", ]
+      # If no specific equation is found, use general equation
+      if (type_volume == "E") {
+        eq_candidates <- volume_eqs[volume_eqs$Species == "General" & volume_eqs$A0 %in% c(4, 5), ]
+      } else {
+        eq_candidates <- volume_eqs[volume_eqs$Species == "General", ]
+      }
+
       if (nrow(eq_candidates) == 0) {
-        warning(paste("Pas d'equation trouvee pour l'essence:", essence_arbre))
+        if (type_volume == "E") {
+          warning(paste("No thickness equation found for species:", tree_species))
+        } else {
+          warning(paste("No volume equation found for species:", tree_species))
+        }
         next
       }
     }
 
-    # Pour le type "E", utiliser l'équation avec A0 correspondant à local_id_equation
-    if (type_volume == "E" && local_id_equation %in% c(4, 5)) {
+    # Selection of appropriate equation
+    if (type_volume == "E") {
+      # For type E, use equation with A0 corresponding to local_id_equation (4 or 5)
       eq_by_a0 <- eq_candidates[eq_candidates$A0 == local_id_equation, ]
       if (nrow(eq_by_a0) > 0) {
-        eq <- eq_by_a0[1, , drop = FALSE]  # Prendre la première équation si plusieurs correspondent
-        cat("  Utilisation de l'équation A0 =", local_id_equation, "pour", essence_arbre, "\n")
+        eq <- eq_by_a0[1, , drop = FALSE]  # Take first equation if multiple match
+        cat("  Using equation A0 =", local_id_equation, "for thickness calculation -", tree_species, "\n")
       } else {
-        # Si aucune équation avec le A0 spécifique n'est trouvée
-        warning(paste("Pas d'équation avec A0 =", local_id_equation, "trouvée pour l'essence", essence_arbre))
+        # If no equation with specific A0 is found
+        warning(paste("No equation with A0 =", local_id_equation, "found for thickness of species", tree_species))
 
-        # Essayer avec l'autre type d'équation (4 ou 5)
+        # Try with other equation type (4 or 5)
         other_a0 <- if (local_id_equation == 4) 5 else 4
         eq_by_other_a0 <- eq_candidates[eq_candidates$A0 == other_a0, ]
 
         if (nrow(eq_by_other_a0) > 0) {
           eq <- eq_by_other_a0[1, , drop = FALSE]
-          cat("  Utilisation de l'équation alternative A0 =", other_a0, "pour", essence_arbre, "\n")
+          cat("  Using alternative equation A0 =", other_a0, "for thickness -", tree_species, "\n")
         } else {
-          # Si toujours aucune équation, utiliser la première disponible
-          if (nrow(eq_candidates) > 0) {
-            eq <- eq_candidates[1, , drop = FALSE]
-            cat("  Utilisation de l'équation par défaut pour", essence_arbre, "\n")
-          } else {
-            warning(paste("Aucune équation trouvée pour l'essence", essence_arbre))
-            next
-          }
+          warning(paste("No appropriate thickness equation found for species", tree_species))
+          next
         }
       }
     } else {
-      # Pour les autres types de volume, comportement standard
+      # For other volume types, standard behavior
       if (local_id_equation > nrow(eq_candidates)) {
-        warning(paste("L'équation avec id", local_id_equation, "n'existe pas pour l'essence", essence_arbre,
-                      ". Utilisation de l'équation 1 à la place."))
+        warning(paste("Equation with id", local_id_equation, "does not exist for species", tree_species,
+                      ". Using equation 1 instead."))
         eq <- eq_candidates[1, , drop = FALSE]
       } else {
         eq <- eq_candidates[local_id_equation, , drop = FALSE]
       }
     }
 
-    df_result$Equation_Utilisee[i] <- paste0(eq$Essences, ":", eq$Y, ":A0=", eq$A0)
+    # Record used equation
+    if (type_volume == "E") {
+      df_result$Equation_Used[i] <- paste0(eq$Species, ":", eq$Y, ":A0=", eq$A0, " (Thickness)")
+    } else {
+      df_result$Equation_Used[i] <- paste0(eq$Species, ":", eq$Y, ":A0=", eq$A0, " (Volume)")
+    }
 
+    # Prepare variables for evaluation
     exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
     exprs <- exprs[!is.na(exprs) & exprs != "0"]
     vars_needed <- unique(unlist(regmatches(exprs, gregexpr("[A-Za-z_][A-Za-z0-9_]*", exprs))))
@@ -583,91 +607,168 @@ calculer_volumes <- function(df, type_volume = "V22", essence = NULL,
       if (v %in% names(df_result)) {
         variables[[v]] <- df_result[[v]][i]
       } else {
-        stop(paste("La variable", v, "est utilisee dans une equation mais absente des donnees."))
+        stop(paste("Variable", v, "is used in an equation but absent from data."))
       }
     }
 
     a0_value <- eq$A0[1]
 
-    # DEBUG: Afficher les détails de l'équation
+    # DEBUG: Display equation details
     if (is.na(a0_value)) {
-      warning(paste("Valeur A0 manquante pour l'essence", essence_arbre, "a la ligne", i))
-      next
-    } else if (a0_value %in% c(1, 2, 3, 5)) {
-      # Pour les équations linéaires standard, commencer avec b0
-      volume <- eq$b0[1]
-      for (j in 1:5) {
-        x_col <- paste0("X", j)
-        b_col <- paste0("b", j)
-
-        # Vérifier si l'expression X existe et est valide
-        if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
-          if (eq[[x_col]][1] == "/") {
-            warning(paste("Expression invalide à la ligne", i, "pour X", j))
-            next
-          }
-
-          # Capture explicitement la valeur retournée
-          x_val <- tryCatch({
-            evaluer_expression(eq[[x_col]][1], variables)
-          }, error = function(e) {
-            warning(paste("Erreur lors de l'évaluation de X", j, ":", e$message))
-            NA
-          })
-
-          # Vérification sécurisée pour NA
-          if (length(x_val) == 0 || is.na(x_val)) {
-            warning(paste("L'évaluation de X", j, "a échoué à la ligne", i))
-            next
-          }
-
-          b_val <- eq[[b_col]][1]
-          if (is.na(b_val)) {
-            warning(paste("Coefficient b", j, "manquant à la ligne", i))
-            next
-          }
-
-          if (i <= 5) {
-            cat("  X", j, "=", x_val, "b", j, "=", b_val, "\n")
-          }
-          volume <- volume + b_val * x_val
-        }
+      if (type_volume == "E") {
+        warning(paste("Missing A0 value for thickness of species", tree_species, "at row", i))
+      } else {
+        warning(paste("Missing A0 value for volume of species", tree_species, "at row", i))
       }
-    } else if (a0_value == 4) {
-      C130 <- evaluer_expression(eq$X1[1], variables)
-      if (C130 <= 0) {
-        warning(paste("Valeur négative ou nulle pour logarithme à la ligne", i))
+      next
+    }
+
+    # Calculation according to the type of equation
+    if (type_volume == "E") {
+      # Thickness calculation - only for A0 = 4 or 5
+      if (a0_value == 4) {
+        C130 <- evaluer_expression(eq$X1[1], variables)
+        if (C130 <= 0) {
+          warning(paste("Negative or zero value for logarithm at line", i))
+          next
+        }
+        thickness <- 10^(1 * eq$b0[1] + (eq$b1[1] * log10(C130)))
+        if (i <= 5) {
+          cat("  Calculated thickness (A0=4):", thickness, "cm\n")
+        }
+      } else if (a0_value == 5) {
+        # For A0 = 5, standard linear equation
+        thickness <- eq$b0[1]
+        for (j in 1:5) {
+          x_col <- paste0("X", j)
+          b_col <- paste0("b", j)
+
+          if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
+            if (eq[[x_col]][1] == "/") {
+              warning(paste("Invalid expression at line", i, "for X", j))
+              next
+            }
+
+            x_val <- tryCatch({
+              evaluer_expression(eq[[x_col]][1], variables)
+            }, error = function(e) {
+              warning(paste("Error evaluating X", j, ":", e$message))
+              NA
+            })
+
+            if (length(x_val) == 0 || is.na(x_val)) {
+              warning(paste("Evaluation of X", j, "failed at line", i))
+              next
+            }
+
+            b_val <- eq[[b_col]][1]
+            if (is.na(b_val)) {
+              warning(paste("Missing coefficient b", j, "at line", i))
+              next
+            }
+
+            if (i <= 5) {
+              cat("  X", j, "=", x_val, "b", j, "=", b_val, "\n")
+            }
+            thickness <- thickness + b_val * x_val
+          }
+        }
+        if (i <= 5) {
+          cat("  Calculated thickness (A0=5):", thickness, "cm\n")
+        }
+      } else {
+        warning(paste("Inappropriate equation type for thickness calculation (A0 =", a0_value, ") at line", i))
         next
       }
-      volume <- 10^(eq$b0[1] + eq$b1[1] * log10(C130))
+
+      # Check and store the thickness
+      if (is.na(thickness) || !is.finite(thickness)) {
+        warning(paste("Invalid thickness result at line", i, ":", thickness))
+        next
+      }
+
+      # Store thickness in the column specified by type_volume
+      df_result[[type_volume]][i] <- thickness
+
+      if (i <= 5) {
+        cat("  Thickness stored at line", i, ":", df_result[[type_volume]][i], "cm\n")
+      }
+
     } else {
-      warning(paste("Type d'équation inconnu (A0 =", a0_value, ") pour la ligne", i))
-      next
+      # Volume calculation - for all other types
+      if (a0_value %in% c(1, 2, 3, 5)) {
+        # For standard linear equations, start with b0
+        volume <- eq$b0[1]
+        for (j in 1:5) {
+          x_col <- paste0("X", j)
+          b_col <- paste0("b", j)
+
+          if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
+            if (eq[[x_col]][1] == "/") {
+              warning(paste("Invalid expression at line", i, "for X", j))
+              next
+            }
+
+            x_val <- tryCatch({
+              evaluer_expression(eq[[x_col]][1], variables)
+            }, error = function(e) {
+              warning(paste("Error evaluating X", j, ":", e$message))
+              NA
+            })
+
+            if (length(x_val) == 0 || is.na(x_val)) {
+              warning(paste("Evaluation of X", j, "failed at line", i))
+              next
+            }
+
+            b_val <- eq[[b_col]][1]
+            if (is.na(b_val)) {
+              warning(paste("Missing coefficient b", j, "at line", i))
+              next
+            }
+
+            if (i <= 5) {
+              cat("  X", j, "=", x_val, "b", j, "=", b_val, "\n")
+            }
+            volume <- volume + b_val * x_val
+          }
+        }
+      } else if (a0_value == 4) {
+        C130 <- evaluer_expression(eq$X1[1], variables)
+        if (C130 <= 0) {
+          warning(paste("Negative or zero value for logarithm at line", i))
+          next
+        }
+        volume <- 10^(1 * eq$b0[1] + (eq$b1[1] * log10(C130)))
+      } else {
+        warning(paste("Unknown equation type (A0 =", a0_value, ") at line", i))
+        next
+      }
+
+      # Check and store the volume
+      if (is.na(volume) || !is.finite(volume)) {
+        warning(paste("Invalid volume result at line", i, ":", volume))
+        next
+      }
+
+      # DEBUG: Display calculated volume
+      if (i <= 5) {
+        cat("  Calculated volume:", volume, "\n")
+      }
+
+      # Store volume in the column specified by type_volume
+      df_result[[type_volume]][i] <- volume
+
+      if (i <= 5) {
+        cat("  Volume stored at line", i, ":", df_result[[type_volume]][i], "\n")
+      }
     }
 
-
-    if (is.na(volume) || !is.finite(volume)) {
-      warning(paste("Resultat de volume non valide a la ligne", i, ":", volume))
-      next
+    # Final cleanup if requested
+    if (remove_na) {
+      df_result <- df_result[!is.na(df_result[[type_volume]]), ]
     }
 
-    # DEBUG: Afficher le volume calculé
-    if (i <= 5) {
-      cat("  Volume calcule:", volume, "\n")
-    }
-
-    # Stocker le volume uniquement pour cette ligne, dans la colonne spécifiée par type_volume
-    df_result[[type_volume]][i] <- volume
-
-    if (i <= 5) {
-      cat("  Volume stocke a la ligne", i, ":", df_result[[type_volume]][i], "\n")
-    }
+    return(df_result)
   }
 
-  # Nettoyage final si demande
-  if (remove_na) {
-    df_result <- df_result[!is.na(df_result[[type_volume]]), ]
-  }
-
-  return(df_result)
-}
