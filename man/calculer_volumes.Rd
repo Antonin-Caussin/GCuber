@@ -2,15 +2,13 @@
 % Please edit documentation in R/Fonction.R
 \name{calculer_volumes}
 \alias{calculer_volumes}
-\title{Calcule différents types de volumes d'arbres à partir de données dendrométriques}
+\title{Calculate different types of volumes from dendrometric data}
 \usage{
 calculer_volumes(
   df,
-  type_volume = "VC22",
+  type_volume = "V22",
   essence = NULL,
-  equations_df = equations,
   id_equation = 1,
-  coefs_conversion = NULL,
   remove_na = FALSE,
   C130 = "C130",
   C150 = "C150",
@@ -20,95 +18,87 @@ calculer_volumes(
 )
 }
 \arguments{
-\item{df}{Un data frame contenant les données dendrométriques des arbres.}
+\item{df}{A data frame containing the dendrometric data of the trees.}
 
-\item{type_volume}{Le type de volume à calculer. Valeurs valides : "VC22", "VC22B", "E", "VC22_HA". Par défaut : "VC22".}
+\item{type_volume}{The type of volume to calculate. Valid values: "V22", "V22B", "E", "V22_HA". Default: "V22".}
 
-\item{essence}{Optionnel. Si spécifié, les calculs seront effectués uniquement avec les équations correspondant
-à cette essence. Par défaut : NULL (utilise les essences indiquées dans les données).}
+\item{essence}{If specified, calculations will be performed only with equations corresponding
+to this species. Default: NULL (uses species indicated in the data).}
 
-\item{equations_df}{Un data frame contenant les équations allométriques à utiliser. Par défaut : equations.}
+\item{id_equation}{The identifier of the equation to use for each species, representing the entry number. Default: 1.}
 
-\item{id_equation}{L'identifiant de l'équation à utiliser pour chaque essence. Par défaut : 1.}
+\item{remove_na}{Boolean indicating whether rows with uncalculated volumes should be removed.
+Default: FALSE.}
 
-\item{coefs_conversion}{Table de conversion entre C150 et C130. Requis si les données contiennent C150
-mais pas C130. Par défaut : NULL.}
+\item{C130}{Name of the column containing the circumference at 130 cm. Default: "C130".}
 
-\item{remove_na}{Booléen indiquant si les lignes avec des volumes non calculés doIVent être supprimées.
-Par défaut : FALSE.}
+\item{C150}{Name of the column containing the circumference at 150 cm. Default: "C150".}
 
-\item{C130}{Nom de la colonne contenant la circonférence à 130 cm. Par défaut : "C130".}
+\item{HTOT}{Name of the column containing the total height. Default: "HTOT".}
 
-\item{C150}{Nom de la colonne contenant la circonférence à 150 cm. Par défaut : "C150".}
+\item{HDOM}{Name of the column containing the dominant height. Default: "HDOM".}
 
-\item{HTOT}{Nom de la colonne contenant la hauteur totale. Par défaut : "HTOT".}
-
-\item{HDOM}{Nom de la colonne contenant la hauteur dominante. Par défaut : "HDOM".}
-
-\item{specimens}{Optionnel. Nom de la colonne contenant l'identifiant des essences
-(nom complet, code ou abréviation). Par défaut : NULL.}
+\item{specimens}{Name of the column containing the species identifier (full name, code or abbreviation). Default: NULL.}
 }
 \value{
-Un data frame similaire à \code{df} avec les colonnes supplémentaires suIVantes :
+A data frame similar to \code{df} with the following additional columns:
 \itemize{
-  \item La colonne spécifiée par \code{type_volume} contenant les volumes calculés.
-  \item \code{Equation_Utilisee} : Information sur l'équation utilisée pour chaque ligne.
-  \item Si une conversion C150 à C130 a été effectuée, une colonne \code{C130} est ajoutée.
-  \item Si le mapping d'essence a été nécessaire, une colonne \code{Essence} est ajoutée.
+  \item The column specified by \code{type_volume} containing the calculated volumes.
+  \item \code{Equation_Utilisee} : Information about the equation used for each row.
+  \item If a C150 to C130 conversion was performed, a \code{C130} column is added.
+  \item If species mapping was necessary, a \code{Species} column is added.
 }
 }
 \description{
-Cette fonction permet de calculer différents types de volumes d'arbres à partir de données
-dendrométriques en utilisant dIVerses équations allométriques. Elle gère la dIVersité
-des essences forestières, les différentes méthodes de mesure (C130, C150) et peut s'adapter
-à différentes structures de données d'entrée.
+This function allows calculating different types of tree volumes from
+dendrometric data using various allometric equations. It handles the diversity
+of forest species, different measurement methods (C130, C150) and can adapt
+to different input data structures.
 }
 \details{
-\subsection{Types de volume supportés}{
+\subsection{Supported volume types}{
   \itemize{
-    \item \strong{VC22} : Volume commercial jusqu'à une découpe de 22 cm de circonférence.
-    \item \strong{VC22B} : Variante du volume commercial.
-    \item \strong{E} : Volume total de l'arbre.
-    \item \strong{VC22_HA} : Volume commercial par hectare.
+    \item \strong{V22} : Merchantable volume up to a 22 cm circumference cut.
+    \item \strong{V22B} : Branch volume up to a 22cm circumference cut.
+    \item \strong{E} : Tree bark volume.
+    \item \strong{V22_HA} : Merchantable volume per hectare.
   }
 }
 
-\subsection{Structure des données d'entrée requise}{
-  La fonction nécessite au minimum :
+\subsection{Required input data structure}{
+  The function requires at minimum:
   \itemize{
-    \item Une colonne d'identification des essences forestières (spécifiée via \code{specimens}
-          ou par défaut "Essence", "Code" ou "Abr").
-    \item Une colonne de diamètre (soit \code{C130}, soit \code{C150}).
+    \item A forest species identification column (specified via \code{specimens}.
+    \item A diameter column (either \code{C130} or \code{C150}).
   }
 }
 
-\subsection{Types d'équations supportés (valeurs de A0)}{
+\subsection{Supported equation types (A0 values)}{
   \enumerate{
-    \item Équation linéaire standard à 1 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-    \item Équation linéaire standard à 2 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-    \item Équation linéaire standard à 3 entrée: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
-    \item Équation logarithmique : Volume = 10^(b0 + b1*log10(C130))
-    \item Équation linéaire standard à une entrée pour le volume d'ecorce : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+    \item Standard linear equation with 1 input: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+    \item Standard linear equation with 2 inputs: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+    \item Standard linear equation with 3 inputs: Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
+    \item Logarithmic equation : Volume = 10^(b0 + b1*log10(C130))
+    \item Standard linear equation with one input for bark volume : Volume = b0 + b1*X1 + b2*X2 + ... + b5*X5
   }
 }
 }
 \note{
-La fonction affiche des messages d'information pendant l'exécution pour faciliter le débogage.
-Des avertissements sont émis si des correspondances d'essences ne sont pas trouvées ou si
-le calcul du volume échoue pour certaines lignes.
-Pour les essences non trouvées dans les équations, la fonction tente d'utiliser une équation
-générique ("General").
+The function displays information messages during execution to facilitate debugging.
+Warnings are issued if species correspondences are not found or if
+volume calculation fails for certain rows.
 }
 \examples{
-# Exemple de base avec données standard
-# Supposons que nous avons un data frame "donnees_arbres" avec des colonnes C130 et Essence
+# Basic example with standard data
+# Suppose we have a data frame "donnees_arbres" with C130 and Essence columns
 \dontrun{
 resultats <- calculer_volumes(
   df = donnees_arbres,
-  type_volume = "VC22"
+  type_volume = "V22",
+  C130 = circ2024
 )
 
-# Exemple avec noms de colonnes personnalisés
+# Example with custom column names
 resultats <- calculer_volumes(
   df = donnees_arbres,
   type_volume = "E",
@@ -118,10 +108,10 @@ resultats <- calculer_volumes(
   specimens = "NomEssence"
 )
 
-# Exemple avec conversion C150 à C130
+# Example with C150 to C130 conversion
 resultats <- calculer_volumes(
   df = donnees_arbres,
-  type_volume = "VC22",
+  type_volume = "V22",
   C150 = "Circ150"
 )
 }
@@ -131,7 +121,7 @@ resultats <- calculer_volumes(
 Dagnelie, P., Rondeux, J., & Thill, A. (1985). Tables de cubage des arbres et des peuplements forestiers. Gembloux, Belgique: Presses agronomiques de Gembloux.
 }
 \seealso{
-Fonctions connexes pour la gestion forestière et les calculs dendrométriques.
+Related functions for forest management and dendrometric calculations.
 }
 \author{
 Caussin Antonin
