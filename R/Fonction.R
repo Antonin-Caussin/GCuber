@@ -130,7 +130,7 @@ calculer_volumes <- function(df, type_volume = "V22",
     if (type_volume == "V22" && !(id_equation %in% 1:3)) {
       stop("For volume type 'V22', id_equation must be between 1 and 3.")
     }
-    if (type_volume == "V22_ha" && id_equation != 1) {
+    if (type_volume == "V22_HA" && id_equation != 1) {
       stop("For volume type 'V22_HA', id_equation must be 1.")
     }
     if (type_volume == "V22B" && id_equation != 1) {
