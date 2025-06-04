@@ -234,9 +234,9 @@ calculate_volumes <- function(df, volume_type = "V22",
     cat("[DEBUG]   - HTOT_exists =", HTOT_exists, "\n")
     cat("[DEBUG]   - HDOM_exists =", HDOM_exists, "\n")
     if (length(missing_columns) > 0) {
-      cat("[DEBUG]   Missing columns:", paste(missing_columns, collapse = ", "), "\n")
+      cat("[DEBUG] [Warning]  Missing columns:", paste(missing_columns, collapse = ", "), "\n")
     }
-    cat("[DEBUG] Parameter validation completed\n\n")
+    cat("[DEBUG] [OK]Parameter validation completed\n\n")
   }
 
   # Species identification type detection
@@ -270,7 +270,7 @@ calculate_volumes <- function(df, volume_type = "V22",
       cat("[DEBUG] Average character length:", round(mean_length, 2), "\n")
     }
     cat("[DEBUG] Detected identification type:", specimens_type, "\n")
-    cat("[DEBUG] Specimens type detection completed\n\n")
+    cat("[DEBUG] [OK]Specimens type detection completed\n\n")
 
     return(specimens_type)
   }
@@ -336,10 +336,10 @@ calculate_volumes <- function(df, volume_type = "V22",
     cat("[DEBUG] Number of rows after merge:", nrow(df_result), "\n")
     values_without_correspondence <- unique(df_result[[specimens]][is.na(df_result$Species)])
     if (length(values_without_correspondence) > 0) {
-      cat("[DEBUG]   Values without correspondence (", length(values_without_correspondence), "):",
+      cat("[DEBUG] [Warning]  Values without correspondence (", length(values_without_correspondence), "):",
           paste(head(values_without_correspondence, 5), collapse = ", "), "\n")
     }
-    cat("[DEBUG] Species correspondence completed\n\n")
+    cat("[DEBUG] [OK]Species correspondence completed\n\n")
 
     return(df_result)
   }
@@ -382,13 +382,13 @@ calculate_volumes <- function(df, volume_type = "V22",
     #debug
     if (D130_exists && "C130" %in% colnames(df_result)) {
       successful_conversions_130 <- sum(!is.na(df_result$C130) & D130_exists && !is.na(df_result[[D130]]))
-      cat("[DEBUG] Successful D130→C130 conversions:", successful_conversions_130, "\n")
+      cat("[DEBUG] [OK]Successful D130→C130 conversions:", successful_conversions_130, "\n")
     }
     if (D150_exists && "C150" %in% colnames(df_result)) {
       successful_conversions_150 <- sum(!is.na(df_result$C150) & D150_exists && !is.na(df_result[[D150]]))
-      cat("[DEBUG] Successful D150→C150 conversions:", successful_conversions_150, "\n")
+      cat("[DEBUG] [OK]Successful D150→C150 conversions:", successful_conversions_150, "\n")
     }
-    cat("[DEBUG] Diameter conversions completed\n\n")
+    cat("[DEBUG] [OK]Diameter conversions completed\n\n")
 
     # Warning messages if some conversions fail
     if (D130_exists && sum(is.na(df_result$C130)) > 0 && sum(!is.na(df_result[[D130]])) > 0) {
@@ -499,9 +499,9 @@ calculate_volumes <- function(df, volume_type = "V22",
     #debug
     successful_conversions <- sum(!is.na(df_result[[to_col]]))
     cat("[DEBUG] Conversions to attempt:", attempted_conversions, "\n")
-    cat("[DEBUG] Successful", from_col, to, to_col, "conversions:", successful_conversions, "\n")
+    cat("[DEBUG] [OK]Successful", from_col, to, to_col, "conversions:", successful_conversions, "\n")
     if (attempted_conversions > successful_conversions) {
-      cat("[DEBUG]   Failed conversions:", attempted_conversions - successful_conversions, "\n")
+      cat("[DEBUG] [Warning]  Failed conversions:", attempted_conversions - successful_conversions, "\n")
     }
 
     # Check for missed conversions
@@ -535,12 +535,12 @@ calculate_volumes <- function(df, volume_type = "V22",
 
     #debug
     if ("D130" %in% colnames(df_result) && !"D130" %in% colnames(df)) {
-      cat("[DEBUG] D130 column created from C130\n")
+      cat("[DEBUG] [OK]D130 column created from C130\n")
     }
     if ("D150" %in% colnames(df_result) && !"D150" %in% colnames(df)) {
-      cat("[DEBUG] D150 column created from C150\n")
+      cat("[DEBUG] [OK]D150 column created from C150\n")
     }
-    cat("[DEBUG] Circumference conversions completed\n\n")
+    cat("[DEBUG] [OK]Circumference conversions completed\n\n")
 
     return(df_result)
   }
@@ -555,7 +555,7 @@ calculate_volumes <- function(df, volume_type = "V22",
     if (!"G130" %in% colnames(df_result) && "C130" %in% colnames(df_result)) {
       df_result$G130 <- (df_result$C130^2) / ((4 * pi) * 10000)
       g130_values <- sum(!is.na(df_result$G130))
-      cat("[DEBUG] G130 calculated for", g130_values, "trees\n")
+      cat("[DEBUG] [OK]G130 calculated for", g130_values, "trees\n")
       cat("[DEBUG] G130 examples:", paste(round(head(df_result$G130[!is.na(df_result$G130)], 3), 6), collapse = ", "), "\n")
       calculated_areas <- c(calculated_areas, "G130")
     }
@@ -565,7 +565,7 @@ calculate_volumes <- function(df, volume_type = "V22",
     if (!"G150" %in% colnames(df_result) && C150_exists_local) {
       df_result$G150 <- (df_result[[C150]]^2) / ((4 * pi) * 10000)
       g150_values <- sum(!is.na(df_result$G150))
-      cat("[DEBUG] G150 calculated for", g150_values, "trees\n")
+      cat("[DEBUG] [OK]G150 calculated for", g150_values, "trees\n")
       cat("[DEBUG] G150 examples:", paste(round(head(df_result$G150[!is.na(df_result$G150)], 3), 6), collapse = ", "), "\n")
       calculated_areas <- c(calculated_areas, "G150")
     }
@@ -576,7 +576,7 @@ calculate_volumes <- function(df, volume_type = "V22",
       cat("[DEBUG] Calculated basal areas:", paste(calculated_areas, collapse = ", "), "\n")
     }
     cat("[DEBUG] Formula used: G = C²/(4π×10000)\n")
-    cat("[DEBUG] Basal area calculation completed\n\n")
+    cat("[DEBUG] [OK]Basal area calculation completed\n\n")
 
     return(df_result)
   }
