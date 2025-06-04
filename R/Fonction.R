@@ -129,21 +129,21 @@
 #'                                 volume_type = "V22_HA",
 #'                                 remove_na = TRUE)
 #' }
-  #'
-  #' @note
-  #' The function displays information messages during execution to facilitate debugging.
-  #' Warnings are issued if species correspondences are not found or if
-  #' volume calculation fails for certain rows.
-  #'
-  #' @seealso
-  #' Related functions for forest management and dendrometric calculations.
-  #'
-  #' @author Caussin Antonin
-  #' @references
-  #' Dagnelie, P., Rondeux, J., & Thill, A. (1985). Tables de cubage des arbres et des peuplements forestiers. Gembloux, Belgique: Presses agronomiques de Gembloux.
-  #'
-  #' @importFrom stats na.omit
-  #' @export
+#'
+#' @note
+#' The function displays information messages during execution to facilitate debugging.
+#' Warnings are issued if species correspondences are not found or if
+#' volume calculation fails for certain rows.
+#'
+#' @seealso
+#' Related functions for forest management and dendrometric calculations.
+#'
+#' @author Caussin Antonin
+#' @references
+#' Dagnelie, P., Rondeux, J., & Thill, A. (1985). Tables de cubage des arbres et des peuplements forestiers. Gembloux, Belgique: Presses agronomiques de Gembloux.
+#'
+#' @importFrom stats na.omit
+#' @export
 
 calculate_volumes <- function(df, volume_type = "V22",
                               equation_id = 1,
