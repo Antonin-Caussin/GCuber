@@ -486,7 +486,7 @@ calculate_volumes <- function(df, volume_type = "V22",
             df_result[[to_col]][i] <- result_value
 
             if (i <= 5) {
-              cat("  Conversion:", from_value, "->", result_value, "\n")
+              cat("  Conversion:", from_value, "to", result_value, "\n")
             }
           } else {
             warning(paste("Unable to convert", from_col, "to", to_col, "for species:",
