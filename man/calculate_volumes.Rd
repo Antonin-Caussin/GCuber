@@ -81,8 +81,8 @@ The function performs several preprocessing steps:
 \enumerate{
   \item \strong{Parameter validation}: Checks input parameters and data structure
   \item \strong{Species correspondence}: Maps species codes/abbreviations to full names
-  \item \strong{Unit conversions}: Converts between diameters and circumferences using π
-  \item \strong{Basal area calculation}: Computes G = C²/(4π×10000)
+  \item \strong{Unit conversions}: Converts between diameters and circumferences using pi
+  \item \strong{Basal area calculation}: Computes G = C²/(4pi*10000)
   \item \strong{Volume calculation}: Applies species-specific allometric equations
 }
 
@@ -104,8 +104,8 @@ The function automatically detects the type of species identification:
 
 \strong{Equation Types (A0 parameter):}
 \itemize{
-  \item \strong{A0 = 1, 2, 3, 5}: Linear equations of form: Volume = b₀ + Σ(bᵢ × Xᵢ)
-  \item \strong{A0 = 4}: Logarithmic equations: Volume = 10^(b₀ + b₁ × log₁₀(C130))
+  \item \strong{A0 = 1, 2, 3, 5}: Linear equations of form: Volume = b0 + Σ(bᵢ * Xi)
+  \item \strong{A0 = 4}: Logarithmic equations: Volume = 10^(b0 + b₁ * log₁₀(C130))
 }
 }
 \note{

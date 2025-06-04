@@ -50,8 +50,8 @@
 #' \enumerate{
 #'   \item \strong{Parameter validation}: Checks input parameters and data structure
 #'   \item \strong{Species correspondence}: Maps species codes/abbreviations to full names
-#'   \item \strong{Unit conversions}: Converts between diameters and circumferences using π
-#'   \item \strong{Basal area calculation}: Computes G = C²/(4π×10000)
+#'   \item \strong{Unit conversions}: Converts between diameters and circumferences using pi
+#'   \item \strong{Basal area calculation}: Computes G = C²/(4pi*10000)
 #'   \item \strong{Volume calculation}: Applies species-specific allometric equations
 #' }
 #'
@@ -59,7 +59,7 @@
 #' \itemize{
 #'   \item \strong{V22}: Standard volume equations with linear combinations
 #'   \item \strong{V22B}: Specific biomass-related volume calculations
-#'   \item \strong{E}: Logarithmic equations (A0=4: log₁₀ form, A0=5: alternative)
+#'   \item \strong{E}: Logarithmic equations (A0=4: log form, A0=5: alternative)
 #'   \item \strong{V22_HA}: Height-adjusted volume calculations
 #' }
 #'
@@ -73,8 +73,8 @@
 #'
 #' \strong{Equation Types (A0 parameter):}
 #' \itemize{
-#'   \item \strong{A0 = 1, 2, 3, 5}: Linear equations of form: Volume = b₀ + Σ(bᵢ × Xᵢ)
-#'   \item \strong{A0 = 4}: Logarithmic equations: Volume = 10^(b₀ + b₁ × log₁₀(C130))
+#'   \item \strong{A0 = 1, 2, 3, 5}: Linear equations of form: Volume = b0 + Σ(bi * Xi)
+#'   \item \strong{A0 = 4}: Logarithmic equations: Volume = 10^(b0 + b1 * log(C130))
 #' }
 #'
 #' @section Dependencies:
@@ -357,15 +357,15 @@ calculate_volumes <- function(df, volume_type = "V22",
     cat("[DEBUG] Required conversions:\n")
     if (D130_exists) {
       na_before_D130 <- sum(is.na(df_result[[D130]]))
-      cat("[DEBUG]   - D130 → C130: ", nrow(df_result) - na_before_D130, " values to convert\n")
+      cat("[DEBUG]   - D130 to C130: ", nrow(df_result) - na_before_D130, " values to convert\n")
       cat("[DEBUG] D130 example:", head(df_result[[D130]], 5), "\n")
     }
     if (D150_exists) {
       na_before_D150 <- sum(is.na(df_result[[D150]]))
-      cat("[DEBUG]   - D150 → C150: ", nrow(df_result) - na_before_D150, " values to convert\n")
+      cat("[DEBUG]   - D150 to C150: ", nrow(df_result) - na_before_D150, " values to convert\n")
       cat("[DEBUG] D150 example:", head(df_result[[D150]], 5), "\n")
     }
-    cat("[DEBUG] π coefficient used:", round(pi, 6), "\n")
+    cat("[DEBUG] pi coefficient used:", round(pi, 6), "\n")
 
     for (i in seq_len(nrow(df_result))) {
       # ==== D130 -> C130 ====
@@ -382,11 +382,11 @@ calculate_volumes <- function(df, volume_type = "V22",
     #debug
     if (D130_exists && "C130" %in% colnames(df_result)) {
       successful_conversions_130 <- sum(!is.na(df_result$C130) & D130_exists && !is.na(df_result[[D130]]))
-      cat("[DEBUG] [OK]Successful D130→C130 conversions:", successful_conversions_130, "\n")
+      cat("[DEBUG] [OK]Successful D130 to C130 conversions:", successful_conversions_130, "\n")
     }
     if (D150_exists && "C150" %in% colnames(df_result)) {
       successful_conversions_150 <- sum(!is.na(df_result$C150) & D150_exists && !is.na(df_result[[D150]]))
-      cat("[DEBUG] [OK]Successful D150→C150 conversions:", successful_conversions_150, "\n")
+      cat("[DEBUG] [OK]Successful D150 to C150 conversions:", successful_conversions_150, "\n")
     }
     cat("[DEBUG] [OK]Diameter conversions completed\n\n")
 
@@ -405,7 +405,7 @@ calculate_volumes <- function(df, volume_type = "V22",
     if ("C150" %in% colnames(df_result)) {
       cat("[DEBUG] C150 result examples:", head(df_result$C150, 5), "\n")
     }
-    cat("Diameter → circumference conversion completed.\n")
+    cat("Diameter to circumference conversion completed.\n")
 
     # Update global flags
     assign("C130_exists", "C130" %in% colnames(df_result), envir = .GlobalEnv)
@@ -571,11 +571,11 @@ calculate_volumes <- function(df, volume_type = "V22",
     }
 
     if (length(calculated_areas) == 0) {
-      cat("[DEBUG] ℹ️  No basal area to calculate (already present)\n")
+      cat("[DEBUG] [INFO]  No basal area to calculate (already present)\n")
     } else {
       cat("[DEBUG] Calculated basal areas:", paste(calculated_areas, collapse = ", "), "\n")
     }
-    cat("[DEBUG] Formula used: G = C²/(4π×10000)\n")
+    cat("[DEBUG] Formula used: G = C²/(4pi*10000)\n")
     cat("[DEBUG] [OK]Basal area calculation completed\n\n")
 
     return(df_result)
