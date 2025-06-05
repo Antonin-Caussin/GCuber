@@ -82,7 +82,7 @@ The function performs several preprocessing steps:
   \item \strong{Parameter validation}: Checks input parameters and data structure
   \item \strong{Species correspondence}: Maps species codes/abbreviations to full names
   \item \strong{Unit conversions}: Converts between diameters and circumferences using pi
-  \item \strong{Basal area calculation}: Computes G = C²/(4pi*10000)
+  \item \strong{Basal area calculation}: Computes G = C^2/(4pi*10000)
   \item \strong{Volume calculation}: Applies species-specific allometric equations
 }
 
@@ -90,7 +90,7 @@ The function performs several preprocessing steps:
 \itemize{
   \item \strong{V22}: Standard volume equations with linear combinations
   \item \strong{V22B}: Specific biomass-related volume calculations
-  \item \strong{E}: Logarithmic equations (A0=4: log₁₀ form, A0=5: alternative)
+  \item \strong{E}: Logarithmic equations (A0=4: log form, A0=5: alternative)
   \item \strong{V22_HA}: Height-adjusted volume calculations
 }
 
@@ -98,20 +98,45 @@ The function performs several preprocessing steps:
 The function automatically detects the type of species identification:
 \itemize{
   \item \strong{Code}: Numeric species codes
-  \item \strong{Abr}: Character abbreviations (≤4 characters)
+  \item \strong{Abr}: Character abbreviations (<=4 characters)
   \item \strong{Species}: Full species names (>4 characters)
 }
 
 \strong{Equation Types (A0 parameter):}
 \itemize{
-  \item \strong{A0 = 1, 2, 3, 5}: Linear equations of form: Volume = b0 + Σ(bᵢ * Xi)
-  \item \strong{A0 = 4}: Logarithmic equations: Volume = 10^(b0 + b₁ * log₁₀(C130))
+  \item \strong{A0 = 1, 2, 3, 5}: Linear equations of form: Volume = b0 + sum(bi * Xi)
+  \item \strong{A0 = 4}: Logarithmic equations: Volume = 10^(b0 + b1 * log(C130))
+}
+
+\strong{Internal Functions:}
+The function contains several internal helper functions:
+\itemize{
+  \item \code{update_flags}: Updates column existence flags for dynamic processing
+  \item \code{validate_parameters}: Validates input parameters and data structure
+  \item \code{detect_specimens_type}: Automatically detects species identification type
+  \item \code{establish_species_correspondence}: Creates species mapping from codes/abbreviations
+  \item \code{diameter_conversions}: Converts diameters to circumferences using pi
+  \item \code{convert_circumference}: Generic conversion between C130 and C150 using HV/IV coefficients
+  \item \code{calculate_basal_areas}: Computes basal areas from circumferences
+  \item \code{evaluate_expression}: Safely evaluates mathematical expressions in equations
+}
+
+\strong{Data Processing Flow:}
+\enumerate{
+  \item Parameter validation and column existence checking
+  \item Species correspondence establishment using equations data
+  \item Diameter to circumference conversions (D * pi = C)
+  \item Circumference conversions between heights using species-specific coefficients
+  \item Basal area calculations using formula G = C^2/(4*pi*10000)
+  \item Volume calculations using species-specific allometric equations
+  \item Optional removal of rows with failed calculations
 }
 }
 \note{
 The function displays information messages during execution to facilitate debugging.
 Warnings are issued if species correspondences are not found or if
-volume calculation fails for certain rows.
+volume calculation fails for certain rows. For production use, consider
+suppressing debug messages by modifying the cat() statements.
 }
 \section{Dependencies}{
 
@@ -127,6 +152,29 @@ This function requires access to a global \code{equations} data.frame containing
 }
 }
 
+\section{Conversion Coefficients}{
+
+The function uses species-specific coefficients for circumference conversions:
+\itemize{
+  \item \strong{HV}: Height variation coefficient
+  \item \strong{IV}: Intercept variation coefficient
+  \item \strong{C150 to C130}: C130 = HV * C150 + IV
+  \item \strong{C130 to C150}: C150 = (C130 - IV) / HV
+}
+}
+
+\section{Error Handling}{
+
+The function implements comprehensive error handling:
+\itemize{
+  \item \strong{Input validation}: Checks parameter types and valid ranges
+  \item \strong{Data validation}: Verifies required columns exist
+  \item \strong{Species validation}: Warns about missing species correspondences
+  \item \strong{Mathematical validation}: Handles logarithms of negative values
+  \item \strong{Expression validation}: Safely evaluates mathematical expressions
+}
+}
+
 \section{Warning Messages}{
 
 The function provides extensive debugging output and warnings for:
@@ -136,6 +184,17 @@ The function provides extensive debugging output and warnings for:
   \item Missing species correspondences
   \item Equation evaluation errors
   \item Invalid mathematical operations (e.g., log of negative values)
+  \item Missing coefficients for species-specific conversions
+}
+}
+
+\section{Performance Considerations}{
+
+\itemize{
+  \item Row-by-row processing for precise control over calculations
+  \item Extensive debugging output (can be disabled for production use)
+  \item Memory efficient handling of large datasets
+  \item Automatic detection of required conversions to minimize processing
 }
 }
 
@@ -168,6 +227,27 @@ result_E <- calculate_volumes(data, volume_type = "E")
 result_clean <- calculate_volumes(data,
                                 volume_type = "V22_HA",
                                 remove_na = TRUE)
+
+# Using species abbreviations
+data_abr <- data.frame(
+  Abr = c("PIAB", "FASY", "QURO"),
+  C130 = c(94.2, 125.6, 157.1),
+  HTOT = c(25.5, 28.2, 22.8)
+)
+
+result_abr <- calculate_volumes(data_abr,
+                              volume_type = "V22",
+                              specimens = "Abr")
+
+# Mixed diameter and circumference data
+data_mixed <- data.frame(
+  Species = c("Picea abies", "Fagus sylvatica"),
+  D130 = c(30, NA),
+  C150 = c(NA, 125.6),
+  HTOT = c(25.5, 28.2)
+)
+
+result_mixed <- calculate_volumes(data_mixed, volume_type = "V22")
 }
 
 }
@@ -180,3 +260,10 @@ Related functions for forest management and dendrometric calculations.
 \author{
 Caussin Antonin
 }
+\concept{allometric equations}
+\concept{forest inventory}
+\concept{tree volume calculation}
+\keyword{allometry}
+\keyword{dendrometry}
+\keyword{forest}
+\keyword{volume}
