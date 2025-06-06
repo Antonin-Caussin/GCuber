@@ -234,6 +234,7 @@ calculate_volumes <- function(df, volume_type = "V22",
                               D150 = "D150",
                               HTOT = "HTOT",
                               HDOM = "HDOM",
+                              bark = FALSE,
                               remove_na = FALSE) {
 
   # =========================================================================
@@ -263,14 +264,11 @@ calculate_volumes <- function(df, volume_type = "V22",
   # Input parameter validation
   validate_parameters <- function() {
     # Warning for type E with unnecessary equation_id
-    if (volume_type == "E" && equation_id %in% c(1, 2, 3, 4, 5)) {
-      warning(paste("WARNING: For volume type 'E', it is not necessary to specify equation_id.",
-                    "You have specified equation_id =", equation_id,
-                    "which might not be suitable or might not process the entire dataset."))
+
     }
 
     # Volume type verification
-    valid_volume_types <- c("V22", "V22B", "E", "V22_HA")
+    valid_volume_types <- c("V22", "V22B", "V22_HA")
     if (!(volume_type %in% valid_volume_types)) {
       stop(paste("Invalid volume type:", volume_type,
                  "\nValid types:", paste(valid_volume_types, collapse = ", ")))
@@ -328,14 +326,13 @@ calculate_volumes <- function(df, volume_type = "V22",
     cat("[DEBUG]   - flags$D150_exists =", flags$D150_exists, "\n")
     cat("[DEBUG]   - flags$HTOT_exists =", flags$HTOT_exists, "\n")
     cat("[DEBUG]   - flags$HDOM_exists =", flags$HDOM_exists, "\n")
-    cat("[DEBUG] Vérification des conditions de conversion C130 <-> C150\n")
+    cat("[DEBUG] Checking the conditions for C130 <-> C150 conversion \n")
     cat("flags$C130_exists =", flags$C130_exists, "\n")
     cat("flags$C150_exists =", flags$C150_exists, "\n")
     if (length(missing_columns) > 0) {
       cat("[DEBUG] [Warning]  Missing columns:", paste(missing_columns, collapse = ", "), "\n")
     }
     cat("[DEBUG] [OK]Parameter validation completed\n\n")
-  }
 
   # Species identification type detection
   detect_specimens_type <- function(specimens) {
@@ -359,9 +356,6 @@ calculate_volumes <- function(df, volume_type = "V22",
     }
 
     flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
-    cat("[DEBUG] Vérification des conditions de conversion C130 <-> C150\n")
-    cat("flags$C130_exists =", flags$C130_exists, "\n")
-    cat("flags$C150_exists =", flags$C150_exists, "\n")
 
     #debug
     cat("[DEBUG] ==================== SPECIMENS TYPE DETECTION ====================\n")
@@ -374,9 +368,6 @@ calculate_volumes <- function(df, volume_type = "V22",
     }
     cat("[DEBUG] Detected identification type:", specimens_type, "\n")
     cat("[DEBUG] [OK]Specimens type detection completed\n\n")
-    cat("[DEBUG] Vérification des conditions de conversion C130 <-> C150\n")
-    cat("flags$C130_exists =", flags$C130_exists, "\n")
-    cat("flags$C150_exists =", flags$C150_exists, "\n")
     return(specimens_type)
   }
 
@@ -451,9 +442,6 @@ calculate_volumes <- function(df, volume_type = "V22",
     cat("[DEBUG] [OK]Species correspondence completed\n\n")
 
     flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
-    cat("[DEBUG] Vérification des conditions de conversion C130 <-> C150\n")
-    cat("flags$C130_exists =", flags$C130_exists, "\n")
-    cat("flags$C150_exists =", flags$C150_exists, "\n")
 
     return(df_result)
   }
@@ -487,9 +475,6 @@ calculate_volumes <- function(df, volume_type = "V22",
     }
 
     flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
-    cat("[DEBUG] Vérification des conditions de conversion C130 <-> C150\n")
-    cat("flags$C130_exists =", flags$C130_exists, "\n")
-    cat("flags$C150_exists =", flags$C150_exists, "\n")
 
 
 
@@ -551,9 +536,7 @@ calculate_volumes <- function(df, volume_type = "V22",
     # Update global flags
 
     flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
-    cat("[DEBUG] Vérification des conditions de conversion C130 <-> C150\n")
-    cat("flags$C130_exists =", flags$C130_exists, "\n")
-    cat("flags$C150_exists =", flags$C150_exists, "\n")
+
 
     return(df_result)
   }
@@ -729,6 +712,99 @@ calculate_volumes <- function(df, volume_type = "V22",
     return(df_result)
   }
 
+
+  calculate_bark_thickness <- function(df_result, total_volume_col) {
+    cat("[DEBUG] ==================== BARK THICKNESS CALCULATION ====================\n")
+
+    # Get bark thickness equations (type E)
+    bark_eqs <- equations_df[equations_df$Y == "E", ]
+
+    if (nrow(bark_eqs) == 0) {
+      warning("No bark thickness equations found (type E)")
+      return(df_result)
+    }
+
+    # Initialize thickness column
+    df_result$E <- NA_real_
+    df_result$Bark_Volume <- NA_real_
+    df_result$Wood_Volume <- NA_real_
+
+    for (i in seq_len(nrow(df_result))) {
+      tree_species <- df_result$Species[i]
+      total_vol <- df_result[[total_volume_col]][i]
+
+      if (is.na(tree_species) || is.na(total_vol)) next
+
+      # Find the bark equation for this species
+      eq_bark <- bark_eqs[bark_eqs$Species == tree_species, ]
+
+      if (nrow(eq_bark) == 0) {
+        warning(paste("No bark thickness equation found for species:", tree_species))
+        next
+      }
+
+      # Choose the appropriate equation (A0 = 4 or 5)
+      if (any(eq_bark$A0 == 4)) {
+        eq <- eq_bark[eq_bark$A0 == 4, ][1, ]
+      } else if (any(eq_bark$A0 == 5)) {
+        eq <- eq_bark[eq_bark$A0 == 5, ][1, ]
+      } else {
+        next
+      }
+
+      # Calculate bark thickness
+      variables <- list()
+      for (v in c("C130", "C150", "D130", "D150", "HTOT", "HDOM", "G130", "G150")) {
+        if (v %in% names(df_result)) {
+          variables[[v]] <- df_result[[v]][i]
+        }
+      }
+
+      if (eq$A0[1] == 4) {
+        C130_val <- variables[["C130"]]
+        if (!is.null(C130_val) && C130_val > 0) {
+          bark_thickness <- 10^(eq$b0[1] + eq$b1[1] * log10(C130_val))
+        } else {
+          next
+        }
+      } else {
+        # For A0 = 5, use existing linear logic
+        bark_thickness <- eq$b0[1]
+        for (j in 1:5) {
+          x_col <- paste0("X", j)
+          b_col <- paste0("b", j)
+
+          if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
+            x_val <- evaluate_expression(eq[[x_col]][1], variables)
+            if (!is.na(x_val)) {
+              bark_thickness <- bark_thickness + eq[[b_col]][1] * x_val
+            }
+          }
+        }
+      }
+
+      # Calculate bark volume (conical approximation)
+      # Bark volume = Total volume * (external_radius^3 - internal_radius^3) / external_radius^3
+      if (!is.na(bark_thickness) && bark_thickness > 0) {
+        radius_external <- df_result$D130[i] / 2  # in cm
+        radius_internal <- radius_external - bark_thickness  # in cm
+
+        if (radius_internal > 0) {
+          bark_volume_ratio <- (radius_external^3 - radius_internal^3) / radius_external^3
+          bark_volume <- total_vol * bark_volume_ratio
+          wood_volume <- total_vol - bark_volume
+
+          df_result$E[i] <- bark_thickness
+          df_result$Bark_Volume[i] <- bark_volume
+          df_result$Wood_Volume[i] <- wood_volume
+        }
+      }
+    }
+
+    cat("[DEBUG] [OK] Bark thickness calculation completed\n\n")
+    return(df_result)
+  }
+
   # =========================================================================
   # MAIN EXECUTION
   # =========================================================================
@@ -830,34 +906,7 @@ calculate_volumes <- function(df, volume_type = "V22",
 
     # Initialize volume variable for this row
     volume <- 0
-
-    # For volume type "E", dynamically determine the equation to use
-    # according to species, always equation 4 or 5 specific to each species
-    if (volume_type == "E") {
-      # Find all available equations for this species and volume type
-      eq_candidates_E <- eqs_volume[eqs_volume$Species == tree_species, ]
-
-      # Filter only equations with A0 = 4 or A0 = 5
-      eq_candidates_E_filtered <- eq_candidates_E[eq_candidates_E$A0 %in% c(4, 5), ]
-
-      if (nrow(eq_candidates_E_filtered) > 0) {
-        # Determine which equation (4 or 5) is associated with this species
-        if (any(eq_candidates_E_filtered$A0 == 4)) {
-          local_equation_id <- 4
-          cat(" Using equation A0 = 4 for", tree_species, "\n")
-        } else {
-          local_equation_id <- 5
-          cat(" Using equation A0 = 5 for", tree_species, "\n")
-        }
-      } else {
-        # If no equation 4 or 5 is found for this species, keep the original equation_id
-        cat(" No equation of type 4 or 5 found for", tree_species, ". Using default equation.\n")
-      }
-    } else {
-      # For other volume types, keep the equation specified by the user
-      local_equation_id <- equation_id
-    }
-
+    local_equation_id <- equation_id
     eq_candidates <- eqs_volume[eqs_volume$Species == tree_species, ]
 
     # DEBUG: Display candidate equations for this species
@@ -931,7 +980,7 @@ calculate_volumes <- function(df, volume_type = "V22",
     if (is.na(a0_value)) {
       warning(paste("Missing A0 value for species", tree_species, "at row", i))
       next
-    } else if (a0_value %in% c(1, 2, 3, 5)) {
+    } else if (a0_value %in% c(1, 2, 3)) {
       # For standard linear equations, start with b0
       volume <- eq$b0[1]
       for (j in 1:5) {
@@ -971,13 +1020,7 @@ calculate_volumes <- function(df, volume_type = "V22",
           volume <- volume + b_val * x_val
         }
       }
-    } else if (a0_value == 4) {
-      C130 <- evaluate_expression(eq$X1[1], variables)
-      if (C130 <= 0) {
-        warning(paste("Negative or zero value for logarithm at row", i))
-        next
-      }
-      volume <- 10^(1*eq$b0[1] + eq$b1[1] * log10(C130))
+
     } else {
       warning(paste("Unknown equation type (A0 =", a0_value, ") for row", i))
       next
@@ -999,8 +1042,12 @@ calculate_volumes <- function(df, volume_type = "V22",
     if (i <= 5) {
       cat("  Volume stored at row", i, ":", df_result[[volume_type]][i], "\n")
     }
-  }
 
+  }
+  # Automatic bark thickness calculation for all volume types
+  if (bark) {
+    df_result <- calculate_bark_thickness(df_result, volume_type)
+  }
   # Final cleanup if requested
   if (remove_na) {
     df_result <- df_result[!is.na(df_result[[volume_type]]), ]

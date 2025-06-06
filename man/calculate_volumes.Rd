@@ -7,6 +7,7 @@
 calculate_volumes(
   df,
   volume_type = "V22",
+  carbon = FALSE,
   equation_id = 1,
   specimens = NULL,
   C130 = "C130",
@@ -15,6 +16,7 @@ calculate_volumes(
   D150 = "D150",
   HTOT = "HTOT",
   HDOM = "HDOM",
+  bark = FALSE,
   remove_na = FALSE
 )
 }
