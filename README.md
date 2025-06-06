@@ -7,7 +7,7 @@
 The goal of GCuber is to ...
 
 ## Installation
-
+This readme should be updated...
 You can install the development version of GCuber from [GitHub](https://github.com/) with:
 
 ``` r
