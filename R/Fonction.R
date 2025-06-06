@@ -226,6 +226,7 @@
 #' @export
 
 calculate_volumes <- function(df, volume_type = "V22",
+                              carbon = FALSE,
                               equation_id = 1,
                               specimens = NULL,
                               C130 = "C130",
@@ -507,11 +508,11 @@ calculate_volumes <- function(df, volume_type = "V22",
 
     #debug
     if (flags$D130_exists && "C130" %in% colnames(df_result)) {
-      successful_conversions_130 <- sum(!is.na(df_result$C130) & flags$D130_exists && !is.na(df_result[[D130]]))
+      successful_conversions_130 <- sum(!is.na(df_result$C130) & flags$D130_exists & !is.na(df_result[[D130]]))
       cat("[DEBUG] [OK]Successful D130 to C130 conversions:", successful_conversions_130, "\n")
     }
     if (flags$D150_exists && "C150" %in% colnames(df_result)) {
-      successful_conversions_150 <- sum(!is.na(df_result$C150) & flags$D150_exists && !is.na(df_result[[D150]]))
+      successful_conversions_150 <- sum(!is.na(df_result$C150) & flags$D150_exists & !is.na(df_result[[D150]]))
       cat("[DEBUG] [OK]Successful D150 to C150 conversions:", successful_conversions_150, "\n")
     }
     cat("[DEBUG] [OK]Diameter conversions completed\n\n")
@@ -786,8 +787,8 @@ calculate_volumes <- function(df, volume_type = "V22",
       # Calculate bark volume (conical approximation)
       # Bark volume = Total volume * (external_radius^3 - internal_radius^3) / external_radius^3
       if (!is.na(bark_thickness) && bark_thickness > 0) {
-        radius_external <- df_result$D130[i] / 2  # in cm
-        radius_internal <- radius_external - bark_thickness  # in cm
+        radius_external <- df_result$D130[i] / 2 # in cm
+        radius_internal <- radius_external - bark_thickness # in cm
 
         if (radius_internal > 0) {
           bark_volume_ratio <- (radius_external^3 - radius_internal^3) / radius_external^3
@@ -1044,15 +1045,273 @@ calculate_volumes <- function(df, volume_type = "V22",
     }
 
   }
+
+  # Calculate biomass with multiple equations per species and corresponding carbon
+  calculate_biomass <- function(df_result) {
+    cat("[DEBUG] ==================== BIOMASS CALCULATION ====================\n")
+
+    cat("[DEBUG] Available equations in equations_df:", nrow(equations_df), "\n")
+    cat("[DEBUG] Unique species in equations_df:", length(unique(equations_df$Species)), "\n")
+
+    calculated_biomass <- 0
+    species_without_equations <- c()
+
+    # Filter biomass equations (assuming biomass type is "BIOMASS" or similar)
+    eqs_biomass <- equations_df[equations_df$Y == "BIOMASS", ]  # Ajustez selon votre nomenclature
+
+    cat("[DEBUG] Number of biomass equations found:", nrow(eqs_biomass), "\n")
+
+    if (nrow(eqs_biomass) == 0) {
+      warning("No biomass equations found in equations_df")
+      return(df_result)
+    }
+
+    # Ensure that coefficients b0 to b5 are numeric
+    b_columns <- paste0("b", 0:5)
+    eqs_biomass[b_columns] <- lapply(eqs_biomass[b_columns], as.numeric)
+
+    # Get unique species with biomass equations
+    species_with_eqs <- unique(eqs_biomass$Species)
+
+    # Create a mapping of equations per species
+    eq_mapping <- list()
+    biomass_columns <- c()
+    carbon_columns <- c()
+    equation_columns <- c()
+
+    for (species in species_with_eqs) {
+      species_eqs <- eqs_biomass[eqs_biomass$Species == species, ]
+      eq_mapping[[species]] <- species_eqs
+
+      # Create column names for each equation of this species
+      for (i in 1:nrow(species_eqs)) {
+        eq_info <- species_eqs[i, ]
+        # Create unique column name: Species_BiomassEq_A0value_index
+        biomass_col_name <- paste0(species, "_Biomass_A0", eq_info$A0, "_Eq", i)
+        carbon_col_name <- paste0(species, "_Carbon_A0", eq_info$A0, "_Eq", i)
+        eq_col_name <- paste0(biomass_col_name, "_Equation")
+
+        biomass_columns <- c(biomass_columns, biomass_col_name)
+        carbon_columns <- c(carbon_columns, carbon_col_name)
+        equation_columns <- c(equation_columns, eq_col_name)
+
+        # Initialize columns in df_result
+        df_result[[biomass_col_name]] <- NA_real_
+        df_result[[carbon_col_name]] <- NA_real_
+        df_result[[eq_col_name]] <- NA_character_
+      }
+    }
+
+    # Add total biomass and carbon columns
+    df_result$Biomass_Total <- NA_real_
+    df_result$Carbon_Total <- NA_real_
+
+    cat("[DEBUG] Created", length(biomass_columns), "biomass columns and", length(carbon_columns), "carbon columns for", length(species_with_eqs), "species\n")
+    cat("[DEBUG] Biomass columns:", paste(head(biomass_columns, 5), collapse = ", "),
+        if(length(biomass_columns) > 5) "..." else "", "\n")
+    cat("[DEBUG] Carbon columns:", paste(head(carbon_columns, 5), collapse = ", "),
+        if(length(carbon_columns) > 5) "..." else "", "\n")
+
+    # Row-by-row biomass calculation
+    for (i in seq_len(nrow(df_result))) {
+      tree_species <- df_result$Species[i]
+      row_biomass_total <- 0
+      row_carbon_total <- 0
+      row_has_biomass <- FALSE
+
+      if (!is.na(tree_species) && tree_species %in% names(eq_mapping)) {
+        species_equations <- eq_mapping[[tree_species]]
+
+        # Calculate biomass for each equation of this species
+        for (eq_idx in 1:nrow(species_equations)) {
+          eq <- species_equations[eq_idx, , drop = FALSE]
+
+          # Generate column names
+          biomass_col_name <- paste0(tree_species, "_Biomass_A0", eq$A0, "_Eq", eq_idx)
+          carbon_col_name <- paste0(tree_species, "_Carbon_A0", eq$A0, "_Eq", eq_idx)
+          eq_col_name <- paste0(biomass_col_name, "_Equation")
+
+          # Track which equation is being used
+          df_result[[eq_col_name]][i] <- paste0(eq$Species, ":BIOMASS:A0=", eq$A0, ":Eq", eq_idx)
+
+          # Get expressions from X1 to X5 columns
+          exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
+          exprs <- exprs[!is.na(exprs) & exprs != "0"]
+          vars_needed <- unique(unlist(regmatches(exprs, gregexpr("[A-Za-z_][A-Za-z0-9_]*", exprs))))
+
+          # Prepare variables for evaluation
+          variables <- list()
+          for (v in vars_needed) {
+            if (v %in% names(df_result)) {
+              variables[[v]] <- df_result[[v]][i]
+            }
+          }
+
+          # Check A0 value for equation type
+          a0_value <- eq$A0[1]
+
+          if (!is.na(a0_value)) {
+            biomass_value <- NA
+
+            if (a0_value %in% c(1, 2, 3, 5)) {
+              # Linear equation: Biomass = b0 + b1*X1 + b2*X2 + ... + b5*X5
+              biomass_value <- eq$b0[1]
+
+              for (j in 1:5) {
+                x_col <- paste0("X", j)
+                b_col <- paste0("b", j)
+
+                # Check if the X expression exists and is valid
+                if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
+                  # Evaluate the expression
+                  x_val <- evaluate_expression(eq[[x_col]][1], variables)
+
+                  if (!is.na(x_val)) {
+                    b_val <- eq[[b_col]][1]
+                    if (!is.na(b_val)) {
+                      biomass_value <- biomass_value + b_val * x_val
+
+                      if (i <= 3) {  # Reduced debug output
+                        cat("[DEBUG] Row", i, "- Eq", eq_idx, "- X", j, "=", x_val, "- b", j, "=", b_val, "\n")
+                      }
+                    }
+                  }
+                }
+              }
+
+            } else if (a0_value == 4) {
+              # Logarithmic equation: Biomass = 10^(b0 + b1*log10(X1) + ...)
+              log_sum <- eq$b0[1]
+
+              for (j in 1:5) {
+                x_col <- paste0("X", j)
+                b_col <- paste0("b", j)
+
+                if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
+                  x_val <- evaluate_expression(eq[[x_col]][1], variables)
+
+                  if (!is.na(x_val) && x_val > 0) {
+                    b_val <- eq[[b_col]][1]
+                    if (!is.na(b_val)) {
+                      log_sum <- log_sum + b_val * log10(x_val)
+                    }
+                  } else if (!is.na(x_val) && x_val <= 0) {
+                    warning(paste("Cannot calculate log of non-positive value:", x_val, "at row", i))
+                    log_sum <- NA
+                    break
+                  }
+                }
+              }
+
+              if (!is.na(log_sum)) {
+                biomass_value <- 10^log_sum
+              }
+            }
+
+            # Store the calculated biomass and carbon for this specific equation
+            if (!is.na(biomass_value) && is.finite(biomass_value)) {
+              # Calculate carbon (biomass * 0.5)
+              carbon_value <- biomass_value * 0.5
+
+              # Store biomass and carbon values
+              df_result[[biomass_col_name]][i] <- biomass_value
+              df_result[[carbon_col_name]][i] <- carbon_value
+
+              # Add to totals
+              row_biomass_total <- row_biomass_total + biomass_value
+              row_carbon_total <- row_carbon_total + carbon_value
+              row_has_biomass <- TRUE
+              calculated_biomass <- calculated_biomass + 1
+
+              if (i <= 3) {
+                cat("[DEBUG] Row", i, "- Species:", tree_species,
+                    "- Eq", eq_idx, "- Biomass:", round(biomass_value, 4),
+                    "- Carbon:", round(carbon_value, 4), "\n")
+              }
+            }
+          }
+        }
+
+        # Store total biomass and carbon for this row
+        if (row_has_biomass) {
+          df_result$Biomass_Total[i] <- row_biomass_total
+          df_result$Carbon_Total[i] <- row_carbon_total
+        }
+
+      } else if (!is.na(tree_species)) {
+        # Track species without equations
+        if (!tree_species %in% species_without_equations) {
+          species_without_equations <- c(species_without_equations, tree_species)
+        }
+
+        if (i <= 3) {
+          cat("[DEBUG] Row", i, "- Species:", tree_species, "- No equation found\n")
+        }
+      }
+    }
+
+    # Report species without equations
+    if (length(species_without_equations) > 0) {
+      warning(paste("No biomass equations found for the following species:",
+                    paste(species_without_equations, collapse = ", ")))
+      cat("[DEBUG] [Warning] Species without biomass equations (", length(species_without_equations), "):",
+          paste(species_without_equations, collapse = ", "), "\n")
+    }
+
+    cat("[DEBUG] [OK] Biomass and carbon calculated for", calculated_biomass, "equation applications\n")
+
+    # Display summary statistics
+    total_biomass_values <- df_result$Biomass_Total[!is.na(df_result$Biomass_Total)]
+    total_carbon_values <- df_result$Carbon_Total[!is.na(df_result$Carbon_Total)]
+
+    if (length(total_biomass_values) > 0) {
+      cat("[DEBUG] Total biomass examples:", paste(round(head(total_biomass_values, 3), 4), collapse = ", "), "\n")
+      cat("[DEBUG] Total biomass range: [", round(min(total_biomass_values), 4), " - ",
+          round(max(total_biomass_values), 4), "]\n")
+      cat("[DEBUG] Trees with biomass calculations:", length(total_biomass_values), "\n")
+    }
+
+    if (length(total_carbon_values) > 0) {
+      cat("[DEBUG] Total carbon examples:", paste(round(head(total_carbon_values, 3), 4), collapse = ", "), "\n")
+      cat("[DEBUG] Total carbon range: [", round(min(total_carbon_values), 4), " - ",
+          round(max(total_carbon_values), 4), "]\n")
+      cat("[DEBUG] Trees with carbon calculations:", length(total_carbon_values), "\n")
+    }
+
+    # Display column summary
+    biomass_cols_with_data <- sapply(biomass_columns, function(col) sum(!is.na(df_result[[col]])))
+    carbon_cols_with_data <- sapply(carbon_columns, function(col) sum(!is.na(df_result[[col]])))
+
+    cat("[DEBUG] Biomass columns with data:\n")
+    for (col in names(biomass_cols_with_data[biomass_cols_with_data > 0])) {
+      cat("[DEBUG]   ", col, ":", biomass_cols_with_data[col], "values\n")
+    }
+
+    cat("[DEBUG] Carbon columns with data:\n")
+    for (col in names(carbon_cols_with_data[carbon_cols_with_data > 0])) {
+      cat("[DEBUG]   ", col, ":", carbon_cols_with_data[col], "values\n")
+    }
+
+    cat("[DEBUG] [OK] Biomass and carbon calculation completed\n\n")
+
+    return(df_result)
+  }
+
   # Automatic bark thickness calculation for all volume types
   if (bark) {
     df_result <- calculate_bark_thickness(df_result, volume_type)
   }
+
+  # Automatic biomass and carbon calculation if requested
+  if (carbon) {
+    df_result <- calculate_biomass(df_result)
+  }
+
   # Final cleanup if requested
   if (remove_na) {
     df_result <- df_result[!is.na(df_result[[volume_type]]), ]
   }
 
   return(df_result)
-}
 
+}
