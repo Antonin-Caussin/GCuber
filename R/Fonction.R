@@ -225,9 +225,10 @@
 #' @importFrom utils head
 #' @export
 
-calculate_volumes <- function(df, volume_type = "V22",
-                              carbon = FALSE,
+calculate_volumes <- function(df, carbon = FALSE,
+                              volume_type = "V22",
                               equation_id = 1,
+                              source = "Dagnellie",
                               specimens = NULL,
                               C130 = "C130",
                               C150 = "C150",
@@ -263,9 +264,19 @@ calculate_volumes <- function(df, volume_type = "V22",
   }
 
   # Input parameter validation
-  validate_parameters <- function() {
-    # Warning for type E with unnecessary equation_id
 
+  # Check existence of columns in user dataframe
+  required_columns <- c(C130, C150, D130, D150, HTOT, HDOM, specimens)
+  present_columns <- required_columns[required_columns %in% colnames(df_result)]
+  missing_columns <- setdiff(required_columns, present_columns)
+
+  validate_parameters <- function() {
+
+    # Source validation
+    valid_sources <- c("Aflan", "Dagnellie", "Valet")
+    if (!(source %in% valid_sources)) {
+      stop(paste("Invalid source:", source,
+                 "\nValid sources:", paste(valid_sources, collapse = ", ")))
     }
 
     # Volume type verification
@@ -286,11 +297,6 @@ calculate_volumes <- function(df, volume_type = "V22",
       stop("For volume type 'V22B', equation_id must be 1.")
     }
 
-    # Check existence of columns in user dataframe
-    required_columns <- c(C130, C150, D130, D150, HTOT, HDOM, specimens)
-    present_columns <- required_columns[required_columns %in% colnames(df_result)]
-    missing_columns <- setdiff(required_columns, present_columns)
-
     # Assignment of global flags
     flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
 
@@ -310,6 +316,7 @@ calculate_volumes <- function(df, volume_type = "V22",
     if (length(missing_columns) > 0) {
       warning(paste("Missing columns in data:", paste(missing_columns, collapse = ", ")))
     }
+  }
     #debug
     cat("[DEBUG] ==================== PARAMETER VALIDATION ====================\n")
     cat("[DEBUG] Received parameters:\n")
@@ -815,7 +822,19 @@ calculate_volumes <- function(df, volume_type = "V22",
 
   # 2. Initialization
   equations_df <- equations
+  # Filter equations by source
+  if ("Source" %in% colnames(equations_df)) {
+    equations_df <- equations_df[equations_df$Source == source, ]
+    if (nrow(equations_df) == 0) {
+      stop(paste("No equations found for source:", source))
+    }
+    cat("Filtered equations by source '", source, "': ", nrow(equations_df), " equations available\n")
+  } else {
+    warning("Column 'Source' not found in equations_df. Source filtering will be ignored.")
+  }
+
   cat("Selected volume type:", volume_type, "\n")
+  cat("Selected source:", source, "\n")
 
   # 3. Establish species correspondences
   df_result <- establish_species_correspondence(df)
