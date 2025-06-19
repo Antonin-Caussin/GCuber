@@ -160,7 +160,7 @@
 #'   HTOT = c(25.5, 28.2, 22.8)
 #' )
 #'
-#' result <- calculate_volumes(data, volume_type = "V22", equation_id = 1)
+#' result <- carbofor(data, volume_type = "V22", equation_id = 1)
 #'
 #' # Using diameter data with automatic conversion
 #' data_diam <- data.frame(
@@ -169,15 +169,15 @@
 #'   HTOT = c(25, 28, 23)
 #' )
 #'
-#' result <- calculate_volumes(data_diam,
+#' result <- carbofor(data_diam,
 #'                           volume_type = "V22B",
 #'                           specimens = "Code")
 #'
 #' # Volume type E with automatic equation selection
-#' result_E <- calculate_volumes(data, volume_type = "E")
+#' result_E <- carbofor(data, volume_type = "E")
 #'
 #' # Remove rows with failed calculations
-#' result_clean <- calculate_volumes(data,
+#' result_clean <- carbofor(data,
 #'                                 volume_type = "V22_HA",
 #'                                 remove_na = TRUE)
 #'
@@ -188,7 +188,7 @@
 #'   HTOT = c(25.5, 28.2, 22.8)
 #' )
 #'
-#' result_abr <- calculate_volumes(data_abr,
+#' result_abr <- carbofor(data_abr,
 #'                               volume_type = "V22",
 #'                               specimens = "Abr")
 #'
@@ -200,7 +200,7 @@
 #'   HTOT = c(25.5, 28.2)
 #' )
 #'
-#' result_mixed <- calculate_volumes(data_mixed, volume_type = "V22")
+#' result_mixed <- carbofor(data_mixed, volume_type = "V22")
 #' }
 #'
 #' @note
@@ -225,17 +225,17 @@
 #' @importFrom utils head
 #' @export
 
-calculate_volumes <- function(df, carbon = FALSE,
+carbofor <- function(df, carbon = FALSE,
                               volume_type = "V22",
                               equation_id = 1,
                               source = "Dagnellie",
                               specimens = NULL,
-                              C130 = "C130",
-                              C150 = "C150",
                               D130 = "D130",
-                              D150 = "D150",
+                              C130 = "C130",
                               HTOT = "HTOT",
                               HDOM = "HDOM",
+                              D150 = "D150",
+                              C150 = "C150",
                               bark = FALSE,
                               remove_na = FALSE) {
 
@@ -317,30 +317,30 @@ calculate_volumes <- function(df, carbon = FALSE,
       warning(paste("Missing columns in data:", paste(missing_columns, collapse = ", ")))
     }
   }
-    #debug
-    cat("[DEBUG] ==================== PARAMETER VALIDATION ====================\n")
-    cat("[DEBUG] Received parameters:\n")
-    cat("[DEBUG]   - volume_type =", volume_type, "\n")
-    cat("[DEBUG]   - equation_id =", equation_id, "\n")
-    cat("[DEBUG]   - specimens =", ifelse(is.null(specimens), "NULL", specimens), "\n")
-    cat("[DEBUG]   - remove_na =", remove_na, "\n")
-    cat("[DEBUG] Input dataframe dimensions: [", nrow(df_result), "x", ncol(df_result), "]\n")
-    cat("[DEBUG] Available columns:", paste(colnames(df_result), collapse = ", "), "\n")
-    cat("[DEBUG] Required columns:", paste(required_columns, collapse = ", "), "\n")
-    cat("[DEBUG] Column flags defined:\n")
-    cat("[DEBUG]   - flags$C130_exists =", flags$C130_exists, "\n")
-    cat("[DEBUG]   - flags$C150_exists =", flags$C150_exists, "\n")
-    cat("[DEBUG]   - flags$D130_exists =", flags$D130_exists, "\n")
-    cat("[DEBUG]   - flags$D150_exists =", flags$D150_exists, "\n")
-    cat("[DEBUG]   - flags$HTOT_exists =", flags$HTOT_exists, "\n")
-    cat("[DEBUG]   - flags$HDOM_exists =", flags$HDOM_exists, "\n")
-    cat("[DEBUG] Checking the conditions for C130 <-> C150 conversion \n")
-    cat("flags$C130_exists =", flags$C130_exists, "\n")
-    cat("flags$C150_exists =", flags$C150_exists, "\n")
-    if (length(missing_columns) > 0) {
-      cat("[DEBUG] [Warning]  Missing columns:", paste(missing_columns, collapse = ", "), "\n")
-    }
-    cat("[DEBUG] [OK]Parameter validation completed\n\n")
+  #debug
+  cat("[DEBUG] ==================== PARAMETER VALIDATION ====================\n")
+  cat("[DEBUG] Received parameters:\n")
+  cat("[DEBUG]   - volume_type =", volume_type, "\n")
+  cat("[DEBUG]   - equation_id =", equation_id, "\n")
+  cat("[DEBUG]   - specimens =", ifelse(is.null(specimens), "NULL", specimens), "\n")
+  cat("[DEBUG]   - remove_na =", remove_na, "\n")
+  cat("[DEBUG] Input dataframe dimensions: [", nrow(df_result), "x", ncol(df_result), "]\n")
+  cat("[DEBUG] Available columns:", paste(colnames(df_result), collapse = ", "), "\n")
+  cat("[DEBUG] Required columns:", paste(required_columns, collapse = ", "), "\n")
+  cat("[DEBUG] Column flags defined:\n")
+  cat("[DEBUG]   - flags$C130_exists =", flags$C130_exists, "\n")
+  cat("[DEBUG]   - flags$C150_exists =", flags$C150_exists, "\n")
+  cat("[DEBUG]   - flags$D130_exists =", flags$D130_exists, "\n")
+  cat("[DEBUG]   - flags$D150_exists =", flags$D150_exists, "\n")
+  cat("[DEBUG]   - flags$HTOT_exists =", flags$HTOT_exists, "\n")
+  cat("[DEBUG]   - flags$HDOM_exists =", flags$HDOM_exists, "\n")
+  cat("[DEBUG] Checking the conditions for C130 <-> C150 conversion \n")
+  cat("flags$C130_exists =", flags$C130_exists, "\n")
+  cat("flags$C150_exists =", flags$C150_exists, "\n")
+  if (length(missing_columns) > 0) {
+    cat("[DEBUG] [Warning]  Missing columns:", paste(missing_columns, collapse = ", "), "\n")
+  }
+  cat("[DEBUG] [OK]Parameter validation completed\n\n")
 
   # Species identification type detection
   detect_specimens_type <- function(specimens) {
@@ -362,8 +362,6 @@ calculate_volumes <- function(df, carbon = FALSE,
     } else {
       stop(paste("Data type in column '", specimens, "' is not recognized.", sep=""))
     }
-
-    flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
 
     #debug
     cat("[DEBUG] ==================== SPECIMENS TYPE DETECTION ====================\n")
@@ -454,6 +452,8 @@ calculate_volumes <- function(df, carbon = FALSE,
     return(df_result)
   }
 
+  cat("[DEBUG] ==================== DIAMETER CONVERSIONS ====================\n")
+
   # Diameter conversions management
   diameter_conversions <- function(df_result) {
     pi_val <- pi
@@ -462,32 +462,36 @@ calculate_volumes <- function(df, carbon = FALSE,
     cat("Type de flags$D130_exists :", typeof(flags$D130_exists), "\n")
     cat("Valeur de flags$D130_exists :", flags$D130_exists, "\n")
 
-    if (flags$D130_exists && !(C130 %in% colnames(df_result))) {
-      df_result[[C130]] <- NA_real_  # Utiliser la variable utilisateur
-    }
-    if (flags$D150_exists && !(C150 %in% colnames(df_result))) {
-      df_result[[C150]] <- NA_real_  # Utiliser la variable utilisateur
-    }
+    if (!(C130 %in% colnames(df_result))) df_result[[C130]] <- NA_real_
+    if (!(C150 %in% colnames(df_result))) df_result[[C150]] <- NA_real_
+    if (!(D130 %in% colnames(df_result))) df_result[[D130]] <- NA_real_
+    if (!(D150 %in% colnames(df_result))) df_result[[D150]] <- NA_real_
 
-    # Dans la boucle de conversion D -> C, aussi corriger :
     for (i in seq_len(nrow(df_result))) {
-      # ==== D130 -> C130 ====
-      if (flags$D130_exists && !is.na(df_result[[D130]][i])) {
-        df_result[[C130]][i] <- df_result[[D130]][i] * pi_val  # Utiliser variable utilisateur
+      # D130 → C130 (TOUJOURS si D130 existe)
+      if (!is.na(df_result[[D130]][i]) && is.na(df_result[[C130]][i])) {
+        df_result[[C130]][i] <- df_result[[D130]][i] * pi_val
+        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- D130", df_result[[D130]][i], "→ C130", df_result[[C130]][i], "\n")
       }
 
-      # ==== D150 -> C150 ====
-      if (flags$D150_exists && !is.na(df_result[[D150]][i])) {
-        df_result[[C150]][i] <- df_result[[D150]][i] * pi_val  # Utiliser variable utilisateur
+      # D150 → C150 (si D150 existe)
+      if (!is.na(df_result[[D150]][i]) && is.na(df_result[[C150]][i])) {
+        df_result[[C150]][i] <- df_result[[D150]][i] * pi_val
+        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- D150", df_result[[D150]][i], "→ C150", df_result[[C150]][i], "\n")
+      }
+
+      # C130 → D130 (si C130 existe mais pas D130)
+      if (!is.na(df_result[[C130]][i]) && is.na(df_result[[D130]][i])) {
+        df_result[[D130]][i] <- df_result[[C130]][i] / pi_val
+        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- C130", df_result[[C130]][i], "→ D130", df_result[[D130]][i], "\n")
+      }
+
+      # C150 → D150 (si C150 existe mais pas D150)
+      if (!is.na(df_result[[C150]][i]) && is.na(df_result[[D150]][i])) {
+        df_result[[D150]][i] <- df_result[[C150]][i] / pi_val
+        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- C150", df_result[[C150]][i], "→ D150", df_result[[D150]][i], "\n")
       }
     }
-
-    flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
-
-
-
-    #debug
-    cat("[DEBUG] ==================== DIAMETER CONVERSIONS ====================\n")
     cat("[DEBUG] Required conversions:\n")
     if (flags$D130_exists) {
       na_before_D130 <- sum(is.na(df_result[[D130]]))
@@ -500,18 +504,6 @@ calculate_volumes <- function(df, carbon = FALSE,
       cat("[DEBUG] D150 example:", utils::head(df_result[[D150]], 5), "\n")
     }
     cat("[DEBUG] pi coefficient used:", round(pi, 6), "\n")
-
-    for (i in seq_len(nrow(df_result))) {
-      # ==== D130 -> C130 ====
-      if (flags$D130_exists && !is.na(df_result[[D130]][i])) {
-        df_result$C130[i] <- df_result[[D130]][i] * pi_val
-      }
-
-      # ==== D150 -> C150 ====
-      if (flags$D150_exists && !is.na(df_result[[D150]][i])) {
-        df_result$C150[i] <- df_result[[D150]][i] * pi_val
-      }
-    }
 
     #debug
     if (flags$D130_exists && "C130" %in% colnames(df_result)) {
@@ -550,40 +542,83 @@ calculate_volumes <- function(df, carbon = FALSE,
   }
 
   # Generic circumference conversion
-  convert_circumference <- function(df_result, from_col = NULL, to_col = NULL, direction = NULL) {
+  convert_circumference <- function(df_result) {
     cat("[DEBUG] ==================== GENERIC CIRCUMFERENCE CONVERSION ====================\n")
 
-    # Mettre à jour les flags locaux
-    flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
-    C130_exists_local <- flags$C130_exists
-    C150_exists_local <- flags$C150_exists
+    skip_conversion <- FALSE
+
+    # Définir les variables locales d'existence des colonnes
+    C130_exists_local <- C130 %in% colnames(df_result)
+    C150_exists_local <- C150 %in% colnames(df_result)
 
     cat("[DEBUG] C130_exists_local =", C130_exists_local, "\n")
     cat("[DEBUG] C150_exists_local =", C150_exists_local, "\n")
 
-    # Détection automatique de la direction de conversion si non spécifiée
-    if (is.null(from_col) || is.null(to_col) || is.null(direction)) {
-      if (!C130_exists_local && C150_exists_local) {
-        from_col <- C150    # Variable utilisateur pour C150
-        to_col <- C130      # Variable utilisateur pour C130
-        direction <- "C150_to_C130"
-        cat("[DEBUG] Auto-detected:", C150, "to", C130, "conversion\n")
-      } else if (!C150_exists_local && C130_exists_local) {
-        from_col <- C130    # Variable utilisateur pour C130
-        to_col <- C150      # Variable utilisateur pour C150
-        direction <- "C130_to_C150"
-        cat("[DEBUG] Auto-detected:", C130, "to", C150, "conversion\n")
-      } else {
-        stop("Unable to automatically determine conversion direction. Check the presence of C130 or C150.")
-      }
-    }
-      #debug
-      cat("[DEBUG] ==================== CIRCUMFERENCE CONVERSIONS ====================\n")
-      cat("[DEBUG] Detected conversion direction:", direction, "\n")
-      cat("[DEBUG] Source column:", from_col, "\n")
-      cat("[DEBUG] Target column:", to_col, "\n")
+    C130_has_values <- C130_exists_local && sum(!is.na(df_result[[C130]])) > 0
+    C150_has_values <- C150_exists_local && sum(!is.na(df_result[[C150]])) > 0
+    cat("[DEBUG] C130_has_values =", C130_has_values, "\n")
+    cat("[DEBUG] C150_has_values =", C150_has_values, "\n")
 
-      # Extract conversion coefficients (HV and IV)
+    # Determine the conversion direction
+    if (!C130_has_values && C150_has_values) {
+      direction <- "C150_to_C130"
+      from_col <- C150
+      to_col <- C130
+      cat("[DEBUG] Conversion detected: C150 → C130\n")
+    } else if (!C150_has_values && C130_has_values) {
+      direction <- "C130_to_C150"
+      from_col <- C130
+      to_col <- C150
+      cat("[DEBUG] Conversion detected: C130 → C150\n")
+    } else if (C130_has_values && C150_has_values) {
+      # CAS AJOUTÉ : Les deux colonnes ont des valeurs
+      cat("[DEBUG] Both C130 and C150 have values - analyzing pattern of missing values\n")
+
+      # Compter les valeurs manquantes dans chaque colonne
+      C130_missing <- sum(is.na(df_result[[C130]]))
+      C150_missing <- sum(is.na(df_result[[C150]]))
+
+      cat("[DEBUG] C130 missing values:", C130_missing, "\n")
+      cat("[DEBUG] C150 missing values:", C150_missing, "\n")
+
+      # Analyser les patterns ligne par ligne
+      both_missing <- sum(is.na(df_result[[C130]]) & is.na(df_result[[C150]]))
+      both_present <- sum(!is.na(df_result[[C130]]) & !is.na(df_result[[C150]]))
+      c130_only <- sum(!is.na(df_result[[C130]]) & is.na(df_result[[C150]]))
+      c150_only <- sum(is.na(df_result[[C130]]) & !is.na(df_result[[C150]]))
+
+      cat("[DEBUG] Pattern analysis:\n")
+      cat("[DEBUG]   Both missing:", both_missing, "rows\n")
+      cat("[DEBUG]   Both present:", both_present, "rows\n")
+      cat("[DEBUG]   C130 only:", c130_only, "rows\n")
+      cat("[DEBUG]   C150 only:", c150_only, "rows\n")
+
+      if (C130_missing > 0 || C150_missing > 0) {
+        direction <- "bidirectional"
+        cat("[DEBUG] Using bidirectional conversion approach\n")
+      } else {
+        cat("[DEBUG] Both columns are complete - no conversion needed\n")
+        skip_conversion <- TRUE
+      }
+    } else {
+      cat("[DEBUG] No circumference conversion needed\n")
+      skip_conversion <- TRUE
+    }
+
+    # Effectuer la conversion si nécessaire
+    if (!skip_conversion) {
+      cat("[DEBUG] ==================== CIRCUMFERENCE CONVERSIONS ====================\n")
+
+      if (direction == "bidirectional") {
+        cat("[DEBUG] Using bidirectional conversion approach\n")
+        cat("[DEBUG] Will convert C130→C150 and C150→C130 as needed per row\n")
+      } else {
+        cat("[DEBUG] Detected conversion direction:", direction, "\n")
+        cat("[DEBUG] Source column:", from_col, "\n")
+        cat("[DEBUG] Target column:", to_col, "\n")
+      }
+
+      # Extract conversion coefficients (UNE SEULE FOIS)
       coefs_df <- unique(equations_df[, c("Species", "HV", "IV")])
       names(coefs_df)[names(coefs_df) == "Species"] <- "Species"
 
@@ -594,23 +629,66 @@ calculate_volumes <- function(df, carbon = FALSE,
       cat("Conversion coefficients preview:\n")
       print(utils::head(coefs_df))
 
-      # Initialize target column
-      df_result[[to_col]] <- NA_real_
-
       # Row-by-row application
       attempted_conversions <- 0
+      c130_to_c150_conversions <- 0
+      c150_to_c130_conversions <- 0
+
       for (i in seq_len(nrow(df_result))) {
         tree_species <- df_result$Species[i]
 
         if (!is.na(tree_species)) {
-          from_value <- df_result[[from_col]][i]
+          c130_value <- df_result[[C130]][i]
+          c150_value <- df_result[[C150]][i]
 
-          if (!is.na(from_value)) {
+          # Déterminer quelle conversion effectuer pour cette ligne spécifique
+          current_direction <- NULL
+          current_from_col <- NULL
+          current_to_col <- NULL
+          current_from_value <- NULL
+
+          if (direction == "bidirectional") {
+            # Approche bidirectionnelle
+            if (is.na(c130_value) && !is.na(c150_value)) {
+              current_direction <- "C150_to_C130"
+              current_from_col <- C150
+              current_to_col <- C130
+              current_from_value <- c150_value
+            } else if (!is.na(c130_value) && is.na(c150_value)) {
+              current_direction <- "C130_to_C150"
+              current_from_col <- C130
+              current_to_col <- C150
+              current_from_value <- c130_value
+            }
+          } else {
+            # Approche directionnelle classique
+            current_direction <- direction
+            current_from_col <- from_col
+            current_to_col <- to_col
+            current_from_value <- df_result[[from_col]][i]
+            current_to_value <- df_result[[to_col]][i]
+
+            # Ne convertir que si la valeur source existe ET la valeur cible est manquante
+            if (is.na(current_from_value) || !is.na(current_to_value)) {
+              current_direction <- NULL  # Skip cette ligne
+            }
+          }
+
+          # Effectuer la conversion si les conditions sont remplies
+          if (!is.null(current_direction) && !is.na(current_from_value)) {
             attempted_conversions <- attempted_conversions + 1
+
+            if (current_direction == "C130_to_C150") {
+              c130_to_c150_conversions <- c130_to_c150_conversions + 1
+            } else {
+              c150_to_c130_conversions <- c150_to_c130_conversions + 1
+            }
+
             coef_row <- coefs_df[coefs_df$Species == tree_species, ]
 
             if (i <= 5) {
-              cat("Row", i, "- Species:", tree_species, "- Coefficients found:", nrow(coef_row), "\n")
+              cat("Row", i, "- Species:", tree_species, "- Direction:", current_direction, "\n")
+              cat("  From value:", current_from_value, "- Coefficients found:", nrow(coef_row), "\n")
               if (nrow(coef_row) > 0) {
                 cat("  HV:", coef_row$HV[1], "IV:", coef_row$IV[1], "\n")
               }
@@ -620,71 +698,83 @@ calculate_volumes <- function(df, carbon = FALSE,
               HV_coef <- coef_row$HV[1]
               IV_coef <- coef_row$IV[1]
 
-              result_value <- if (direction == "C150_to_C130") {
-                HV_coef * from_value + IV_coef
+              result_value <- if (current_direction == "C150_to_C130") {
+                HV_coef * current_from_value + IV_coef
               } else {
-                (from_value - IV_coef) / HV_coef
+                (current_from_value - IV_coef) / HV_coef
               }
 
-              df_result[[to_col]][i] <- result_value
+              df_result[[current_to_col]][i] <- result_value
 
               if (i <= 5) {
-                cat("  Conversion:", from_value, "to", result_value, "\n")
+                cat("  Conversion:", current_from_value, "to", result_value, "\n")
               }
             } else {
-              warning(paste("Unable to convert", from_col, "to", to_col, "for species:",
-                          tree_species, "at row", i, ". Missing coefficients."))
+              warning(paste("Unable to convert", current_from_col, "to", current_to_col, "for species:",
+                            tree_species, "at row", i, ". Missing coefficients."))
             }
           }
         }
       }
 
-      #debug
-      successful_conversions <- sum(!is.na(df_result[[to_col]]))
-      cat("[DEBUG] Conversions to attempt:", attempted_conversions, "\n")
-      cat("[DEBUG] [OK]Successful", from_col, "to", to_col, "conversions:", successful_conversions, "\n")
-      if (attempted_conversions > successful_conversions) {
-        cat("[DEBUG] [Warning]  Failed conversions:", attempted_conversions - successful_conversions, "\n")
-      }
+      # Messages de résultats
+      if (direction == "bidirectional") {
+        cat("[DEBUG] Conversions attempted:", attempted_conversions, "\n")
+        cat("[DEBUG] C130→C150 conversions:", c130_to_c150_conversions, "\n")
+        cat("[DEBUG] C150→C130 conversions:", c150_to_c130_conversions, "\n")
 
-      # Check for missed conversions
-      failed_conversions <- sum(is.na(df_result[[to_col]]))
-      if (failed_conversions > 0) {
-        warning(paste(failed_conversions, paste(from_col, "to", to_col),
-                    "conversions failed. Check the data."))
-      }
+        remaining_c130_missing <- sum(is.na(df_result[[C130]]))
+        remaining_c150_missing <- sum(is.na(df_result[[C150]]))
+        cat("[DEBUG] After bidirectional conversion:\n")
+        cat("[DEBUG]   Remaining C130 missing:", remaining_c130_missing, "\n")
+        cat("[DEBUG]   Remaining C150 missing:", remaining_c150_missing, "\n")
+      } else {
+        successful_conversions <- sum(!is.na(df_result[[to_col]]))
+        cat("[DEBUG] Conversions to attempt:", attempted_conversions, "\n")
+        cat("[DEBUG] [OK]Successful", from_col, "to", to_col, "conversions:", successful_conversions, "\n")
+        if (attempted_conversions > successful_conversions) {
+          cat("[DEBUG] [Warning]  Failed conversions:", attempted_conversions - successful_conversions, "\n")
+        }
 
-      # Row-by-row calculation of D130
-      if (!flags$D130_exists && C130 %in% colnames(df_result)) {
-        df_result[[D130]] <- NA_real_  # Utiliser variable utilisateur
-        for (i in seq_len(nrow(df_result))) {
-          if (!is.na(df_result[[C130]][i])) {
-            df_result[[D130]][i] <- df_result[[C130]][i] / pi
-          }
+        failed_conversions <- sum(is.na(df_result[[to_col]]))
+        if (failed_conversions > 0) {
+          warning(paste(failed_conversions, paste(from_col, "to", to_col),
+                        "conversions failed. Check the data."))
         }
       }
-
-      # Row-by-row calculation of D150
-      if (!flags$D150_exists && C150 %in% colnames(df_result)) {
-        df_result[[D150]] <- NA_real_  # Utiliser variable utilisateur
-        for (i in seq_len(nrow(df_result))) {
-          if (!is.na(df_result[[C150]][i])) {
-            df_result[[D150]][i] <- df_result[[C150]][i] / pi
-          }
-        }
-      }
-
-      #debug
-      if ("D130" %in% colnames(df_result) && !"D130" %in% colnames(df)) {
-        cat("[DEBUG] [OK]D130 column created from C130\n")
-      }
-      if ("D150" %in% colnames(df_result) && !"D150" %in% colnames(df)) {
-        cat("[DEBUG] [OK]D150 column created from C150\n")
-      }
-      cat("[DEBUG] [OK]Circumference conversions completed\n\n")
-
-      return(df_result)
     }
+
+    # Row-by-row calculation of D130
+    if (C130 %in% colnames(df_result)) {
+      if (!(D130 %in% colnames(df_result))) df_result[[D130]] <- NA_real_
+      for (i in seq_len(nrow(df_result))) {
+        if (is.na(df_result[[D130]][i]) && !is.na(df_result[[C130]][i])) {
+          df_result[[D130]][i] <- df_result[[C130]][i] / pi
+        }
+      }
+    }
+
+    # Row-by-row calculation of D150
+    if (C150 %in% colnames(df_result)) {
+      if (!(D150 %in% colnames(df_result))) df_result[[D150]] <- NA_real_
+      for (i in seq_len(nrow(df_result))) {
+        if (is.na(df_result[[D150]][i]) && !is.na(df_result[[C150]][i])) {
+          df_result[[D150]][i] <- df_result[[C150]][i] / pi
+        }
+      }
+    }
+
+    if ("D130" %in% colnames(df_result) && !"D130" %in% colnames(df)) {
+      cat("[DEBUG] [OK]D130 column created from C130\n")
+    }
+    if ("D150" %in% colnames(df_result) && !"D150" %in% colnames(df)) {
+      cat("[DEBUG] [OK]D150 column created from C150\n")
+    }
+    cat("[DEBUG] [OK]Circumference conversions completed\n\n")
+
+    return(df_result)
+  }
+
   # Calculate basal areas
   calculate_basal_areas <- function(df_result) {
     #debug
@@ -719,7 +809,6 @@ calculate_volumes <- function(df, carbon = FALSE,
 
     return(df_result)
   }
-
 
   calculate_bark_thickness <- function(df_result, total_volume_col) {
     cat("[DEBUG] ==================== BARK THICKNESS CALCULATION ====================\n")
@@ -823,8 +912,8 @@ calculate_volumes <- function(df, carbon = FALSE,
   # 2. Initialization
   equations_df <- equations
   # Filter equations by source
-  if ("Source" %in% colnames(equations_df)) {
-    equations_df <- equations_df[equations_df$Source == source, ]
+  if ("Source_Eq" %in% colnames(equations_df)) {
+    equations_df <- equations_df[equations_df$Source_Eq == source, ]
     if (nrow(equations_df) == 0) {
       stop(paste("No equations found for source:", source))
     }
@@ -845,28 +934,60 @@ calculate_volumes <- function(df, carbon = FALSE,
   # 5. Convert circumferences if necessary
   flags <- update_flags(df_result, flags, C130, C150, D130, D150, HTOT, HDOM)
 
-  if (!flags$C130_exists && flags$C150_exists) {
-    cat("[DEBUG] Conversion needed: C150 to C130\n")
-    df_result <- convert_circumference(df_result)
-  } else if (!flags$C150_exists && flags$C130_exists) {
-    cat("[DEBUG] Conversion needed: C130 to C150\n")
-    df_result <- convert_circumference(df_result)
-  } else if (flags$C130_exists && flags$C150_exists) {
-    cat("[DEBUG] Both C130 and C150 exist, no conversion needed\n")
+  C130_has_data <- flags$C130_exists && sum(!is.na(df_result[[C130]])) > 0
+  C150_has_data <- flags$C150_exists && sum(!is.na(df_result[[C150]])) > 0
+
+  cat("[DEBUG] ==================== CIRCUMFERENCE DATA ANALYSIS ====================\n")
+  cat("[DEBUG] C130 column exists:", flags$C130_exists, "\n")
+  cat("[DEBUG] C150 column exists:", flags$C150_exists, "\n")
+  cat("[DEBUG] C130 has data:", C130_has_data, "\n")
+  cat("[DEBUG] C150 has data:", C150_has_data, "\n")
+
+  if (C130_has_data) {
+    cat("[DEBUG] C130 non-NA values:", sum(!is.na(df_result[[C130]])), "/", nrow(df_result), "\n")
+  }
+  if (C150_has_data) {
+    cat("[DEBUG] C150 non-NA values:", sum(!is.na(df_result[[C150]])), "/", nrow(df_result), "\n")
+  }
+
+  if (C130_has_data || C150_has_data) {
+    if (!C130_has_data && C150_has_data) {
+      cat("[DEBUG] Conversion needed: C150 → C130 (C130 completely missing)\n")
+      df_result <- convert_circumference(df_result)
+    } else if (!C150_has_data && C130_has_data) {
+      cat("[DEBUG] Conversion needed: C130 → C150 (C150 completely missing)\n")
+      df_result <- convert_circumference(df_result)
+    } else if (C130_has_data && C150_has_data) {
+      # Les deux colonnes ont des données - analyser les valeurs manquantes
+      C130_missing <- sum(is.na(df_result[[C130]]))
+      C150_missing <- sum(is.na(df_result[[C150]]))
+
+      cat("[DEBUG] Both columns have data - detailed analysis:\n")
+      cat("[DEBUG]   C130 missing values:", C130_missing, "\n")
+      cat("[DEBUG]   C150 missing values:", C150_missing, "\n")
+
+      if (C130_missing > 0 || C150_missing > 0) {
+        cat("[DEBUG] Bidirectional conversion needed to fill missing values\n")
+        df_result <- convert_circumference(df_result)
+      } else {
+        cat("[DEBUG] Both columns complete - no conversion needed\n")
+      }
+    }
   } else {
-    cat("[DEBUG] Neither C130 nor C150 exist after diameter conversions\n")
+    cat("[DEBUG] No circumference data available for conversions\n")
   }
 
 
   # 6. Calculate basal areas
   df_result <- calculate_basal_areas(df_result)
 
-  cat("[DEBUG] Beginning calculate_volumes function\n")
+  cat("[DEBUG] Beginning carbofor function\n")
   cat("[DEBUG] Number of rows in input dataframe:", nrow(df), "\n")
   cat("[DEBUG] Columns in input dataframe:", paste(colnames(df), collapse = ", "), "\n")
 
+
   # =========================================================================
-  # VOLUME CALCULATION
+  # VOLUME CALCULATION WITH INTEGRATED VALIDITY CHECK
   # =========================================================================
 
   # Filter equations
@@ -886,11 +1007,21 @@ calculate_volumes <- function(df, carbon = FALSE,
 
   # Initialization
   df_result$Equation_Used <- NA_character_
+  df_result$Validity_Status <- NA_character_  # New column to track validity
 
   # Initialize the volume column specified by the user
   if (!(volume_type %in% names(df_result))) {
     df_result[[volume_type]] <- NA_real_
   }
+
+  # Validity check counters
+  trees_outside_domain <- 0
+  trees_checked <- 0
+  trees_below_min <- 0
+  trees_above_max <- 0
+  trees_no_validity_limits <- 0
+
+  cat("[DEBUG] ==================== VOLUME CALCULATION WITH VALIDITY CHECK ====================\n")
 
   # Modified evaluate_expression function with more debugging
   evaluate_expression <- function(expr_text, variables) {
@@ -905,15 +1036,29 @@ calculate_volumes <- function(df, carbon = FALSE,
     # Check that all necessary variables are present and not NA
     var_names <- all.vars(parse(text = expr_text))
     for (v in var_names) {
-      if (!v %in% names(variables) || is.na(variables[[v]])) {
-        warning(paste("Missing or NA variable:", v, "for expression:", expr_text))
+      if (!v %in% names(variables)) {
+        warning(paste("Variable not found:", v, "for expression:", expr_text))
+        return(NA)
+      }
+      if (is.na(variables[[v]]) || is.null(variables[[v]])) {
+        warning(paste("Variable is NA or NULL:", v, "for expression:", expr_text))
+        return(NA)
+      }
+      if (!is.finite(variables[[v]])) {
+        warning(paste("Variable is not finite:", v, "=", variables[[v]], "for expression:", expr_text))
         return(NA)
       }
     }
 
     env <- list2env(variables)
     tryCatch({
-      eval(parse(text = expr_text), envir = env)
+      result <- eval(parse(text = expr_text), envir = env)
+      # Check result
+      if (!is.finite(result)) {
+        warning(paste("Non-finite result for expression:", expr_text, "=", result))
+        return(NA)
+      }
+      return(result)
     }, error = function(e) {
       warning(paste("Error during expression evaluation:", expr_text, "-", e$message))
       return(NA)
@@ -922,7 +1067,8 @@ calculate_volumes <- function(df, carbon = FALSE,
 
   # Calculation for each row
   for (i in seq_len(nrow(df_result))) {
-    tree_species <- df_result$Species[i]  # Using Species instead of Essence
+    tree_species <- df_result$Species[i]
+    D130_value <- df_result[[D130]][i]
 
     # Initialize volume variable for this row
     volume_res <- 0
@@ -931,55 +1077,63 @@ calculate_volumes <- function(df, carbon = FALSE,
 
     # DEBUG: Display candidate equations for this species
     if (i <= 5) {
-      cat("  Number of candidate equations:", nrow(eq_candidates), "\n")
+      cat("  Row", i, "- Species:", tree_species, "- Number of candidate equations:", nrow(eq_candidates), "\n")
     }
 
     if (nrow(eq_candidates) == 0) {
       # If no specific equation is found, warning.
       warning(paste("No equation found for species:", tree_species))
+      df_result$Validity_Status[i] <- "NO_EQUATION"
       next
     }
 
-    # For type "E", use the equation with A0 corresponding to local_equation_id
-    if (volume_type == "E" && local_equation_id %in% c(4, 5)) {
-      eq_by_a0 <- eq_candidates[eq_candidates$A0 == local_equation_id, ]
-      if (nrow(eq_by_a0) > 0) {
-        eq <- eq_by_a0[1, , drop = FALSE]  # Take the first equation if several match
-        cat("  Using equation A0 =", local_equation_id, "for", tree_species, "\n")
-      } else {
-        # If no equation with the specific A0 is found
-        warning(paste("No equation with A0 =", local_equation_id, "found for species", tree_species))
-
-        # Try with the other equation type (4 or 5)
-        other_a0 <- if (local_equation_id == 4) 5 else 4
-        eq_by_other_a0 <- eq_candidates[eq_candidates$A0 == other_a0, ]
-
-        if (nrow(eq_by_other_a0) > 0) {
-          eq <- eq_by_other_a0[1, , drop = FALSE]
-          cat("  Using alternative equation A0 =", other_a0, "for", tree_species, "\n")
-        } else {
-          # If still no equation, use the first available
-          if (nrow(eq_candidates) > 0) {
-            eq <- eq_candidates[1, , drop = FALSE]
-            cat("  Using default equation for", tree_species, "\n")
-          } else {
-            warning(paste("No equation found for species", tree_species))
-            next
-          }
-        }
-      }
+    # Select appropriate equation
+    if (local_equation_id > nrow(eq_candidates)) {
+      warning(paste("Equation with id", local_equation_id, "does not exist for species", tree_species,
+                    ". Using equation 1 instead."))
+      eq <- eq_candidates[1, , drop = FALSE]
     } else {
-      # For other volume types, standard behavior
-      if (local_equation_id > nrow(eq_candidates)) {
-        warning(paste("Equation with id", local_equation_id, "does not exist for species", tree_species,
-                      ". Using equation 1 instead."))
-        eq <- eq_candidates[1, , drop = FALSE]
-      } else {
-        eq <- eq_candidates[local_equation_id, , drop = FALSE]
-      }
+      eq <- eq_candidates[local_equation_id, , drop = FALSE]
     }
 
+    # Store equation information
     df_result$Equation_Used[i] <- paste0(eq$Species, ":", eq$Y, ":A0=", eq$A0)
+
+    # =========================================================================
+    # VALIDITY DOMAIN CHECK FOR THIS SPECIFIC EQUATION
+    # =========================================================================
+
+    validity_status <- "VALID"
+
+    if (!is.na(D130_value)) {
+      trees_checked <- trees_checked + 1
+
+      # Check if validity limits exist for this specific equation
+      if (!is.na(eq$D_Min[1]) && !is.na(eq$D_Max[1])) {
+        D_Min <- eq$D_Min[1]
+        D_Max <- eq$D_Max[1]
+
+        # Check if value is within domain
+        if (D130_value < D_Min) {
+          trees_outside_domain <- trees_outside_domain + 1
+          trees_below_min <- trees_below_min + 1
+          validity_status <- "BELOW_MIN"
+        } else if (D130_value > D_Max) {
+          trees_outside_domain <- trees_outside_domain + 1
+          trees_above_max <- trees_above_max + 1
+          validity_status <- "ABOVE_MAX"
+        }
+      } else {
+        # Equation found but no validity limits
+        trees_no_validity_limits <- trees_no_validity_limits + 1
+        validity_status <- "NO_LIMITS"
+      }
+    }
+    df_result$Validity_Status[i] <- validity_status
+
+    # =========================================================================
+    # VOLUME CALCULATION (CONTINUES REGARDLESS OF VALIDITY)
+    # =========================================================================
 
     exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
     exprs <- exprs[!is.na(exprs) & exprs != "0"]
@@ -1053,18 +1207,393 @@ calculate_volumes <- function(df, carbon = FALSE,
 
     # DEBUG: Display calculated volume
     if (i <= 5) {
-      cat("  Calculated volume:", volume_res, "\n")
+      cat("  Calculated volume:", volume_res, "- Validity:", validity_status, "\n")
     }
 
-    # Store volume only for this row, in the column specified by volume_type
+    # Store volume for this row
     df_result[[volume_type]][i] <- volume_res
-
-    if (i <= 5) {
-      cat("  Volume stored at row", i, ":", df_result[[volume_type]][i], "\n")
-    }
-
   }
 
+  # =========================================================================
+  # INTERVAL CALCULATION ACCORDING TO NUMBER OF PARAMETERS
+  # =========================================================================
+  # Function to calculate the relative width of prediction intervals
+  calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1,
+                                            confidence_level = 0.95) {
+
+    # Initialize result vector (relative width)
+    relative_width <- rep(NA, nrow(df_result))
+
+    cat("Calculating prediction intervals with correlation handling...\n")
+
+    for (i in seq_len(nrow(df_result))) {
+      tree_species <- df_result$Species[i]
+
+      cat("Processing tree", i, "of", nrow(df_result), "- Species:", tree_species, "\n")
+
+      # Retrieve the equation used
+      eq_candidates <- eqs_volume[eqs_volume$Species == tree_species, ]
+      if (nrow(eq_candidates) == 0) {
+        cat("  WARNING: No equation found for species:", tree_species, "\n")
+        next
+      }
+
+      local_equation_id <- min(equation_id, nrow(eq_candidates))
+      eq <- eq_candidates[local_equation_id, , drop = FALSE]
+
+      cat("  Using equation", local_equation_id, "for species:", tree_species, "\n")
+
+      # Identify necessary variables in the equation
+      exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
+      exprs <- exprs[!is.na(exprs) & exprs != "0"]
+
+      cat("  Found expressions:", paste(exprs, collapse = ", "), "\n")
+
+      # Use all.vars() to correctly extract variables
+      vars_needed <- c()
+      for (expr in exprs) {
+        if (expr != "0" && !is.na(expr)) {
+          tryCatch({
+            vars_in_expr <- all.vars(parse(text = expr))
+            vars_needed <- c(vars_needed, vars_in_expr)
+          }, error = function(e) {
+            # If expression cannot be parsed, use regex as fallback
+            vars_in_expr <- regmatches(expr, gregexpr("\\b[A-Za-z_][A-Za-z0-9_]*\\b", expr))[[1]]
+            vars_needed <- c(vars_needed, vars_in_expr)
+          })
+        }
+      }
+      vars_needed <- unique(vars_needed)
+
+      cat("  Variables needed:", paste(vars_needed, collapse = ", "), "\n")
+
+      # Check that all necessary variables are available in the dataset
+      missing_vars <- vars_needed[!vars_needed %in% names(df_result)]
+      if (length(missing_vars) > 0) {
+        warning(paste("Missing variables in dataset:", paste(missing_vars, collapse = ", "), "for species:", tree_species))
+        next
+      }
+
+      # Retrieve variable values for this tree
+      xi_values <- list()
+      for (v in vars_needed) {
+        xi_values[[v]] <- df_result[[v]][i]
+        if (is.na(xi_values[[v]]) || !is.finite(xi_values[[v]])) {
+          warning(paste("Invalid variable", v, "for row", i))
+          next
+        }
+      }
+
+      cat("  Variable values:", paste(names(xi_values), "=", sapply(xi_values, function(x) round(x, 3)), collapse = ", "), "\n")
+
+      # Determine number of parameters/variables
+      n_params <- length(vars_needed)
+
+      cat("  Number of parameters:", n_params, "\n")
+
+      if (n_params == 1) {
+        # UNIVARIATE CASE (1 parameter only)
+        cat("  Using univariate formula\n")
+
+        # Check necessary parameters
+        if (is.na(eq$sigma[1]) || is.na(eq$n[1]) || is.na(eq$x_mean[1]) || is.na(eq$SCE[1])) {
+          warning(paste("Missing parameters (sigma, n, x_mean or SCE) for species:", tree_species))
+          next
+        }
+
+        sigma <- eq$sigma[1]
+        n <- eq$n[1]
+        x_mean <- eq$x_mean[1]
+        SCEx <- eq$SCE[1]
+
+        cat("  Parameters: sigma =", sigma, ", n =", n, ", x_mean =", x_mean, ", SCE =", SCEx, "\n")
+
+        # Retrieve xi value (first and only variable)
+        xi <- xi_values[[vars_needed[1]]]
+
+        # Univariate formula: Var_pred(xi) = σ² * (1 + 1/n + (xi - x̄)²/SCEx)
+        variance_pred <- sigma^2 * (1 + 1/n + (xi - x_mean)^2/SCEx)
+
+        cat("  Prediction variance:", variance_pred, "\n")
+
+      } else if (n_params > 1) {
+        # MULTIVARIATE CASE (several correlated parameters)
+        cat("  Using multivariate formula\n")
+
+        # Check necessary parameters for multivariate case
+        if (is.na(eq$sigma[1]) || is.na(eq$n[1])) {
+          warning(paste("Missing parameters (sigma or n) for multivariate species:", tree_species))
+          next
+        }
+
+        sigma <- eq$sigma[1]
+        n <- eq$n[1]
+
+        cat("  Base parameters: sigma =", sigma, ", n =", n, "\n")
+
+        # Build vector of differences (xi - x̄)
+        x_diff <- numeric(n_params)
+        x_means <- numeric(n_params)
+        variable_names <- character(n_params)
+
+        # Retrieve means and calculate differences
+        for (j in 1:n_params) {
+          var_name <- vars_needed[j]
+          variable_names[j] <- var_name
+
+          # Look for corresponding mean (x_mean, x_mean2, x_mean3, etc.)
+          mean_col <- paste0("x_mean", if(j == 1) "" else j)
+
+          if (mean_col %in% names(eq) && !is.na(eq[[mean_col]][1])) {
+            x_means[j] <- eq[[mean_col]][1]
+            x_diff[j] <- xi_values[[var_name]] - x_means[j]
+          } else {
+            warning(paste("Missing mean for variable", var_name, "of species:", tree_species))
+            next
+          }
+        }
+
+        cat("  Variable means:", paste(variable_names, "=", round(x_means, 3), collapse = ", "), "\n")
+        cat("  Differences (xi - x_mean):", paste(round(x_diff, 3), collapse = ", "), "\n")
+
+        # Build inverse covariance matrix (XᵀX)⁻¹
+        # Search for matrix elements in equation columns
+        cov_matrix_inv <- matrix(0, nrow = n_params, ncol = n_params)
+
+        # Fill inverse covariance matrix
+        for (j in 1:n_params) {
+          for (k in 1:n_params) {
+            if (j == k) {
+              # Diagonal elements: use 1/SCE
+              sce_col <- paste0("SCE", if(j == 1) "" else j)
+              if (sce_col %in% names(eq) && !is.na(eq[[sce_col]][1]) && eq[[sce_col]][1] > 0) {
+                cov_matrix_inv[j, k] <- 1 / eq[[sce_col]][1]
+              } else {
+                warning(paste("Missing or invalid SCE for variable", variable_names[j], "of species:", tree_species))
+                next
+              }
+            } else {
+              # Off-diagonal elements: search for covariances
+              # Possible conventions: COV12, COV13, COV23, etc.
+              cov_col_names <- c(
+                paste0("COV", min(j,k), max(j,k)),
+                paste0("COV_", min(j,k), "_", max(j,k)),
+                paste0("covariance_", min(j,k), "_", max(j,k))
+              )
+
+              cov_found <- FALSE
+              for (cov_col in cov_col_names) {
+                if (cov_col %in% names(eq) && !is.na(eq[[cov_col]][1])) {
+                  cov_matrix_inv[j, k] <- eq[[cov_col]][1]
+                  cov_matrix_inv[k, j] <- eq[[cov_col]][1]  # Symmetric matrix
+                  cov_found <- TRUE
+                  break
+                }
+              }
+
+              # If no covariance found, use 0 (partial orthogonality assumption)
+              if (!cov_found) {
+                cov_matrix_inv[j, k] <- 0
+                cov_matrix_inv[k, j] <- 0
+              }
+            }
+          }
+        }
+
+        cat("  Covariance matrix diagonal:", paste(round(diag(cov_matrix_inv), 6), collapse = ", "), "\n")
+
+        # Check that matrix is invertible (non-zero determinant)
+        tryCatch({
+          det_cov <- det(cov_matrix_inv)
+          cat("  Matrix determinant:", det_cov, "\n")
+
+          if (abs(det_cov) < 1e-10) {
+            warning(paste("Quasi-singular covariance matrix for species:", tree_species, "- using orthogonal approximation"))
+            # Fallback: use only diagonal terms
+            quadratic_form <- sum(x_diff^2 * diag(cov_matrix_inv))
+          } else {
+            # Calculate quadratic form: (x_i - x̄)ᵀ × (XᵀX)⁻¹ × (x_i - x̄)
+            quadratic_form <- as.numeric(t(x_diff) %*% cov_matrix_inv %*% x_diff)
+          }
+        }, error = function(e) {
+          warning(paste("Error in matrix calculation for species:", tree_species, "- using orthogonal approximation"))
+          # Fallback: use only diagonal terms
+          quadratic_form <- sum(x_diff^2 * diag(cov_matrix_inv))
+        })
+
+        cat("  Quadratic form:", quadratic_form, "\n")
+
+        # Complete multivariate formula with covariance matrix
+        # Var_pred = σ² × (1 + 1/n + (x_i - x̄)ᵀ × (XᵀX)⁻¹ × (x_i - x̄))
+        variance_pred <- sigma^2 * (1 + 1/n + quadratic_form)
+
+        cat("  Prediction variance:", variance_pred, "\n")
+
+      } else {
+        warning(paste("No variables identified in equation for species:", tree_species))
+        next
+      }
+
+      # Calculate t quantile with appropriate degrees of freedom
+      t_quantile <- qt(1 - (1 - confidence_level)/2, df = n - 2)
+
+      cat("  t-quantile (df =", n - 2, "):", t_quantile, "\n")
+
+      # Calculate relative width of prediction interval
+      # Uses Volume column directly as eqs_volume is pre-filtered
+      volume_pred <- df_result$Volume[i]
+
+      if (!is.na(volume_pred) && !is.na(variance_pred) && variance_pred > 0 && volume_pred > 0) {
+        margin_error <- t_quantile * sqrt(variance_pred)
+        interval_width <- 2 * margin_error
+
+        # Relative width = absolute width / predicted value
+        relative_width[i] <- interval_width / volume_pred
+
+        cat("  Predicted volume:", volume_pred, "\n")
+        cat("  Margin of error:", margin_error, "\n")
+        cat("  Interval width:", interval_width, "\n")
+        cat("  Relative width:", round(relative_width[i], 4), "\n")
+      }
+
+      cat("  ---\n")
+    }
+
+    return(relative_width)
+  }
+
+  # Function to interpret relative width
+  interpret_relative_width <- function(relative_width) {
+    interpretation <- character(length(relative_width))
+
+    for (i in seq_along(relative_width)) {
+      if (is.na(relative_width[i])) {
+        interpretation[i] <- "No calculation"
+      } else if (relative_width[i] < 0.10) {
+        interpretation[i] <- "Very narrow → Very reliable "
+      } else if (relative_width[i] <= 0.25) {
+        interpretation[i] <- "Acceptable → Rather reliable "
+      } else if (relative_width[i] <= 0.50) {
+        interpretation[i] <- "Wide → Uncertain ⚠"
+      } else {
+        interpretation[i] <- "Very wide → Risky "
+      }
+    }
+
+    return(interpretation)
+  }
+
+  # Function to summarize relative widths of prediction intervals
+  summarize_relative_intervals <- function(relative_widths, df_result) {
+    valid_widths <- relative_widths[!is.na(relative_widths)]
+
+    if (length(valid_widths) == 0) {
+      cat("No prediction intervals calculated.\n")
+      return()
+    }
+
+    cat("=== SUMMARY OF RELATIVE INTERVAL WIDTHS ===\n")
+    cat("Number of intervals calculated:", length(valid_widths), "/", length(relative_widths), "\n")
+    cat("Mean relative width:", round(mean(valid_widths), 4), "\n")
+    cat("Median relative width:", round(median(valid_widths), 4), "\n")
+    cat("Min relative width:", round(min(valid_widths), 4), "\n")
+    cat("Max relative width:", round(max(valid_widths), 4), "\n")
+    cat("Standard deviation of relative widths:", round(sd(valid_widths), 4), "\n")
+
+    # Interpretation summary
+    interpretations <- interpret_relative_width(relative_widths)
+    interpretation_table <- table(interpretations[!is.na(relative_widths)])
+
+    cat("\n=== INTERPRETATION SUMMARY ===\n")
+    for (i in seq_along(interpretation_table)) {
+      cat(names(interpretation_table)[i], ":", interpretation_table[i], "\n")
+    }
+
+    # Summary by species if species data is available
+    if ("Species" %in% names(df_result)) {
+      valid_indices <- which(!is.na(relative_widths))
+      species_data <- data.frame(
+        Species = df_result$Species[valid_indices],
+        Relative_Width = valid_widths
+      )
+
+      species_summary <- aggregate(Relative_Width ~ Species, data = species_data,
+                                   FUN = function(x) c(
+                                     n = length(x),
+                                     mean = mean(x),
+                                     median = median(x),
+                                     sd = sd(x)
+                                   ))
+
+      cat("\n=== SUMMARY BY SPECIES ===\n")
+      for (i in seq_len(nrow(species_summary))) {
+        cat("Species:", species_summary$Species[i], "\n")
+        cat("  Count:", round(species_summary$Relative_Width[i, "n"], 0),
+            "- Mean:", round(species_summary$Relative_Width[i, "mean"], 4),
+            "- Median:", round(species_summary$Relative_Width[i, "median"], 4),
+            "- Std Dev:", round(species_summary$Relative_Width[i, "sd"], 4), "\n\n")
+      }
+    }
+
+    # Useful percentiles
+    cat("=== PERCENTILES ===\n")
+    percentiles <- quantile(valid_widths, probs = c(0.05, 0.10, 0.25, 0.75, 0.90, 0.95))
+    for (i in seq_along(percentiles)) {
+      percentile_name <- gsub("%", "", names(percentiles)[i])
+      cat(paste0("P", percentile_name, ":"), round(percentiles[i], 4), "\n")
+    }
+  }
+
+  # =========================================================================
+  # CALCULS DES INTERVALLES DE PRÉDICTION - APPEL DES FONCTIONS
+  # =========================================================================
+
+  # Calculer les intervalles de prédiction
+  cat("[DEBUG] ==================== PREDICTION INTERVALS CALCULATION ====================\n")
+
+  # Appel de la fonction principale
+  relative_widths <- calculate_prediction_interval(df_result, eqs_volume, equation_id = equation_id, confidence_level = 0.95)
+
+  # Ajouter les largeurs relatives au dataframe
+  df_result$Relative_Interval_Width <- relative_widths
+
+  # Ajouter les interprétations
+  df_result$Interval_Interpretation <- interpret_relative_width(relative_widths)
+
+  # Afficher le résumé
+  summarize_relative_intervals(relative_widths, df_result)
+
+  cat("[DEBUG] [OK] Prediction intervals calculation completed\n\n")
+
+  # =========================================================================
+  # VALIDITY SUMMARY (le reste de votre code continue ici...)
+  # =========================================================================
+
+  # =========================================================================
+  # VALIDITY SUMMARY
+  # =========================================================================
+
+  cat("[DEBUG] ==================== VALIDITY DOMAIN SUMMARY ====================\n")
+  cat("[DEBUG] Trees checked for validity:", trees_checked, "\n")
+  cat("[DEBUG] Trees outside validity domain:", trees_outside_domain, "\n")
+  cat("[DEBUG] Trees without validity limits:", trees_no_validity_limits, "\n")
+  if (trees_outside_domain > 0) {
+    cat("[DEBUG]   - Below D_Min:", trees_below_min, "\n")
+    cat("[DEBUG]   - Above D_Max:", trees_above_max, "\n")
+  }
+
+  # Warning message if necessary
+  if (trees_outside_domain > 0) {
+    percentage_outside <- round((trees_outside_domain / trees_checked) * 100, 1)
+    warning(paste0("VALIDITY DOMAIN WARNING: ", trees_outside_domain, " trees (",
+                   percentage_outside, "%) have D130 values outside the validity domain. ",
+                   trees_below_min, " trees below D_Min and ",
+                   trees_above_max, " trees above D_Max."))
+  } else {
+    cat("[DEBUG] [OK] All trees are within validity domain\n")
+  }
+
+  cat("[DEBUG] [OK] Volume calculation and validity check completed\n\n")
   # Calculate biomass with multiple equations per species and corresponding carbon
   calculate_biomass <- function(df_result) {
     cat("[DEBUG] ==================== BIOMASS CALCULATION ====================\n")
