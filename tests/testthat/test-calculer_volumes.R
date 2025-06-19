@@ -40,7 +40,7 @@ df_test_minimal <- data.frame(
 
 test_that("validate_parameters - Valid volume types", {
   # Mock function to test only validation
-  validate_parameters_mock <- function(volume_type, equation_id, df, specimens = NULL,
+  validate_parameters <- function(volume_type, equation_id, df, specimens = NULL,
                                        C130 = "C130", C150 = "C150", D130 = "D130",
                                        D150 = "D150", HTOT = "HTOT", HDOM = "HDOM") {
     valid_volume_types <- c("V22", "V22B", "E", "V22_HA")
@@ -52,20 +52,20 @@ test_that("validate_parameters - Valid volume types", {
   }
 
   # Positive tests
-  expect_true(validate_parameters_mock("V22", 1, df_test_complete))
-  expect_true(validate_parameters_mock("V22B", 1, df_test_complete))
-  expect_true(validate_parameters_mock("E", 1, df_test_complete))
-  expect_true(validate_parameters_mock("V22_HA", 1, df_test_complete))
+  expect_true(validate_parameters("V22", 1, df_test_complete))
+  expect_true(validate_parameters("V22B", 1, df_test_complete))
+  expect_true(validate_parameters("E", 1, df_test_complete))
+  expect_true(validate_parameters("V22_HA", 1, df_test_complete))
 
   # Negative tests
-  expect_error(validate_parameters_mock("INVALID", 1, df_test_complete),
+  expect_error(validate_parameters("INVALID", 1, df_test_complete),
                "Invalid volume type")
-  expect_error(validate_parameters_mock("v22", 1, df_test_complete),
+  expect_error(validate_parameters("v22", 1, df_test_complete),
                "Invalid volume type")
 })
 
 test_that("validate_parameters - Volume type and equation_id correspondence", {
-  validate_correspondence_mock <- function(volume_type, equation_id) {
+  validate_correspondence <- function(volume_type, equation_id) {
     if (volume_type == "V22" && !(equation_id %in% 1:3)) {
       stop("For volume type 'V22', equation_id must be between 1 and 3.")
     }
@@ -79,17 +79,17 @@ test_that("validate_parameters - Volume type and equation_id correspondence", {
   }
 
   # V22 tests
-  expect_true(validate_correspondence_mock("V22", 1))
-  expect_true(validate_correspondence_mock("V22", 2))
-  expect_true(validate_correspondence_mock("V22", 3))
-  expect_error(validate_correspondence_mock("V22", 4),
+  expect_true(validate_correspondence("V22", 1))
+  expect_true(validate_correspondence("V22", 2))
+  expect_true(validate_correspondence("V22", 3))
+  expect_error(validate_correspondence("V22", 4),
                "equation_id must be between 1 and 3")
 
   # V22B and V22_HA tests
-  expect_true(validate_correspondence_mock("V22B", 1))
-  expect_error(validate_correspondence_mock("V22B", 2),
+  expect_true(validate_correspondence("V22B", 1))
+  expect_error(validate_correspondence("V22B", 2),
                "equation_id must be 1")
-  expect_error(validate_correspondence_mock("V22_HA", 2),
+  expect_error(validate_correspondence("V22_HA", 2),
                "equation_id must be 1")
 })
 
@@ -99,7 +99,7 @@ test_that("validate_parameters - Missing columns verification", {
     HTOT = c(12.5, 15.2)
   )
 
-  check_columns_mock <- function(df, required_columns) {
+  check_columns <- function(df, required_columns) {
     present_columns <- required_columns[required_columns %in% colnames(df)]
     missing_columns <- setdiff(required_columns, present_columns)
 
@@ -112,7 +112,7 @@ test_that("validate_parameters - Missing columns verification", {
   required_columns <- c("C130", "C150", "D130", "D150", "HTOT", "HDOM", "specimens")
 
   expect_warning(
-    missing <- check_columns_mock(df_incomplete, required_columns),
+    missing <- check_columns(df_incomplete, required_columns),
     "Missing columns"
   )
   expect_true(length(missing) > 0)
@@ -125,7 +125,7 @@ test_that("validate_parameters - Missing columns verification", {
 # ============================================================================
 
 test_that("detect_specimens_type - Numeric code detection", {
-  detect_specimens_type_mock <- function(df, specimens) {
+  detect_specimens_type<- function(df, specimens) {
     sample_values <- na.omit(df[[specimens]])
 
     if (length(sample_values) == 0) {
@@ -145,15 +145,15 @@ test_that("detect_specimens_type - Numeric code detection", {
     }
   }
 
-  expect_equal(detect_specimens_type_mock(df_test_complete, "specimens_code"), "Code")
-  expect_equal(detect_specimens_type_mock(df_test_complete, "specimens_abr"), "Abr")
-  expect_equal(detect_specimens_type_mock(df_test_complete, "specimens_essence"), "Essence")
+  expect_equal(detect_specimens_type(df_test_complete, "specimens_code"), "Code")
+  expect_equal(detect_specimens_type(df_test_complete, "specimens_abr"), "Abr")
+  expect_equal(detect_specimens_type(df_test_complete, "specimens_essence"), "Essence")
 })
 
 test_that("detect_specimens_type - Missing values handling", {
   df_na <- data.frame(specimens = c(NA, NA, NA))
 
-  detect_specimens_type_mock <- function(df, specimens) {
+  detect_specimens_type <- function(df, specimens) {
     sample_values <- na.omit(df[[specimens]])
     if (length(sample_values) == 0) {
       stop(paste("Column '", specimens, "' contains only missing values.", sep=""))
@@ -161,7 +161,7 @@ test_that("detect_specimens_type - Missing values handling", {
     return("Test")
   }
 
-  expect_error(detect_specimens_type_mock(df_na, "specimens"),
+  expect_error(detect_specimens_type(df_na, "specimens"),
                "contains only missing values")
 })
 
@@ -169,14 +169,14 @@ test_that("detect_specimens_type - Abr vs Essence distinction", {
   df_test_abr <- data.frame(specimens = c("CH", "HE", "SV"))
   df_test_essence <- data.frame(specimens = c("Chenes indigenes pedoncule", "Hetre commun", "Sapin de Vancouver blanc"))
 
-  detect_specimens_type_mock <- function(df, specimens) {
+  detect_specimens_type <- function(df, specimens) {
     sample_values <- as.character(na.omit(df[[specimens]]))
     mean_length <- mean(nchar(sample_values))
     return(if (mean_length <= 4) "Abr" else "Essence")
   }
 
-  expect_equal(detect_specimens_type_mock(df_test_abr, "specimens"), "Abr")
-  expect_equal(detect_specimens_type_mock(df_test_essence, "specimens"), "Essence")
+  expect_equal(detect_specimens_type(df_test_abr, "specimens"), "Abr")
+  expect_equal(detect_specimens_type(df_test_essence, "specimens"), "Essence")
 })
 
 # ============================================================================
@@ -185,7 +185,7 @@ test_that("detect_specimens_type - Abr vs Essence distinction", {
 
 test_that("establish_species_correspondence - Code correspondence", {
   # Simplified mock function
-  establish_correspondence_mock <- function(df, specimens, equations_df) {
+  establish_correspondence <- function(df, specimens, equations_df) {
     specimens_type <- if (is.numeric(df[[specimens]])) "Code" else "Abr"
 
     mapping_df <- unique(equations_df[, c("Essences", specimens_type)])
@@ -196,7 +196,7 @@ test_that("establish_species_correspondence - Code correspondence", {
   }
 
   df_test <- data.frame(specimens_code = c(1, 3, 50))
-  result <- establish_correspondence_mock(df_test, "specimens_code", equations_test)
+  result <- establish_correspondence(df_test, "specimens_code", equations_test)
 
   expect_true("Species" %in% colnames(result))
   expect_equal(result$Species[1], "Chenes indigenes")
@@ -207,7 +207,7 @@ test_that("establish_species_correspondence - Code correspondence", {
 test_that("establish_species_correspondence - Handle values without correspondence", {
   df_test_invalid <- data.frame(specimens_code = c(1, 3, 9999))  # 9999 doesn't exist
 
-  establish_correspondence_mock <- function(df, specimens, equations_df) {
+  establish_correspondence<- function(df, specimens, equations_df) {
     mapping_df <- unique(equations_df[, c("Essences", "Code")])
     names(mapping_df) <- c("Species", specimens)
     df_result <- merge(df, mapping_df, by = specimens, all.x = TRUE)
@@ -220,7 +220,7 @@ test_that("establish_species_correspondence - Handle values without corresponden
   }
 
   expect_warning(
-    result <- establish_correspondence_mock(df_test_invalid, "specimens_code", equations_test),
+    result <- establish_correspondence(df_test_invalid, "specimens_code", equations_test),
     "No correspondence found for: 99"
   )
   expect_true(is.na(result$Species[3]))
@@ -231,7 +231,7 @@ test_that("establish_species_correspondence - Handle values without corresponden
 # ============================================================================
 
 test_that("diameter_conversions - D130 to C130 conversion", {
-  diameter_conversions_mock <- function(df) {
+  diameter_conversions <- function(df) {
     pi_val <- pi
     df_result <- df
 
@@ -242,7 +242,7 @@ test_that("diameter_conversions - D130 to C130 conversion", {
   }
 
   df_test <- data.frame(D130 = c(10, 15, 20))
-  result <- diameter_conversions_mock(df_test)
+  result <- diameter_conversions(df_test)
 
   expect_true("C130" %in% colnames(result))
   expect_equal(result$C130[1], 10 * pi, tolerance = 1e-10)
@@ -251,7 +251,7 @@ test_that("diameter_conversions - D130 to C130 conversion", {
 })
 
 test_that("diameter_conversions - D150 to C150 conversion", {
-  diameter_conversions_mock <- function(df) {
+  diameter_conversions <- function(df) {
     pi_val <- pi
     df_result <- df
 
@@ -262,7 +262,7 @@ test_that("diameter_conversions - D150 to C150 conversion", {
   }
 
   df_test <- data.frame(D150 = c(12, 18, 25))
-  result <- diameter_conversions_mock(df_test)
+  result <- diameter_conversions(df_test)
 
   expect_true("C150" %in% colnames(result))
   expect_equal(result$C150[1], 12 * pi, tolerance = 1e-10)
@@ -271,7 +271,7 @@ test_that("diameter_conversions - D150 to C150 conversion", {
 })
 
 test_that("diameter_conversions - Missing values handling", {
-  diameter_conversions_mock <- function(df) {
+  diameter_conversions <- function(df) {
     pi_val <- pi
     df_result <- df
     df_result$C130 <- NA_real_
@@ -285,7 +285,7 @@ test_that("diameter_conversions - Missing values handling", {
   }
 
   df_test <- data.frame(D130 = c(10, NA, 20))
-  result <- diameter_conversions_mock(df_test)
+  result <- diameter_conversions(df_test)
 
   expect_equal(result$C130[1], 10 * pi, tolerance = 1e-10)
   expect_true(is.na(result$C130[2]))
@@ -297,7 +297,7 @@ test_that("diameter_conversions - Missing values handling", {
 # ============================================================================
 
 test_that("convert_circumference - C150 to C130 conversion", {
-  convert_circumference_mock <- function(df, equations_df, from_col, to_col) {
+  convert_circumference <- function(df, equations_df, from_col, to_col) {
     df_result <- df
     df_result[[to_col]] <- NA_real_
 
@@ -327,7 +327,7 @@ test_that("convert_circumference - C150 to C130 conversion", {
     Species = c("Chenes indigenes", "Hetre")
   )
 
-  result <- convert_circumference_mock(df_test, equations_test, "C150", "C130")
+  result <- convert_circumference (df_test, equations_test, "C150", "C130")
 
   expect_true("C130" %in% colnames(result))
   # Test formula: C130 = HV * C150 + IV
@@ -339,7 +339,7 @@ test_that("convert_circumference - C150 to C130 conversion", {
 })
 
 test_that("convert_circumference - C130 to C150 conversion", {
-  convert_circumference_mock <- function(df, equations_df, from_col, to_col) {
+  convert_circumference  <- function(df, equations_df, from_col, to_col) {
     df_result <- df
     df_result[[to_col]] <- NA_real_
 
@@ -369,7 +369,7 @@ test_that("convert_circumference - C130 to C150 conversion", {
     Species = c("Chenes indigenes", "Hetre")
   )
 
-  result <- convert_circumference_mock(df_test, equations_test, "C130", "C150")
+  result <- convert_circumference (df_test, equations_test, "C130", "C150")
 
   expect_true("C150" %in% colnames(result))
   # Test formula: C150 = (C130 - IV) / HV
@@ -381,7 +381,7 @@ test_that("convert_circumference - C130 to C150 conversion", {
 })
 
 test_that("convert_circumference - Species without coefficients", {
-  convert_circumference_mock <- function(df, equations_df, from_col, to_col) {
+  convert_circumference  <- function(df, equations_df, from_col, to_col) {
     df_result <- df
     df_result[[to_col]] <- NA_real_
 
@@ -412,7 +412,7 @@ test_that("convert_circumference - Species without coefficients", {
   )
 
   expect_warning(
-    result <- convert_circumference_mock(df_test, equations_test, "C150", "C130"),
+    result <- convert_circumference (df_test, equations_test, "C150", "C130"),
     "Unable to convert for species: Unknown_Species"
   )
 })
@@ -422,7 +422,7 @@ test_that("convert_circumference - Species without coefficients", {
 # ============================================================================
 
 test_that("calculate_basal_areas - G130 calculation", {
-  calculate_basal_areas_mock <- function(df) {
+  calculate_basal_areas  <- function(df) {
     df_result <- df
 
     if (!"G130" %in% colnames(df_result) && "C130" %in% colnames(df_result)) {
@@ -432,7 +432,7 @@ test_that("calculate_basal_areas - G130 calculation", {
   }
 
   df_test <- data.frame(C130 = c(31.416, 62.832))  # Circumferences of 10π and 20π cm
-  result <- calculate_basal_areas_mock(df_test)
+  result <- calculate_basal_areas (df_test)
 
   expect_true("G130" %in% colnames(result))
   # G = C²/(4π×10000) = (31.416)²/(4π×10000) ≈ 0.00785 m²
@@ -444,7 +444,7 @@ test_that("calculate_basal_areas - G130 calculation", {
 })
 
 test_that("calculate_basal_areas - G150 calculation", {
-  calculate_basal_areas_mock <- function(df, C150_col = "C150") {
+  calculate_basal_areas  <- function(df, C150_col = "C150") {
     df_result <- df
 
     if (!"G150" %in% colnames(df_result) && C150_col %in% colnames(df_result)) {
@@ -454,7 +454,7 @@ test_that("calculate_basal_areas - G150 calculation", {
   }
 
   df_test <- data.frame(C150 = c(40, 50, 60))
-  result <- calculate_basal_areas_mock(df_test)
+  result <- calculate_basal_areas (df_test)
 
   expect_true("G150" %in% colnames(result))
   # Test calculated values
@@ -465,7 +465,7 @@ test_that("calculate_basal_areas - G150 calculation", {
 })
 
 test_that("calculate_basal_areas - Missing values handling", {
-  calculate_basal_areas_mock <- function(df) {
+  calculate_basal_areas  <- function(df) {
     df_result <- df
 
     if (!"G130" %in% colnames(df_result) && "C130" %in% colnames(df_result)) {
@@ -475,7 +475,7 @@ test_that("calculate_basal_areas - Missing values handling", {
   }
 
   df_test <- data.frame(C130 = c(31.416, NA, 62.832))
-  result <- calculate_basal_areas_mock(df_test)
+  result <- calculate_basal_areas (df_test)
 
   expect_equal(result$G130[1], (31.416^2) / (4 * pi * 10000), tolerance = 1e-6)
   expect_true(is.na(result$G130[2]))
@@ -483,7 +483,7 @@ test_that("calculate_basal_areas - Missing values handling", {
 })
 
 test_that("calculate_basal_areas - Existing columns", {
-  calculate_basal_areas_mock <- function(df) {
+  calculate_basal_areas  <- function(df) {
     df_result <- df
 
     # Don't recalculate if column already exists
@@ -498,7 +498,7 @@ test_that("calculate_basal_areas - Existing columns", {
     G130 = c(0.01, 0.02)  # Pre-existing values
   )
 
-  result <- calculate_basal_areas_mock(df_test)
+  result <- calculate_basal_areas (df_test)
 
   # G130 values should not be modified
   expect_equal(result$G130[1], 0.01)
@@ -522,7 +522,7 @@ test_that("Integration - Complete workflow with minimal data", {
   )
 
   # Workflow simulation
-  workflow_mock <- function(df, equations_df) {
+  workflow  <- function(df, equations_df) {
     # 1. D130 -> C130 conversion
     df$C130 <- df$D130 * pi
 
@@ -537,7 +537,7 @@ test_that("Integration - Complete workflow with minimal data", {
     return(df)
   }
 
-  result <- workflow_mock(df_integration, equations_test)
+  result <- workflow (df_integration, equations_test)
 
   expect_true("C130" %in% colnames(result))
   expect_true("Species" %in% colnames(result))
@@ -574,7 +574,7 @@ test_that("Robustness - Large dataset handling", {
 })
 
 test_that("Validation - Consistent data types", {
-  validation_types_mock <- function(df) {
+  validation_types  <- function(df) {
     checks <- list()
 
     if ("C130" %in% colnames(df)) {
@@ -602,8 +602,8 @@ test_that("Validation - Consistent data types", {
     HTOT = c(12.5, 15.2)
   )
 
-  expect_true(validation_types_mock(df_valid))
-  expect_false(validation_types_mock(df_invalid))
+  expect_true(validation_types (df_valid))
+  expect_false(validation_types (df_invalid))
 })
 
 # ============================================================================
@@ -1654,7 +1654,6 @@ test_that("Cleanup - Global variables", {
 # TEST CARBON
 # ============================================================================
 
-library(mockery)
 
 # Tests ultra-complets pour la fonction calculate_biomass
 test_that("calculate_biomass - Tests de base", {
@@ -1696,7 +1695,7 @@ test_that("calculate_biomass - Tests de base", {
   test_data <- setup_test_data()
 
   # Mock de la fonction evaluate_expression
-  mock_evaluate_expression <- function(expr_text, variables) {
+  evaluate_expression <- function(expr_text, variables) {
     if (expr_text == "D130" && "D130" %in% names(variables)) {
       return(variables[["D130"]])
     }
@@ -1705,10 +1704,6 @@ test_that("calculate_biomass - Tests de base", {
 
   # Test 1: Fonctionnement de base
   expect_silent({
-    # On doit mocker l'environnement global pour que la fonction fonctionne
-    with_mock(
-      `evaluate_expression` = mock_evaluate_expression,
-      {
         # Simuler l'environnement de la fonction
         equations_df <- test_data$equations_df
         result <- test_data$df_result
@@ -1723,7 +1718,7 @@ test_that("calculate_biomass - Tests de base", {
       }
     )
   })
-})
+
 
 test_that("calculate_biomass - Gestion des équations linéaires (A0 = 1, 2, 3, 5)", {
 

@@ -273,7 +273,7 @@ calculate_volumes <- function(df, carbon = FALSE,
   validate_parameters <- function() {
 
     # Source validation
-    valid_sources <- c("Aflan", "Dagnellie", "Valet")
+    valid_sources <- c("Aflan", "Dagnellie", "Vallet")
     if (!(source %in% valid_sources)) {
       stop(paste("Invalid source:", source,
                  "\nValid sources:", paste(valid_sources, collapse = ", ")))
@@ -925,7 +925,7 @@ calculate_volumes <- function(df, carbon = FALSE,
     tree_species <- df_result$Species[i]  # Using Species instead of Essence
 
     # Initialize volume variable for this row
-    volume <- 0
+    volume_res <- 0
     local_equation_id <- equation_id
     eq_candidates <- eqs_volume[eqs_volume$Species == tree_species, ]
 
@@ -1002,7 +1002,7 @@ calculate_volumes <- function(df, carbon = FALSE,
       next
     } else if (a0_value %in% c(1, 2, 3)) {
       # For standard linear equations, start with b0
-      volume <- eq$b0[1]
+      volume_res <- eq$b0[1]
       for (j in 1:5) {
         x_col <- paste0("X", j)
         b_col <- paste0("b", j)
@@ -1037,7 +1037,7 @@ calculate_volumes <- function(df, carbon = FALSE,
           if (i <= 5) {
             cat("  X", j, "=", x_val, "b", j, "=", b_val, "\n")
           }
-          volume <- volume + b_val * x_val
+          volume_res <- volume_res + b_val * x_val
         }
       }
 
@@ -1046,18 +1046,18 @@ calculate_volumes <- function(df, carbon = FALSE,
       next
     }
 
-    if (is.na(volume) || !is.finite(volume)) {
-      warning(paste("Invalid volume result at row", i, ":", volume))
+    if (is.na(volume_res) || !is.finite(volume_res)) {
+      warning(paste("Invalid volume result at row", i, ":", volume_res))
       next
     }
 
     # DEBUG: Display calculated volume
     if (i <= 5) {
-      cat("  Calculated volume:", volume, "\n")
+      cat("  Calculated volume:", volume_res, "\n")
     }
 
     # Store volume only for this row, in the column specified by volume_type
-    df_result[[volume_type]][i] <- volume
+    df_result[[volume_type]][i] <- volume_res
 
     if (i <= 5) {
       cat("  Volume stored at row", i, ":", df_result[[volume_type]][i], "\n")
