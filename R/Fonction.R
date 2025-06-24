@@ -34,6 +34,13 @@
 #'   Default is "HDOM".
 #' @param remove_na Logical indicating whether to remove rows with NA volume results.
 #'   Default is FALSE.
+#' @param carbon {Logical. If \code{TRUE}, calculates carbon content in addition to volume.
+#'   Default is \code{FALSE}.}
+#' @param source {Character string specifying the source of equations to use.
+#'   Default is \code{"Dagnellie"}.}
+#' @param bark {Logical. If \code{TRUE}, includes bark in calculations. If \code{FALSE}, calculations are done without bark.
+#'   Default is \code{FALSE}.}
+#'
 #'
 #' @return A data.frame with the original data plus additional columns:
 #'   \itemize{
@@ -1214,10 +1221,10 @@ F
     df_result[[volume_type]][i] <- volume_res
   }
 
-  # =========================================================================
-  # INTERVAL CALCULATION ACCORDING TO NUMBER OF PARAMETERS
-  # =========================================================================
-  # Function to calculate the relative width of prediction intervals
+# =========================================================================
+# INTERVAL CALCULATION ACCORDING TO NUMBER OF PARAMETERS
+# =========================================================================
+# Function to calculate the relative width of prediction intervals
 calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1,
                                           confidence_level = 0.95) {
 
@@ -1453,7 +1460,7 @@ calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1
     }
 
     # Calculate t quantile with appropriate degrees of freedom
-    t_quantile <- qt(1 - (1 - confidence_level)/2, df = n - 2)
+    t_quantile <- stats::qt(1 - (1 - confidence_level)/2, df = n - 2)
 
     cat("  t-quantile (df =", n - 2, "):", t_quantile, "\n")
 
@@ -1513,10 +1520,10 @@ summarize_relative_intervals <- function(relative_widths, df_result) {
   cat("=== SUMMARY OF RELATIVE INTERVAL WIDTHS ===\n")
   cat("Number of intervals calculated:", length(valid_widths), "/", length(relative_widths), "\n")
   cat("Mean relative width:", round(mean(valid_widths), 4), "\n")
-  cat("Median relative width:", round(median(valid_widths), 4), "\n")
+  cat("Median relative width:", round(stats::median(valid_widths), 4), "\n")
   cat("Min relative width:", round(min(valid_widths), 4), "\n")
   cat("Max relative width:", round(max(valid_widths), 4), "\n")
-  cat("Standard deviation of relative widths:", round(sd(valid_widths), 4), "\n")
+  cat("Standard deviation of relative widths:", round(stats::sd(valid_widths), 4), "\n")
 
   # Interpretation summary
   interpretations <- interpret_relative_width(relative_widths)
@@ -1535,13 +1542,13 @@ summarize_relative_intervals <- function(relative_widths, df_result) {
       Relative_Width = valid_widths
     )
 
-    species_summary <- aggregate(Relative_Width ~ Species, data = species_data,
-                                 FUN = function(x) c(
-                                   n = length(x),
-                                   mean = mean(x),
-                                   median = median(x),
-                                   sd = sd(x)
-                                 ))
+    species_summary <- stats::aggregate(Relative_Width ~ Species, data = species_data,
+                                        FUN = function(x) c(
+                                          n = length(x),
+                                          mean = mean(x),
+                                          median = stats::median(x),
+                                          sd = stats::sd(x)
+                                        ))
 
     cat("\n=== SUMMARY BY SPECIES ===\n")
     for (i in seq_len(nrow(species_summary))) {
@@ -1555,23 +1562,23 @@ summarize_relative_intervals <- function(relative_widths, df_result) {
 
   # Useful percentiles
   cat("=== PERCENTILES ===\n")
-  percentiles <- quantile(valid_widths, probs = c(0.05, 0.10, 0.25, 0.75, 0.90, 0.95))
+  percentiles <- stats::quantile(valid_widths, probs = c(0.05, 0.10, 0.25, 0.75, 0.90, 0.95))
   for (i in seq_along(percentiles)) {
     percentile_name <- gsub("%", "", names(percentiles)[i])
     cat(paste0("P", percentile_name, ":"), round(percentiles[i], 4), "\n")
   }
 }
 
-  # =========================================================================
-  # Fonction CALL
-  # =========================================================================
+# =========================================================================
+# Fonction CALL
+# =========================================================================
 
-  cat("[DEBUG] ==================== PREDICTION INTERVALS CALCULATION ====================\n")
-  relative_widths <- calculate_prediction_interval(df_result, eqs_volume, equation_id = equation_id, confidence_level = 0.95)
-  df_result$Relative_Interval_Width <- relative_widths
-  df_result$Interval_Interpretation <- interpret_relative_width(relative_widths)
-  summarize_relative_intervals(relative_widths, df_result)
-  cat("[DEBUG] [OK] Prediction intervals calculation completed\n\n")
+cat("[DEBUG] ==================== PREDICTION INTERVALS CALCULATION ====================\n")
+relative_widths <- calculate_prediction_interval(df_result, eqs_volume, equation_id = equation_id, confidence_level = 0.95)
+df_result$Relative_Interval_Width <- relative_widths
+df_result$Interval_Interpretation <- interpret_relative_width(relative_widths)
+summarize_relative_intervals(relative_widths, df_result)
+cat("[DEBUG] [OK] Prediction intervals calculation completed\n\n")
 
   # =========================================================================
   # VALIDITY SUMMARY
