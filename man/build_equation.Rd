@@ -68,6 +68,31 @@ The function expects a data frame named \code{equations} with the following colu
 }
 }
 
+\examples{
+\dontrun{
+# Display all available species and equation types
+carbofor_species()
+
+# Get equations for a specific species
+carbofor_species("Fagus sylvatica")
+carbofor_species("Picea abies")
+
+# Get equations of a specific type
+carbofor_species(equation_type = "V22")
+carbofor_species(equation_type = "biomass")
+
+# Combine filters: specific species and equation type
+carbofor_species("Fagus sylvatica", equation_type = "V22")
+
+# Get data without visual formatting for further analysis
+data <- carbofor_species(plot = FALSE)
+equations_v22 <- carbofor_species(equation_type = "V22", plot = FALSE)
+
+# Using the shorter alias
+species("Quercus robur")
+species()
+}
+}
 \seealso{
 \code{\link{list_species}} for listing available species names
 \code{\link{list_equation_types}} for listing available equation types

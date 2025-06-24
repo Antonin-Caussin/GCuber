@@ -21,16 +21,16 @@
 #' @return Invisibly returns a data frame containing the filtered results:
 #'   \itemize{
 #'     \item If no filters are applied: Summary table with species names,
-#'           available equation types, and sources
+#'           available equation types, and Sources
 #'     \item If filters are applied: Detailed table with equation IDs,
-#'           species, volume types, sources, and complete equation formulas
+#'           species, volume types, Sources, and complete equation formulas
 #'   }
 #'
 #' @details
 #' The function operates in two modes:
 #' \itemize{
 #'   \item \strong{Summary mode} (no filters): Shows overview of all available
-#'         species with their equation types and sources
+#'         species with their equation types and Sources
 #'   \item \strong{Detailed mode} (with filters): Shows complete equations with
 #'         coefficients formatted as mathematical expressions
 #' }
@@ -147,7 +147,7 @@ carbofor_species <- function(species = NULL, equation_type = NULL, plot = TRUE) 
   # Filter by species if specified
   if (!is.null(species)) {
     if (!"Species" %in% names(equations)) {
-      stop("Erreur : la colonne 'Species' est manquante dans le jeu de donnees `equations`.")
+      stop("Error : the column 'Species' est missing in the dataset	 `equations`.")
     }
 
     filtered_data <- filtered_data %>%
@@ -165,7 +165,7 @@ carbofor_species <- function(species = NULL, equation_type = NULL, plot = TRUE) 
   # Filter by equation type if specified
   if (!is.null(equation_type)) {
     if (!"Y" %in% names(equations)) {
-      stop("Erreur : la colonne 'Y' (type d'equation) est manquante dans le jeu de donnees `equations`.")
+      stop("Error : the column 'Y' (type d'equation) est missing in the dataset	 `equations`.")
     }
 
     filtered_data <- filtered_data %>%
@@ -206,7 +206,7 @@ carbofor_species <- function(species = NULL, equation_type = NULL, plot = TRUE) 
     result <- equations %>%
       group_by(Species = Species) %>%
       summarise(
-        `Equations disponibles` = paste(unique(Y), collapse = ", "),
+        `Available equations` = paste(unique(Y), collapse = ", "),
         Sources = paste(unique(Source_Eq), collapse = ", "),
         .groups = "drop"
       ) %>%
@@ -304,34 +304,3 @@ list_equation_types <- function() {
   cat(sprintf("\n\nTotal: %d equation types\n", length(unique_types)))
   return(invisible(unique_types))
 }
-
-# Usage examples:
-#
-# # List all species and their equations (with visual table)
-# carbofor_species()
-#
-# # Same but shorter
-# species()
-#
-# # Get equations for specific species
-# carbofor_species("Fagus sylvatica")
-# species("Picea abies")
-#
-# # Get equations for specific equation type (e.g., "V22", "biomass")
-# carbofor_species(equation_type = "V22")
-# equation("V22")
-#
-# # Combine filters: specific species AND equation type
-# carbofor_species("Fagus sylvatica", equation_type = "V22")
-#
-# # Just list species names
-# list_species()
-#
-# # Just list equation types
-# list_equation_types()
-#
-# # Get data without visual formatting
-# data <- carbofor_species(plot = FALSE)
-#
-# # Store result for further analysis
-# my_species_data <- carbofor_species()

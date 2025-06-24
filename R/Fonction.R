@@ -1562,17 +1562,6 @@ summarize_relative_intervals <- function(relative_widths, df_result) {
   }
 }
 
-# =========================================================================
-# Fonction CALL
-# =========================================================================
-
-cat("[DEBUG] ==================== PREDICTION INTERVALS CALCULATION ====================\n")
-relative_widths <- calculate_prediction_interval(df_result, eqs_volume, equation_id = equation_id, confidence_level = 0.95)
-df_result$Relative_Interval_Width <- relative_widths
-df_result$Interval_Interpretation <- interpret_relative_width(relative_widths)
-summarize_relative_intervals(relative_widths, df_result)
-cat("[DEBUG] [OK] Prediction intervals calculation completed\n\n")
-
   # =========================================================================
   # Fonction CALL
   # =========================================================================
