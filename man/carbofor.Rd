@@ -11,7 +11,7 @@ carbofor(
   equation_id = 1,
   source = "Dagnellie",
   specimens = NULL,
-  DHB = "DHB",
+  D130 = "D130",
   C130 = "C130",
   HTOT = "HTOT",
   HDOM = "HDOM",
@@ -42,8 +42,8 @@ Default is 1.}
 identification. Can be species codes, abbreviations, or full species names.
 Default is NULL.}
 
-\item{DHB}{Character string specifying the column name for diameter at 1.30m.
-Default is "DHB".}
+\item{D130}{Character string specifying the column name for diameter at 1.30m.
+Default is "D130".}
 
 \item{C130}{Character string specifying the column name for circumference at 1.30m.
 Default is "C130".}
@@ -68,7 +68,7 @@ A data.frame with the original data plus additional columns:
   \itemize{
     \item Species: Standardized species names
     \item C130/C150: Circumferences (converted from diameters if needed)
-    \item DHB/D150: Diameters (calculated from circumferences if needed)
+    \item D130/D150: Diameters (calculated from circumferences if needed)
     \item G130/G150: Basal areas (calculated from circumferences)
     \item Volume column named according to volume_type parameter
     \item Equation_Used: Information about which equation was applied
@@ -215,7 +215,7 @@ result <- carbofor(data, volume_type = "V22", equation_id = 1)
 # Using diameter data with automatic conversion
 data_diam <- data.frame(
   Code = c(1, 2, 3),
-  DHB = c(30, 40, 50),
+  D130 = c(30, 40, 50),
   HTOT = c(25, 28, 23)
 )
 
@@ -245,7 +245,7 @@ result_abr <- carbofor(data_abr,
 # Mixed diameter and circumference data
 data_mixed <- data.frame(
   Species = c("Picea abies", "Fagus sylvatica"),
-  DHB = c(30, NA),
+  D130 = c(30, NA),
   C150 = c(NA, 125.6),
   HTOT = c(25.5, 28.2)
 )
