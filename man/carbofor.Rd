@@ -25,6 +25,9 @@ carbofor(
 \item{df}{A data.frame containing tree measurements with columns for circumferences,
 diameters, heights, and species identification.}
 
+\item{carbon}{{Logical. If \code{TRUE}, calculates carbon content in addition to volume.
+Default is \code{FALSE}.}}
+
 \item{volume_type}{Character string specifying the type of volume to calculate.
 Must be one of: "V22", "V22B", "E", "V22_HA". Default is "V22".}
 
@@ -37,6 +40,9 @@ Valid values depend on volume_type:
   \item For "E": automatically determined (4 or 5) based on species
 }
 Default is 1.}
+
+\item{source}{{Character string specifying the source of equations to use.
+Default is \code{"Dagnellie"}.}}
 
 \item{specimens}{Character string specifying the column name containing species
 identification. Can be species codes, abbreviations, or full species names.
@@ -59,6 +65,9 @@ Default is "D150".}
 
 \item{C150}{Character string specifying the column name for circumference at 1.50m.
 Default is "C150".}
+
+\item{bark}{{Logical. If \code{TRUE}, includes bark in calculations. If \code{FALSE}, calculations are done without bark.
+Default is \code{FALSE}.}}
 
 \item{remove_na}{Logical indicating whether to remove rows with NA volume results.
 Default is FALSE.}
