@@ -58,6 +58,7 @@
 #' }
 #'
 #' @examples
+#' \dontrun{
 #' # Display all available species and equation types
 #' carbofor_species()
 #'
@@ -79,7 +80,7 @@
 #' # Using the shorter alias
 #' species("Quercus robur")
 #' species()
-#'
+#' }
 #' @seealso
 #' \code{\link{list_species}} for listing available species names
 #' \code{\link{list_equation_types}} for listing available equation types
@@ -146,7 +147,7 @@ carbofor_species <- function(species = NULL, equation_type = NULL, plot = TRUE) 
   # Filter by species if specified
   if (!is.null(species)) {
     if (!"Species" %in% names(equations)) {
-      stop("Erreur : la colonne 'Species' est manquante dans le jeu de données `equations`.")
+      stop("Erreur : la colonne 'Species' est manquante dans le jeu de donnees `equations`.")
     }
 
     filtered_data <- filtered_data %>%
@@ -164,7 +165,7 @@ carbofor_species <- function(species = NULL, equation_type = NULL, plot = TRUE) 
   # Filter by equation type if specified
   if (!is.null(equation_type)) {
     if (!"Y" %in% names(equations)) {
-      stop("Erreur : la colonne 'Y' (type d'équation) est manquante dans le jeu de données `equations`.")
+      stop("Erreur : la colonne 'Y' (type d'equation) est manquante dans le jeu de donnees `equations`.")
     }
 
     filtered_data <- filtered_data %>%

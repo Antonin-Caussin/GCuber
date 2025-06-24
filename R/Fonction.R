@@ -468,28 +468,28 @@ carbofor <- function(df, carbon = FALSE,
     if (!(D150 %in% colnames(df_result))) df_result[[D150]] <- NA_real_
 
     for (i in seq_len(nrow(df_result))) {
-      # D130 → C130 (TOUJOURS si D130 existe)
+      # D130 -> C130
       if (!is.na(df_result[[D130]][i]) && is.na(df_result[[C130]][i])) {
         df_result[[C130]][i] <- df_result[[D130]][i] * pi_val
-        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- D130", df_result[[D130]][i], "→ C130", df_result[[C130]][i], "\n")
+        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- D130", df_result[[D130]][i], "-> C130", df_result[[C130]][i], "\n")
       }
 
-      # D150 → C150 (si D150 existe)
+      # D150 -> C150
       if (!is.na(df_result[[D150]][i]) && is.na(df_result[[C150]][i])) {
         df_result[[C150]][i] <- df_result[[D150]][i] * pi_val
-        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- D150", df_result[[D150]][i], "→ C150", df_result[[C150]][i], "\n")
+        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- D150", df_result[[D150]][i], "-> C150", df_result[[C150]][i], "\n")
       }
 
-      # C130 → D130 (si C130 existe mais pas D130)
+      # C130 -> D130
       if (!is.na(df_result[[C130]][i]) && is.na(df_result[[D130]][i])) {
         df_result[[D130]][i] <- df_result[[C130]][i] / pi_val
-        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- C130", df_result[[C130]][i], "→ D130", df_result[[D130]][i], "\n")
+        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- C130", df_result[[C130]][i], "-> D130", df_result[[D130]][i], "\n")
       }
 
-      # C150 → D150 (si C150 existe mais pas D150)
+      # C150 -> D150
       if (!is.na(df_result[[C150]][i]) && is.na(df_result[[D150]][i])) {
         df_result[[D150]][i] <- df_result[[C150]][i] / pi_val
-        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- C150", df_result[[C150]][i], "→ D150", df_result[[D150]][i], "\n")
+        cat("[DEBUG] Ligne", i, ":", df_result$Species[i], "- C150", df_result[[C150]][i], "-> D150", df_result[[D150]][i], "\n")
       }
     }
     cat("[DEBUG] Required conversions:\n")
@@ -547,7 +547,7 @@ carbofor <- function(df, carbon = FALSE,
 
     skip_conversion <- FALSE
 
-    # Définir les variables locales d'existence des colonnes
+    # Definir les variables locales d'existence des colonnes
     C130_exists_local <- C130 %in% colnames(df_result)
     C150_exists_local <- C150 %in% colnames(df_result)
 
@@ -564,14 +564,14 @@ carbofor <- function(df, carbon = FALSE,
       direction <- "C150_to_C130"
       from_col <- C150
       to_col <- C130
-      cat("[DEBUG] Conversion detected: C150 → C130\n")
+      cat("[DEBUG] Conversion detected: C150 -> C130\n")
     } else if (!C150_has_values && C130_has_values) {
       direction <- "C130_to_C150"
       from_col <- C130
       to_col <- C150
-      cat("[DEBUG] Conversion detected: C130 → C150\n")
+      cat("[DEBUG] Conversion detected: C130 -> C150\n")
     } else if (C130_has_values && C150_has_values) {
-      # CAS AJOUTÉ : Les deux colonnes ont des valeurs
+      # CAS AJOUTe : Les deux colonnes ont des valeurs
       cat("[DEBUG] Both C130 and C150 have values - analyzing pattern of missing values\n")
 
       # Compter les valeurs manquantes dans chaque colonne
@@ -605,13 +605,13 @@ carbofor <- function(df, carbon = FALSE,
       skip_conversion <- TRUE
     }
 
-    # Effectuer la conversion si nécessaire
+    # Effectuer la conversion si necessaire
     if (!skip_conversion) {
       cat("[DEBUG] ==================== CIRCUMFERENCE CONVERSIONS ====================\n")
 
       if (direction == "bidirectional") {
         cat("[DEBUG] Using bidirectional conversion approach\n")
-        cat("[DEBUG] Will convert C130→C150 and C150→C130 as needed per row\n")
+        cat("[DEBUG] Will convert C130->C150 and C150->C130 as needed per row\n")
       } else {
         cat("[DEBUG] Detected conversion direction:", direction, "\n")
         cat("[DEBUG] Source column:", from_col, "\n")
@@ -641,7 +641,7 @@ carbofor <- function(df, carbon = FALSE,
           c130_value <- df_result[[C130]][i]
           c150_value <- df_result[[C150]][i]
 
-          # Déterminer quelle conversion effectuer pour cette ligne spécifique
+          # Determiner quelle conversion effectuer pour cette ligne specifique
           current_direction <- NULL
           current_from_col <- NULL
           current_to_col <- NULL
@@ -717,11 +717,11 @@ carbofor <- function(df, carbon = FALSE,
         }
       }
 
-      # Messages de résultats
+      # Messages de resultats
       if (direction == "bidirectional") {
         cat("[DEBUG] Conversions attempted:", attempted_conversions, "\n")
-        cat("[DEBUG] C130→C150 conversions:", c130_to_c150_conversions, "\n")
-        cat("[DEBUG] C150→C130 conversions:", c150_to_c130_conversions, "\n")
+        cat("[DEBUG] C130->C150 conversions:", c130_to_c150_conversions, "\n")
+        cat("[DEBUG] C150->C130 conversions:", c150_to_c130_conversions, "\n")
 
         remaining_c130_missing <- sum(is.na(df_result[[C130]]))
         remaining_c150_missing <- sum(is.na(df_result[[C150]]))
@@ -952,13 +952,13 @@ carbofor <- function(df, carbon = FALSE,
 
   if (C130_has_data || C150_has_data) {
     if (!C130_has_data && C150_has_data) {
-      cat("[DEBUG] Conversion needed: C150 → C130 (C130 completely missing)\n")
+      cat("[DEBUG] Conversion needed: C150 -> C130 (C130 completely missing)\n")
       df_result <- convert_circumference(df_result)
     } else if (!C150_has_data && C130_has_data) {
-      cat("[DEBUG] Conversion needed: C130 → C150 (C150 completely missing)\n")
+      cat("[DEBUG] Conversion needed: C130 -> C150 (C150 completely missing)\n")
       df_result <- convert_circumference(df_result)
     } else if (C130_has_data && C150_has_data) {
-      # Les deux colonnes ont des données - analyser les valeurs manquantes
+      # Les deux colonnes ont des donnees - analyser les valeurs manquantes
       C130_missing <- sum(is.na(df_result[[C130]]))
       C150_missing <- sum(is.na(df_result[[C150]]))
 
@@ -1329,7 +1329,7 @@ calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1
       # Retrieve xi value for the variable
       xi <- xi_values[[var_name]]
 
-      # Univariate formula: Var_pred(xi) = σ² * (1 + 1/n + (xi - x̄)²/SCEx)
+      # Univariate formula: Var_pred(xi) = sigma^2 * (1 + 1/n + (xi - x_bar)^2/SCEx)
       variance_pred <- sigma^2 * (1 + 1/n + (xi - x_mean)^2/SCEx)
 
       cat("  Prediction variance:", variance_pred, "\n")
@@ -1349,7 +1349,7 @@ calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1
 
       cat("  Base parameters: sigma =", sigma, ", n =", n, "\n")
 
-      # Build vector of differences (xi - x̄)
+      # Build vector of differences (xi - x_bar)
       x_diff <- numeric(n_params)
       x_means <- numeric(n_params)
       variable_names <- character(n_params)
@@ -1375,7 +1375,7 @@ calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1
       cat("  Variable means:", paste(variable_names, "=", round(x_means, 3), collapse = ", "), "\n")
       cat("  Differences (xi - x_mean):", paste(round(x_diff, 3), collapse = ", "), "\n")
 
-      # Build inverse covariance matrix (XᵀX)⁻¹
+      # Build inverse covariance matrix (X^T*X)^-1
       # Search for matrix elements in equation columns
       cov_matrix_inv <- matrix(0, nrow = n_params, ncol = n_params)
 
@@ -1430,7 +1430,7 @@ calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1
           # Fallback: use only diagonal terms
           quadratic_form <- sum(x_diff^2 * diag(cov_matrix_inv))
         } else {
-          # Calculate quadratic form: (x_i - x̄)ᵀ × (XᵀX)⁻¹ × (x_i - x̄)
+          # Calculate quadratic form: (x_i - x_bar)^T * (X^TX)^-1 * (x_i - x_bar)
           quadratic_form <- as.numeric(t(x_diff) %*% cov_matrix_inv %*% x_diff)
         }
       }, error = function(e) {
@@ -1442,7 +1442,7 @@ calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1
       cat("  Quadratic form:", quadratic_form, "\n")
 
       # Complete multivariate formula with covariance matrix
-      # Var_pred = σ² × (1 + 1/n + (x_i - x̄)ᵀ × (XᵀX)⁻¹ × (x_i - x̄))
+      # Var_pred = sigma^2 * (1 + 1/n + (x_i - x_bar)^T * (X^TX)^-1 * (x_i - x_bar))
       variance_pred <- sigma^2 * (1 + 1/n + quadratic_form)
 
       cat("  Prediction variance:", variance_pred, "\n")
@@ -1488,13 +1488,13 @@ interpret_relative_width <- function(relative_width) {
     if (is.na(relative_width[i])) {
       interpretation[i] <- "No calculation"
     } else if (relative_width[i] < 0.10) {
-      interpretation[i] <- "Very narrow → Very reliable "
+      interpretation[i] <- "Very narrow -> Very reliable "
     } else if (relative_width[i] <= 0.25) {
-      interpretation[i] <- "Acceptable → Rather reliable "
+      interpretation[i] <- "Acceptable -> Rather reliable "
     } else if (relative_width[i] <= 0.50) {
-      interpretation[i] <- "Wide → Uncertain ⚠"
+      interpretation[i] <- "Wide -> Uncertain "
     } else {
-      interpretation[i] <- "Very wide → Risky "
+      interpretation[i] <- "Very wide -> Risky "
     }
   }
 

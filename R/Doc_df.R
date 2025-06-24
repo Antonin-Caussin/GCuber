@@ -2,7 +2,7 @@
 #'
 #' Ce jeu de donnees contient les coefficients des equations allometriques pour differentes essences d'arbres,
 #' permettant d'estimer le volume, la biomasse ou le stock de carbone en fonction de variables dendrometriques
-#' comme la circonference à 1,30 m (C130).
+#' comme la circonference a 1,30 m (C130).
 #'
 #' @format Un data frame avec X lignes et 22 colonnes:
 #' \describe{
@@ -28,7 +28,7 @@
 #'   \item{EF}{Facteur d'expansion (Expansion Factor)}
 #'   \item{BF}{Facteur de biomasse}
 #'   \item{Carbone}{Teneur en carbone}
-#'   \item{VC22}{Variable de contrôle ou d'identification}
+#'   \item{VC22}{Variable de controle ou d'identification}
 #' }
 #'
 #' @details
@@ -36,7 +36,7 @@
 #' en fonction de mesures dendrometriques. L'equation generale a la forme:
 #' Y = b0*X0 + b1*X1 + b2*X2 + b3*X3 + b4*X4 + b5*X5
 #'
-#' Où X1, X2, X3 representent generalement C130, C130^2, C130^3 (circonference à 1,30 m et ses puissances).
+#' Ou X1, X2, X3 representent generalement C130, C130^2, C130^3 (circonference a 1,30 m et ses puissances).
 #'
 #' @source Diverses sources bibliographiques, dont les travaux de Dagnellie pour la Wallonie.
 #'

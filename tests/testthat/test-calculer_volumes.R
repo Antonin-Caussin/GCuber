@@ -511,7 +511,7 @@ test_that("calculate_basal_areas - Existing columns", {
 
 test_that("Integration - Complete workflow with minimal data", {
   # This test simulates the complete workflow on simplified data
-  # In reality, it would call the real calculate_volumes function
+  # In reality, it would call the real carbofor function
 
   df_integration <- data.frame(
     D130 = c(15, 20),
@@ -979,7 +979,7 @@ setup_test_trees <- function() {
 }
 
 # Mock of the main function (part of provided code)
-calculate_volumes <- function(df_result, equations_df, type_volume, id_equation = 1, remove_na = TRUE) {
+carbofor <- function(df_result, equations_df, type_volume, id_equation = 1, remove_na = TRUE) {
 
   # Filter equations
   eqs_volume <- equations_df[equations_df$Y == type_volume, ]
@@ -1184,7 +1184,7 @@ test_that("Standard volume calculation works correctly", {
   cat("Tree data:\n")
   print(df_trees)
 
-  result <- calculate_volumes(df_trees, equations_df, "V", 1)
+  result <- carbofor(df_trees, equations_df, "V", 1)
 
   expect_true("V" %in% names(result))
   expect_true("Equation_Utilisee" %in% names(result))
@@ -1233,7 +1233,7 @@ test_that("Standard volume calculation - controlled test", {
     stringsAsFactors = FALSE
   )
 
-  result <- calculate_volumes(df_trees_controlled, equations_df_controlled, "V", 1)
+  result <- carbofor(df_trees_controlled, equations_df_controlled, "V", 1)
 
   expect_true("V" %in% names(result))
   expect_true("Equation_Utilisee" %in% names(result))
@@ -1256,7 +1256,7 @@ test_that("Standard volume calculation - verify original data behavior", {
   equations_V <- equations_df[equations_df$Y == "V", ]
   cat("Species with V equations:", unique(equations_V$Essences), "\n")
 
-  result <- calculate_volumes(df_trees, equations_df, "V", 1)
+  result <- carbofor(df_trees, equations_df, "V", 1)
 
   cat("Result has", nrow(result), "rows:\n")
   print(table(result$Species))
@@ -1280,7 +1280,7 @@ test_that("Error for non-existent volume type", {
   df_trees <- setup_test_trees()
 
   expect_error(
-    calculate_volumes(df_trees, equations_df, "NONEXISTENT", 1),
+    carbofor(df_trees, equations_df, "NONEXISTENT", 1),
     "No equation found for volume type: NONEXISTENT"
   )
 })
@@ -1295,7 +1295,7 @@ test_that("Warning for species without equations", {
   )
 
   expect_warning(
-    calculate_volumes(df_trees, equations_df, "V", 1),
+    carbofor(df_trees, equations_df, "V", 1),
     "No equation found for species: Sapin"
   )
 })
@@ -1309,7 +1309,7 @@ test_that("Logarithmic calculation for A0=4 works", {
     H = 25
   )
 
-  result <- calculate_volumes(df_trees, equations_df, "E", 1)
+  result <- carbofor(df_trees, equations_df, "E", 1)
 
   expect_true(!is.na(result$E[1]))
   expect_true(is.finite(result$E[1]))
@@ -1326,7 +1326,7 @@ test_that("Handling negative values for logarithm", {
   )
 
   expect_warning(
-    calculate_volumes(df_trees, equations_df, "E", 1),
+    carbofor(df_trees, equations_df, "E", 1),
     "Negative or zero value for logarithm"
   )
 })
@@ -1341,7 +1341,7 @@ test_that("Error for missing variables", {
   )
 
   expect_error(
-    calculate_volumes(df_trees, equations_df, "V", 1),
+    carbofor(df_trees, equations_df, "V", 1),
     "Variable H is used in an equation but missing from the data"
   )
 })
@@ -1353,7 +1353,7 @@ test_that("Handling invalid expressions", {
   df_trees <- setup_test_trees()
 
   expect_warning(
-    calculate_volumes(df_trees, equations_df, "V", 1),
+    carbofor(df_trees, equations_df, "V", 1),
     "Invalid expression at row .* for X 1"
   )
 })
@@ -1365,7 +1365,7 @@ test_that("Handling missing coefficients", {
   df_trees <- setup_test_trees()
 
   expect_warning(
-    calculate_volumes(df_trees, equations_df, "V", 1),
+    carbofor(df_trees, equations_df, "V", 1),
     "Missing coefficient b 1"
   )
 })
@@ -1376,10 +1376,10 @@ test_that("remove_na option works correctly", {
   df_trees <- setup_test_trees()
 
   # With remove_na = FALSE
-  result_with_na <- calculate_volumes(df_trees, equations_df, "V", 1, remove_na = FALSE)
+  result_with_na <- carbofor(df_trees, equations_df, "V", 1, remove_na = FALSE)
 
   # With remove_na = TRUE (default)
-  result_without_na <- calculate_volumes(df_trees, equations_df, "V", 1, remove_na = TRUE)
+  result_without_na <- carbofor(df_trees, equations_df, "V", 1, remove_na = TRUE)
 
   expect_true(nrow(result_without_na) <= nrow(result_with_na))
 })
@@ -1418,7 +1418,7 @@ test_that("Handling unknown A0 equation types", {
   warnings_caught <- character(0)
 
   result <- withCallingHandlers(
-    calculate_volumes(df_trees, equations_df_modified, "V", 1),
+    carbofor(df_trees, equations_df_modified, "V", 1),
     warning = function(w) {
       warnings_caught <<- c(warnings_caught, w$message)
       invokeRestart("muffleWarning")
@@ -1435,7 +1435,7 @@ test_that("Handling unknown A0 equation types", {
 
   # Alternative: direct test with expect_warning and more flexible pattern
   expect_warning(
-    calculate_volumes(df_trees, equations_df_modified, "V", 1),
+    carbofor(df_trees, equations_df_modified, "V", 1),
     "Unknown equation type.*99"
   )
 })
@@ -1461,7 +1461,7 @@ test_that("Unknown A0 equation types - simplified version", {
 
   # This test should generate the warning since A0=999 is not in {1,2,3,4,5}
   expect_warning(
-    calculate_volumes(df_trees_simple, equations_df_simple, "V", 1),
+    carbofor(df_trees_simple, equations_df_simple, "V", 1),
     regex = "Unknown equation type"
   )
 })
@@ -1477,7 +1477,7 @@ test_that("Handling missing A0 values", {
   )
 
   expect_warning(
-    calculate_volumes(df_trees, equations_df, "V", 1),
+    carbofor(df_trees, equations_df, "V", 1),
     "Missing A0 value for species Epicea"
   )
 })
@@ -1493,7 +1493,7 @@ test_that("Detection of invalid volume results", {
   )
 
   expect_warning(
-    calculate_volumes(df_trees, equations_df, "V", 1),
+    carbofor(df_trees, equations_df, "V", 1),
     "Invalid volume result"
   )
 })
@@ -1507,7 +1507,7 @@ test_that("Volume calculation consistency", {
     H = 25
   )
 
-  result <- calculate_volumes(df_trees, equations_df, "V", 1)
+  result <- carbofor(df_trees, equations_df, "V", 1)
 
   # Manual calculation for verification
   # Equation: Volume = b0 + b1*DBH + b2*H
@@ -1538,10 +1538,10 @@ test_that("Correct equation selection among multiple", {
   )
 
   # Test with id_equation = 1 (first equation)
-  result1 <- calculate_volumes(df_trees, equations_df, "V", 1)
+  result1 <- carbofor(df_trees, equations_df, "V", 1)
 
   # Test with id_equation = 2 (second equation)
-  result2 <- calculate_volumes(df_trees, equations_df, "V", 2)
+  result2 <- carbofor(df_trees, equations_df, "V", 2)
 
   expect_false(identical(result1$V[1], result2$V[1]))
   expect_true(grepl("A0=1", result1$Equation_Utilisee[1]))
@@ -2264,7 +2264,7 @@ run_all_tests <- function() {
 
   # Count tests
   test_files <- list.files(pattern = "^test.*\\.R$")
-  cat("Tests to execute: calculate_volumes function\n")
+  cat("Tests to execute: carbofor function\n")
   cat("Execution date:", Sys.time(), "\n")
   cat("R version:", R.version.string, "\n")
   cat("Required packages: testthat\n")
@@ -2305,7 +2305,7 @@ run_all_tests <- function() {
 # Final message for user
 cat("\n")
 cat("====================================================================\n")
-cat("TESTTHAT TEST SUITE FOR calculate_volumes() - COMPLETE VERSION\n")
+cat("TESTTHAT TEST SUITE FOR carbofor() - COMPLETE VERSION\n")
 cat("====================================================================\n")
 cat("\n")
 cat("This test suite covers:\n")
@@ -2344,7 +2344,7 @@ cat("• Missing or NA variables\n")
 cat("• Complex mathematical functions\n")
 cat("\n")
 cat("To execute all tests:\n")
-cat("testthat::test_file('test_calculate_volumes.R')\n")
+cat("testthat::test_file('test_carbofor.R')\n")
 cat("# or\n")
 cat("run_all_tests()\n")
 cat("\n")
