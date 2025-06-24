@@ -1064,7 +1064,7 @@ carbofor <- function(df, carbon = FALSE,
       return(NA)
     })
   }
-
+F
   # Calculation for each row
   for (i in seq_len(nrow(df_result))) {
     tree_species <- df_result$Species[i]
@@ -1218,356 +1218,371 @@ carbofor <- function(df, carbon = FALSE,
   # INTERVAL CALCULATION ACCORDING TO NUMBER OF PARAMETERS
   # =========================================================================
   # Function to calculate the relative width of prediction intervals
-  calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1,
-                                            confidence_level = 0.95) {
+calculate_prediction_interval <- function(df_result, eqs_volume, equation_id = 1,
+                                          confidence_level = 0.95) {
 
-    # Initialize result vector (relative width)
-    relative_width <- rep(NA, nrow(df_result))
+  # Initialize result vector (relative width)
+  relative_width <- rep(NA, nrow(df_result))
 
-    cat("Calculating prediction intervals with correlation handling...\n")
+  cat("Calculating prediction intervals with correlation handling...\n")
 
-    for (i in seq_len(nrow(df_result))) {
-      tree_species <- df_result$Species[i]
+  for (i in seq_len(nrow(df_result))) {
+    tree_species <- df_result$Species[i]
 
-      cat("Processing tree", i, "of", nrow(df_result), "- Species:", tree_species, "\n")
+    cat("Processing tree", i, "of", nrow(df_result), "- Species:", tree_species, "\n")
 
-      # Retrieve the equation used
-      eq_candidates <- eqs_volume[eqs_volume$Species == tree_species, ]
-      if (nrow(eq_candidates) == 0) {
-        cat("  WARNING: No equation found for species:", tree_species, "\n")
+    # Retrieve the equation used
+    eq_candidates <- eqs_volume[eqs_volume$Species == tree_species, ]
+    if (nrow(eq_candidates) == 0) {
+      cat("  WARNING: No equation found for species:", tree_species, "\n")
+      next
+    }
+
+    local_equation_id <- min(equation_id, nrow(eq_candidates))
+    eq <- eq_candidates[local_equation_id, , drop = FALSE]
+
+    cat("  Using equation", local_equation_id, "for species:", tree_species, "\n")
+
+    # Identify necessary variables in the equation
+    exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
+    exprs <- exprs[!is.na(exprs) & exprs != "0"]
+
+    cat("  Found expressions:", paste(exprs, collapse = ", "), "\n")
+
+    # Use all.vars() to correctly extract variables
+    vars_needed <- c()
+    for (expr in exprs) {
+      if (expr != "0" && !is.na(expr)) {
+        tryCatch({
+          vars_in_expr <- all.vars(parse(text = expr))
+          vars_needed <- c(vars_needed, vars_in_expr)
+        }, error = function(e) {
+          # If expression cannot be parsed, use regex as fallback
+          vars_in_expr <- regmatches(expr, gregexpr("\\b[A-Za-z_][A-Za-z0-9_]*\\b", expr))[[1]]
+          vars_needed <- c(vars_needed, vars_in_expr)
+        })
+      }
+    }
+    vars_needed <- unique(vars_needed)
+
+    cat("  Variables needed:", paste(vars_needed, collapse = ", "), "\n")
+
+    # Check that all necessary variables are available in the dataset
+    missing_vars <- vars_needed[!vars_needed %in% names(df_result)]
+    if (length(missing_vars) > 0) {
+      warning(paste("Missing variables in dataset:", paste(missing_vars, collapse = ", "), "for species:", tree_species))
+      next
+    }
+
+    # Retrieve variable values for this tree
+    xi_values <- list()
+    for (v in vars_needed) {
+      xi_values[[v]] <- df_result[[v]][i]
+      if (is.na(xi_values[[v]]) || !is.finite(xi_values[[v]])) {
+        warning(paste("Invalid variable", v, "for row", i))
+        next
+      }
+    }
+
+    cat("  Variable values:", paste(names(xi_values), "=", sapply(xi_values, function(x) round(x, 3)), collapse = ", "), "\n")
+
+    # Determine number of parameters/variables
+    n_params <- length(vars_needed)
+
+    cat("  Number of parameters:", n_params, "\n")
+
+    if (n_params == 1) {
+      # UNIVARIATE CASE (1 parameter only)
+      cat("  Using univariate formula\n")
+
+      # Get the variable name (first and only variable)
+      var_name <- vars_needed[1]
+
+      # Check necessary parameters for univariate case
+      required_cols <- c("sigma", "n")
+      x_mean_col <- paste0("x_mean_", var_name)
+      sce_col <- paste0("SCE_", var_name)
+
+      missing_cols <- required_cols[!required_cols %in% names(eq)]
+      if (!x_mean_col %in% names(eq)) missing_cols <- c(missing_cols, x_mean_col)
+      if (!sce_col %in% names(eq)) missing_cols <- c(missing_cols, sce_col)
+
+      if (length(missing_cols) > 0) {
+        warning(paste("Missing columns:", paste(missing_cols, collapse = ", "), "for species:", tree_species))
+        cat("  Available columns:", paste(names(eq), collapse = ", "), "\n")
         next
       }
 
-      local_equation_id <- min(equation_id, nrow(eq_candidates))
-      eq <- eq_candidates[local_equation_id, , drop = FALSE]
-
-      cat("  Using equation", local_equation_id, "for species:", tree_species, "\n")
-
-      # Identify necessary variables in the equation
-      exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
-      exprs <- exprs[!is.na(exprs) & exprs != "0"]
-
-      cat("  Found expressions:", paste(exprs, collapse = ", "), "\n")
-
-      # Use all.vars() to correctly extract variables
-      vars_needed <- c()
-      for (expr in exprs) {
-        if (expr != "0" && !is.na(expr)) {
-          tryCatch({
-            vars_in_expr <- all.vars(parse(text = expr))
-            vars_needed <- c(vars_needed, vars_in_expr)
-          }, error = function(e) {
-            # If expression cannot be parsed, use regex as fallback
-            vars_in_expr <- regmatches(expr, gregexpr("\\b[A-Za-z_][A-Za-z0-9_]*\\b", expr))[[1]]
-            vars_needed <- c(vars_needed, vars_in_expr)
-          })
-        }
-      }
-      vars_needed <- unique(vars_needed)
-
-      cat("  Variables needed:", paste(vars_needed, collapse = ", "), "\n")
-
-      # Check that all necessary variables are available in the dataset
-      missing_vars <- vars_needed[!vars_needed %in% names(df_result)]
-      if (length(missing_vars) > 0) {
-        warning(paste("Missing variables in dataset:", paste(missing_vars, collapse = ", "), "for species:", tree_species))
+      # Check for NA values
+      if (is.na(eq$sigma[1]) || is.na(eq$n[1]) || is.na(eq[[x_mean_col]][1]) || is.na(eq[[sce_col]][1])) {
+        warning(paste("Missing parameters (sigma, n, x_mean or SCE) for species:", tree_species))
         next
       }
 
-      # Retrieve variable values for this tree
-      xi_values <- list()
-      for (v in vars_needed) {
-        xi_values[[v]] <- df_result[[v]][i]
-        if (is.na(xi_values[[v]]) || !is.finite(xi_values[[v]])) {
-          warning(paste("Invalid variable", v, "for row", i))
+      sigma <- eq$sigma[1]
+      n <- eq$n[1]
+      x_mean <- eq[[x_mean_col]][1]
+      SCEx <- eq[[sce_col]][1]
+
+      cat("  Parameters: sigma =", sigma, ", n =", n, ", x_mean =", x_mean, ", SCE =", SCEx, "\n")
+
+      # Retrieve xi value for the variable
+      xi <- xi_values[[var_name]]
+
+      # Univariate formula: Var_pred(xi) = σ² * (1 + 1/n + (xi - x̄)²/SCEx)
+      variance_pred <- sigma^2 * (1 + 1/n + (xi - x_mean)^2/SCEx)
+
+      cat("  Prediction variance:", variance_pred, "\n")
+
+    } else if (n_params > 1) {
+      # MULTIVARIATE CASE (several correlated parameters)
+      cat("  Using multivariate formula\n")
+
+      # Check necessary parameters for multivariate case
+      if (is.na(eq$sigma[1]) || is.na(eq$n[1])) {
+        warning(paste("Missing parameters (sigma or n) for multivariate species:", tree_species))
+        next
+      }
+
+      sigma <- eq$sigma[1]
+      n <- eq$n[1]
+
+      cat("  Base parameters: sigma =", sigma, ", n =", n, "\n")
+
+      # Build vector of differences (xi - x̄)
+      x_diff <- numeric(n_params)
+      x_means <- numeric(n_params)
+      variable_names <- character(n_params)
+
+      # Retrieve means and calculate differences
+      for (j in 1:n_params) {
+        var_name <- vars_needed[j]
+        variable_names[j] <- var_name
+
+        # Look for corresponding mean in format x_mean_VARIABLE
+        mean_col <- paste0("x_mean_", var_name)
+
+        if (mean_col %in% names(eq) && !is.na(eq[[mean_col]][1])) {
+          x_means[j] <- eq[[mean_col]][1]
+          x_diff[j] <- xi_values[[var_name]] - x_means[j]
+        } else {
+          warning(paste("Missing mean column", mean_col, "for variable", var_name, "of species:", tree_species))
+          cat("  Available columns:", paste(names(eq), collapse = ", "), "\n")
           next
         }
       }
 
-      cat("  Variable values:", paste(names(xi_values), "=", sapply(xi_values, function(x) round(x, 3)), collapse = ", "), "\n")
+      cat("  Variable means:", paste(variable_names, "=", round(x_means, 3), collapse = ", "), "\n")
+      cat("  Differences (xi - x_mean):", paste(round(x_diff, 3), collapse = ", "), "\n")
 
-      # Determine number of parameters/variables
-      n_params <- length(vars_needed)
+      # Build inverse covariance matrix (XᵀX)⁻¹
+      # Search for matrix elements in equation columns
+      cov_matrix_inv <- matrix(0, nrow = n_params, ncol = n_params)
 
-      cat("  Number of parameters:", n_params, "\n")
+      # Fill inverse covariance matrix
+      for (j in 1:n_params) {
+        for (k in 1:n_params) {
+          if (j == k) {
+            # Diagonal elements: use 1/SCE_variablename
+            var_name <- variable_names[j]
+            sce_col <- paste0("SCE_", var_name)
 
-      if (n_params == 1) {
-        # UNIVARIATE CASE (1 parameter only)
-        cat("  Using univariate formula\n")
-
-        # Check necessary parameters
-        if (is.na(eq$sigma[1]) || is.na(eq$n[1]) || is.na(eq$x_mean[1]) || is.na(eq$SCE[1])) {
-          warning(paste("Missing parameters (sigma, n, x_mean or SCE) for species:", tree_species))
-          next
-        }
-
-        sigma <- eq$sigma[1]
-        n <- eq$n[1]
-        x_mean <- eq$x_mean[1]
-        SCEx <- eq$SCE[1]
-
-        cat("  Parameters: sigma =", sigma, ", n =", n, ", x_mean =", x_mean, ", SCE =", SCEx, "\n")
-
-        # Retrieve xi value (first and only variable)
-        xi <- xi_values[[vars_needed[1]]]
-
-        # Univariate formula: Var_pred(xi) = σ² * (1 + 1/n + (xi - x̄)²/SCEx)
-        variance_pred <- sigma^2 * (1 + 1/n + (xi - x_mean)^2/SCEx)
-
-        cat("  Prediction variance:", variance_pred, "\n")
-
-      } else if (n_params > 1) {
-        # MULTIVARIATE CASE (several correlated parameters)
-        cat("  Using multivariate formula\n")
-
-        # Check necessary parameters for multivariate case
-        if (is.na(eq$sigma[1]) || is.na(eq$n[1])) {
-          warning(paste("Missing parameters (sigma or n) for multivariate species:", tree_species))
-          next
-        }
-
-        sigma <- eq$sigma[1]
-        n <- eq$n[1]
-
-        cat("  Base parameters: sigma =", sigma, ", n =", n, "\n")
-
-        # Build vector of differences (xi - x̄)
-        x_diff <- numeric(n_params)
-        x_means <- numeric(n_params)
-        variable_names <- character(n_params)
-
-        # Retrieve means and calculate differences
-        for (j in 1:n_params) {
-          var_name <- vars_needed[j]
-          variable_names[j] <- var_name
-
-          # Look for corresponding mean (x_mean, x_mean2, x_mean3, etc.)
-          mean_col <- paste0("x_mean", if(j == 1) "" else j)
-
-          if (mean_col %in% names(eq) && !is.na(eq[[mean_col]][1])) {
-            x_means[j] <- eq[[mean_col]][1]
-            x_diff[j] <- xi_values[[var_name]] - x_means[j]
-          } else {
-            warning(paste("Missing mean for variable", var_name, "of species:", tree_species))
-            next
-          }
-        }
-
-        cat("  Variable means:", paste(variable_names, "=", round(x_means, 3), collapse = ", "), "\n")
-        cat("  Differences (xi - x_mean):", paste(round(x_diff, 3), collapse = ", "), "\n")
-
-        # Build inverse covariance matrix (XᵀX)⁻¹
-        # Search for matrix elements in equation columns
-        cov_matrix_inv <- matrix(0, nrow = n_params, ncol = n_params)
-
-        # Fill inverse covariance matrix
-        for (j in 1:n_params) {
-          for (k in 1:n_params) {
-            if (j == k) {
-              # Diagonal elements: use 1/SCE
-              sce_col <- paste0("SCE", if(j == 1) "" else j)
-              if (sce_col %in% names(eq) && !is.na(eq[[sce_col]][1]) && eq[[sce_col]][1] > 0) {
-                cov_matrix_inv[j, k] <- 1 / eq[[sce_col]][1]
-              } else {
-                warning(paste("Missing or invalid SCE for variable", variable_names[j], "of species:", tree_species))
-                next
-              }
+            if (sce_col %in% names(eq) && !is.na(eq[[sce_col]][1]) && eq[[sce_col]][1] > 0) {
+              cov_matrix_inv[j, k] <- 1 / eq[[sce_col]][1]
+              cat("  Found", sce_col, "=", eq[[sce_col]][1], "\n")
             } else {
-              # Off-diagonal elements: search for covariances
-              # Possible conventions: COV12, COV13, COV23, etc.
-              cov_col_names <- c(
-                paste0("COV", min(j,k), max(j,k)),
-                paste0("COV_", min(j,k), "_", max(j,k)),
-                paste0("covariance_", min(j,k), "_", max(j,k))
-              )
+              warning(paste("Missing or invalid", sce_col, "for variable", var_name, "of species:", tree_species))
+              cat("  Available columns:", paste(names(eq), collapse = ", "), "\n")
+              next
+            }
+          } else {
+            # Off-diagonal elements: search for covariances based on variable names
+            var_name_j <- variable_names[j]
+            var_name_k <- variable_names[k]
 
-              cov_found <- FALSE
-              for (cov_col in cov_col_names) {
-                if (cov_col %in% names(eq) && !is.na(eq[[cov_col]][1])) {
-                  cov_matrix_inv[j, k] <- eq[[cov_col]][1]
-                  cov_matrix_inv[k, j] <- eq[[cov_col]][1]  # Symmetric matrix
-                  cov_found <- TRUE
-                  break
-                }
-              }
+            # Create covariance column name: COV_VARIABLE1_VARIABLE2 (alphabetical order)
+            var_names_sorted <- sort(c(var_name_j, var_name_k))
+            cov_col <- paste0("COV_", var_names_sorted[1], "_", var_names_sorted[2])
 
+            if (cov_col %in% names(eq) && !is.na(eq[[cov_col]][1])) {
+              cov_matrix_inv[j, k] <- eq[[cov_col]][1]
+              cov_matrix_inv[k, j] <- eq[[cov_col]][1]  # Symmetric matrix
+              cat("  Found", cov_col, "=", eq[[cov_col]][1], "\n")
+            } else {
               # If no covariance found, use 0 (partial orthogonality assumption)
-              if (!cov_found) {
-                cov_matrix_inv[j, k] <- 0
-                cov_matrix_inv[k, j] <- 0
-              }
+              cov_matrix_inv[j, k] <- 0
+              cov_matrix_inv[k, j] <- 0
+              cat("  No covariance found for", cov_col, "- assuming 0\n")
             }
           }
         }
+      }
 
-        cat("  Covariance matrix diagonal:", paste(round(diag(cov_matrix_inv), 6), collapse = ", "), "\n")
+      cat("  Covariance matrix diagonal:", paste(round(diag(cov_matrix_inv), 6), collapse = ", "), "\n")
 
-        # Check that matrix is invertible (non-zero determinant)
-        tryCatch({
-          det_cov <- det(cov_matrix_inv)
-          cat("  Matrix determinant:", det_cov, "\n")
+      # Check that matrix is invertible (non-zero determinant)
+      tryCatch({
+        det_cov <- det(cov_matrix_inv)
+        cat("  Matrix determinant:", det_cov, "\n")
 
-          if (abs(det_cov) < 1e-10) {
-            warning(paste("Quasi-singular covariance matrix for species:", tree_species, "- using orthogonal approximation"))
-            # Fallback: use only diagonal terms
-            quadratic_form <- sum(x_diff^2 * diag(cov_matrix_inv))
-          } else {
-            # Calculate quadratic form: (x_i - x̄)ᵀ × (XᵀX)⁻¹ × (x_i - x̄)
-            quadratic_form <- as.numeric(t(x_diff) %*% cov_matrix_inv %*% x_diff)
-          }
-        }, error = function(e) {
-          warning(paste("Error in matrix calculation for species:", tree_species, "- using orthogonal approximation"))
+        if (abs(det_cov) < 1e-10) {
+          warning(paste("Quasi-singular covariance matrix for species:", tree_species, "- using orthogonal approximation"))
           # Fallback: use only diagonal terms
           quadratic_form <- sum(x_diff^2 * diag(cov_matrix_inv))
-        })
+        } else {
+          # Calculate quadratic form: (x_i - x̄)ᵀ × (XᵀX)⁻¹ × (x_i - x̄)
+          quadratic_form <- as.numeric(t(x_diff) %*% cov_matrix_inv %*% x_diff)
+        }
+      }, error = function(e) {
+        warning(paste("Error in matrix calculation for species:", tree_species, "- using orthogonal approximation"))
+        # Fallback: use only diagonal terms
+        quadratic_form <- sum(x_diff^2 * diag(cov_matrix_inv))
+      })
 
-        cat("  Quadratic form:", quadratic_form, "\n")
+      cat("  Quadratic form:", quadratic_form, "\n")
 
-        # Complete multivariate formula with covariance matrix
-        # Var_pred = σ² × (1 + 1/n + (x_i - x̄)ᵀ × (XᵀX)⁻¹ × (x_i - x̄))
-        variance_pred <- sigma^2 * (1 + 1/n + quadratic_form)
+      # Complete multivariate formula with covariance matrix
+      # Var_pred = σ² × (1 + 1/n + (x_i - x̄)ᵀ × (XᵀX)⁻¹ × (x_i - x̄))
+      variance_pred <- sigma^2 * (1 + 1/n + quadratic_form)
 
-        cat("  Prediction variance:", variance_pred, "\n")
+      cat("  Prediction variance:", variance_pred, "\n")
 
-      } else {
-        warning(paste("No variables identified in equation for species:", tree_species))
-        next
-      }
-
-      # Calculate t quantile with appropriate degrees of freedom
-      t_quantile <- qt(1 - (1 - confidence_level)/2, df = n - 2)
-
-      cat("  t-quantile (df =", n - 2, "):", t_quantile, "\n")
-
-      # Calculate relative width of prediction interval
-      # Uses Volume column directly as eqs_volume is pre-filtered
-      volume_pred <- df_result$Volume[i]
-
-      if (!is.na(volume_pred) && !is.na(variance_pred) && variance_pred > 0 && volume_pred > 0) {
-        margin_error <- t_quantile * sqrt(variance_pred)
-        interval_width <- 2 * margin_error
-
-        # Relative width = absolute width / predicted value
-        relative_width[i] <- interval_width / volume_pred
-
-        cat("  Predicted volume:", volume_pred, "\n")
-        cat("  Margin of error:", margin_error, "\n")
-        cat("  Interval width:", interval_width, "\n")
-        cat("  Relative width:", round(relative_width[i], 4), "\n")
-      }
-
-      cat("  ---\n")
+    } else {
+      warning(paste("No variables identified in equation for species:", tree_species))
+      next
     }
 
-    return(relative_width)
+    # Calculate t quantile with appropriate degrees of freedom
+    t_quantile <- qt(1 - (1 - confidence_level)/2, df = n - 2)
+
+    cat("  t-quantile (df =", n - 2, "):", t_quantile, "\n")
+
+    # Calculate relative width of prediction interval
+    # Uses Volume column directly as eqs_volume is pre-filtered
+    volume_pred <- df_result$Volume[i]
+
+    if (!is.na(volume_pred) && !is.na(variance_pred) && variance_pred > 0 && volume_pred > 0) {
+      margin_error <- t_quantile * sqrt(variance_pred)
+      interval_width <- 2 * margin_error
+
+      # Relative width = absolute width / predicted value
+      relative_width[i] <- interval_width / volume_pred
+
+      cat("  Predicted volume:", volume_pred, "\n")
+      cat("  Margin of error:", margin_error, "\n")
+      cat("  Interval width:", interval_width, "\n")
+      cat("  Relative width:", round(relative_width[i], 4), "\n")
+    }
+
+    cat("  ---\n")
   }
 
-  # Function to interpret relative width
-  interpret_relative_width <- function(relative_width) {
-    interpretation <- character(length(relative_width))
+  return(relative_width)
+}
 
-    for (i in seq_along(relative_width)) {
-      if (is.na(relative_width[i])) {
-        interpretation[i] <- "No calculation"
-      } else if (relative_width[i] < 0.10) {
-        interpretation[i] <- "Very narrow → Very reliable "
-      } else if (relative_width[i] <= 0.25) {
-        interpretation[i] <- "Acceptable → Rather reliable "
-      } else if (relative_width[i] <= 0.50) {
-        interpretation[i] <- "Wide → Uncertain ⚠"
-      } else {
-        interpretation[i] <- "Very wide → Risky "
-      }
-    }
+# Function to interpret relative width
+interpret_relative_width <- function(relative_width) {
+  interpretation <- character(length(relative_width))
 
-    return(interpretation)
-  }
-
-  # Function to summarize relative widths of prediction intervals
-  summarize_relative_intervals <- function(relative_widths, df_result) {
-    valid_widths <- relative_widths[!is.na(relative_widths)]
-
-    if (length(valid_widths) == 0) {
-      cat("No prediction intervals calculated.\n")
-      return()
-    }
-
-    cat("=== SUMMARY OF RELATIVE INTERVAL WIDTHS ===\n")
-    cat("Number of intervals calculated:", length(valid_widths), "/", length(relative_widths), "\n")
-    cat("Mean relative width:", round(mean(valid_widths), 4), "\n")
-    cat("Median relative width:", round(median(valid_widths), 4), "\n")
-    cat("Min relative width:", round(min(valid_widths), 4), "\n")
-    cat("Max relative width:", round(max(valid_widths), 4), "\n")
-    cat("Standard deviation of relative widths:", round(sd(valid_widths), 4), "\n")
-
-    # Interpretation summary
-    interpretations <- interpret_relative_width(relative_widths)
-    interpretation_table <- table(interpretations[!is.na(relative_widths)])
-
-    cat("\n=== INTERPRETATION SUMMARY ===\n")
-    for (i in seq_along(interpretation_table)) {
-      cat(names(interpretation_table)[i], ":", interpretation_table[i], "\n")
-    }
-
-    # Summary by species if species data is available
-    if ("Species" %in% names(df_result)) {
-      valid_indices <- which(!is.na(relative_widths))
-      species_data <- data.frame(
-        Species = df_result$Species[valid_indices],
-        Relative_Width = valid_widths
-      )
-
-      species_summary <- aggregate(Relative_Width ~ Species, data = species_data,
-                                   FUN = function(x) c(
-                                     n = length(x),
-                                     mean = mean(x),
-                                     median = median(x),
-                                     sd = sd(x)
-                                   ))
-
-      cat("\n=== SUMMARY BY SPECIES ===\n")
-      for (i in seq_len(nrow(species_summary))) {
-        cat("Species:", species_summary$Species[i], "\n")
-        cat("  Count:", round(species_summary$Relative_Width[i, "n"], 0),
-            "- Mean:", round(species_summary$Relative_Width[i, "mean"], 4),
-            "- Median:", round(species_summary$Relative_Width[i, "median"], 4),
-            "- Std Dev:", round(species_summary$Relative_Width[i, "sd"], 4), "\n\n")
-      }
-    }
-
-    # Useful percentiles
-    cat("=== PERCENTILES ===\n")
-    percentiles <- quantile(valid_widths, probs = c(0.05, 0.10, 0.25, 0.75, 0.90, 0.95))
-    for (i in seq_along(percentiles)) {
-      percentile_name <- gsub("%", "", names(percentiles)[i])
-      cat(paste0("P", percentile_name, ":"), round(percentiles[i], 4), "\n")
+  for (i in seq_along(relative_width)) {
+    if (is.na(relative_width[i])) {
+      interpretation[i] <- "No calculation"
+    } else if (relative_width[i] < 0.10) {
+      interpretation[i] <- "Very narrow → Very reliable "
+    } else if (relative_width[i] <= 0.25) {
+      interpretation[i] <- "Acceptable → Rather reliable "
+    } else if (relative_width[i] <= 0.50) {
+      interpretation[i] <- "Wide → Uncertain ⚠"
+    } else {
+      interpretation[i] <- "Very wide → Risky "
     }
   }
+
+  return(interpretation)
+}
+
+# Function to summarize relative widths of prediction intervals
+summarize_relative_intervals <- function(relative_widths, df_result) {
+  valid_widths <- relative_widths[!is.na(relative_widths)]
+
+  if (length(valid_widths) == 0) {
+    cat("No prediction intervals calculated.\n")
+    return()
+  }
+
+  cat("=== SUMMARY OF RELATIVE INTERVAL WIDTHS ===\n")
+  cat("Number of intervals calculated:", length(valid_widths), "/", length(relative_widths), "\n")
+  cat("Mean relative width:", round(mean(valid_widths), 4), "\n")
+  cat("Median relative width:", round(median(valid_widths), 4), "\n")
+  cat("Min relative width:", round(min(valid_widths), 4), "\n")
+  cat("Max relative width:", round(max(valid_widths), 4), "\n")
+  cat("Standard deviation of relative widths:", round(sd(valid_widths), 4), "\n")
+
+  # Interpretation summary
+  interpretations <- interpret_relative_width(relative_widths)
+  interpretation_table <- table(interpretations[!is.na(relative_widths)])
+
+  cat("\n=== INTERPRETATION SUMMARY ===\n")
+  for (i in seq_along(interpretation_table)) {
+    cat(names(interpretation_table)[i], ":", interpretation_table[i], "\n")
+  }
+
+  # Summary by species if species data is available
+  if ("Species" %in% names(df_result)) {
+    valid_indices <- which(!is.na(relative_widths))
+    species_data <- data.frame(
+      Species = df_result$Species[valid_indices],
+      Relative_Width = valid_widths
+    )
+
+    species_summary <- aggregate(Relative_Width ~ Species, data = species_data,
+                                 FUN = function(x) c(
+                                   n = length(x),
+                                   mean = mean(x),
+                                   median = median(x),
+                                   sd = sd(x)
+                                 ))
+
+    cat("\n=== SUMMARY BY SPECIES ===\n")
+    for (i in seq_len(nrow(species_summary))) {
+      cat("Species:", species_summary$Species[i], "\n")
+      cat("  Count:", round(species_summary$Relative_Width[i, "n"], 0),
+          "- Mean:", round(species_summary$Relative_Width[i, "mean"], 4),
+          "- Median:", round(species_summary$Relative_Width[i, "median"], 4),
+          "- Std Dev:", round(species_summary$Relative_Width[i, "sd"], 4), "\n\n")
+    }
+  }
+
+  # Useful percentiles
+  cat("=== PERCENTILES ===\n")
+  percentiles <- quantile(valid_widths, probs = c(0.05, 0.10, 0.25, 0.75, 0.90, 0.95))
+  for (i in seq_along(percentiles)) {
+    percentile_name <- gsub("%", "", names(percentiles)[i])
+    cat(paste0("P", percentile_name, ":"), round(percentiles[i], 4), "\n")
+  }
+}
+
+# =========================================================================
+# Fonction CALL
+# =========================================================================
+
+cat("[DEBUG] ==================== PREDICTION INTERVALS CALCULATION ====================\n")
+relative_widths <- calculate_prediction_interval(df_result, eqs_volume, equation_id = equation_id, confidence_level = 0.95)
+df_result$Relative_Interval_Width <- relative_widths
+df_result$Interval_Interpretation <- interpret_relative_width(relative_widths)
+summarize_relative_intervals(relative_widths, df_result)
+cat("[DEBUG] [OK] Prediction intervals calculation completed\n\n")
 
   # =========================================================================
-  # CALCULS DES INTERVALLES DE PRÉDICTION - APPEL DES FONCTIONS
+  # Fonction CALL
   # =========================================================================
 
-  # Calculer les intervalles de prédiction
   cat("[DEBUG] ==================== PREDICTION INTERVALS CALCULATION ====================\n")
-
-  # Appel de la fonction principale
   relative_widths <- calculate_prediction_interval(df_result, eqs_volume, equation_id = equation_id, confidence_level = 0.95)
-
-  # Ajouter les largeurs relatives au dataframe
   df_result$Relative_Interval_Width <- relative_widths
-
-  # Ajouter les interprétations
   df_result$Interval_Interpretation <- interpret_relative_width(relative_widths)
-
-  # Afficher le résumé
   summarize_relative_intervals(relative_widths, df_result)
-
   cat("[DEBUG] [OK] Prediction intervals calculation completed\n\n")
-
-  # =========================================================================
-  # VALIDITY SUMMARY (le reste de votre code continue ici...)
-  # =========================================================================
 
   # =========================================================================
   # VALIDITY SUMMARY
