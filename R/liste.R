@@ -131,7 +131,7 @@ build_equation <- function(x_cols, b_cols, y_var) {
 #' \dontrun{
 #' # Load the package and ensure equations data is available
 #' library(carbofor)
-#' data("equations")  # Assuming the data is included in the package
+#' data(equations)  # Assuming the data is included in the package
 #'
 #' # Display all available species and equation types
 #' carbofor_species()
