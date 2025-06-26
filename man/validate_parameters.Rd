@@ -5,7 +5,7 @@
 \title{Valide les paramètres d'entrée pour la fonction carbofor}
 \usage{
 validate_parameters(
-  df,
+  x,
   volume_type = "V22",
   equation_id = 1,
   source = "Dagnellie",
@@ -19,7 +19,7 @@ validate_parameters(
 )
 }
 \arguments{
-\item{df}{Le data.frame d'entrée}
+\item{x}{Le data.frame d'entrée}
 
 \item{volume_type}{Type de volume à calculer}
 

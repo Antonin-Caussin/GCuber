@@ -57,7 +57,7 @@ carbofor.carbofor_data <- function(x,
   }
 
   # 6. Calcul de la variance individuelle et des intervalles de prédiction
-  x <- calculate_individual_variance(x, volume_type = volume_type, equation_id = equation_id)
+  # x <- calculate_individual_variance(x, volume_type = volume_type, equation_id = equation_id)
 
   # 7. Nettoyage final si demandé
   if (remove_na) {

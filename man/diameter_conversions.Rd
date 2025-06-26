@@ -4,7 +4,7 @@
 \alias{diameter_conversions}
 \title{Conversion diamètre <-> circonférence}
 \usage{
-diameter_conversions(df, C130, C150, D130, D150)
+diameter_conversions(x, C130, C150, D130, D150, HTOT = "HTOT", HDOM = "HDOM")
 }
 \description{
 Conversion diamètre <-> circonférence

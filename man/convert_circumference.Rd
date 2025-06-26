@@ -4,7 +4,15 @@
 \alias{convert_circumference}
 \title{Conversion générique entre C130 et C150}
 \usage{
-convert_circumference(df, C130, C150)
+convert_circumference(
+  x,
+  D150 = "D150",
+  D130 = "D130",
+  C150 = "C150",
+  C130 = "C130",
+  HTOT = "HTOT",
+  HDOM = "HDOM"
+)
 }
 \description{
 Conversion générique entre C130 et C150

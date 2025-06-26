@@ -4,7 +4,7 @@
 \alias{as.carbofor_data}
 \title{Convertir un data.frame en objet carbofor_data}
 \usage{
-as.carbofor_data(df)
+as.carbofor_data(x)
 }
 \description{
 Convertir un data.frame en objet carbofor_data

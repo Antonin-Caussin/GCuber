@@ -4,7 +4,7 @@
 \alias{establish_species_correspondence}
 \title{Correspondance des espèces à partir des codes ou abréviations}
 \usage{
-establish_species_correspondence(df, specimens)
+establish_species_correspondence(x, specimens)
 }
 \description{
 Correspondance des espèces à partir des codes ou abréviations

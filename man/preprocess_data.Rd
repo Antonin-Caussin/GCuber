@@ -5,7 +5,7 @@
 \title{Prétraitement des données pour le calcul de volume}
 \usage{
 preprocess_data(
-  df,
+  x,
   specimens = NULL,
   C130 = "C130",
   C150 = "C150",

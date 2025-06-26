@@ -4,12 +4,12 @@
 \alias{evaluate_expression}
 \title{Évalue une expression mathématique en toute sécurité}
 \usage{
-evaluate_expression(expr, variables)
+evaluate_expression(expr_text, variables)
 }
 \arguments{
-\item{expr}{Expression mathématique sous forme de chaîne}
-
 \item{variables}{Liste nommée de variables utilisées dans l'expression}
+
+\item{expr}{Expression mathématique sous forme de chaîne}
 }
 \value{
 Valeur numérique évaluée ou NA en cas d'erreur

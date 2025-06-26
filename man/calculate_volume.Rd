@@ -5,20 +5,22 @@
 \title{Calcul du volume à partir des équations allométriques}
 \usage{
 calculate_volume(
-  df,
+  x,
   volume_type = "V22",
   equation_id = 1,
+  D130 = "D130",
+  specimens = NULL,
   source = "Dagnellie"
 )
 }
 \arguments{
-\item{df}{Le data.frame contenant les données d'arbres}
-
 \item{volume_type}{Type de volume à calculer (ex: "V22", "V22B", "V22_HA", "E")}
 
 \item{equation_id}{Identifiant de l'équation à utiliser}
 
 \item{source}{Source des équations (ex: "Dagnellie")}
+
+\item{df}{Le data.frame contenant les données d'arbres}
 }
 \value{
 Le data.frame enrichi avec les colonnes de volume, validité et équation utilisée

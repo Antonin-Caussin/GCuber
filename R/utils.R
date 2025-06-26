@@ -6,39 +6,54 @@
 #' @param variables Liste nommée de variables utilisées dans l'expression
 #' @return Valeur numérique évaluée ou NA en cas d'erreur
 #' @export
-evaluate_expression <- function(expr, variables) {
-  if (is.na(expr) || expr == "0" || expr == 0) return(0)
-  if (expr == "/") {
-    warning("Expression invalide détectée: '/'")
+evaluate_expression <- function(expr_text, variables) {
+  if (is.na(expr_text) || expr_text == "0" || expr_text == 0) return(0)
+  if (expr_text == "/") {
+    warning("Invalid expression detected: '/'")
     return(NA)
   }
 
-  var_names <- all.vars(parse(text = expr))
+  # Encapsuler le parse dans tryCatch pour capturer les erreurs de syntaxe
+  expr_parsed <- tryCatch(
+    parse(text = expr_text),
+    error = function(e) {
+      warning(paste("Error during expression evaluation:", expr_text, "-", e$message))
+      return(NULL)
+    }
+  )
+  if (is.null(expr_parsed)) return(NA)
+
+  var_names <- all.vars(expr_parsed)
   for (v in var_names) {
-    if (!v %in% names(variables)) {
-      warning(paste("Variable manquante:", v, "dans l'expression:", expr))
+    # Ne teste que les variables personnalisées (celles qui ne sont pas dans baseenv())
+    if (!v %in% names(variables) && !exists(v, envir = baseenv())) {
+      warning(paste("Variable not found:", v, "for expression:", expr_text))
       return(NA)
     }
-    if (is.na(variables[[v]]) || is.null(variables[[v]])) {
-      warning(paste("Variable NA ou NULL:", v, "dans l'expression:", expr))
-      return(NA)
-    }
-    if (!is.finite(variables[[v]])) {
-      warning(paste("Variable non finie:", v, "=", variables[[v]], "dans l'expression:", expr))
-      return(NA)
+    if (v %in% names(variables)) {
+      if (is.na(variables[[v]]) || is.null(variables[[v]])) {
+        warning(paste("Variable is NA or NULL:", v, "for expression:", expr_text))
+        return(NA)
+      }
+      if (!is.finite(variables[[v]])) {
+        warning(paste("Variable is not finite:", v, "=", variables[[v]], "for expression:", expr_text))
+        return(NA)
+      }
     }
   }
 
+
   env <- list2env(variables)
   tryCatch({
-    result <- eval(parse(text = expr), envir = env)
+    result <- eval(expr_parsed, envir = env)
     if (!is.finite(result)) {
-      warning(paste("Résultat non fini pour l'expression:", expr, "=", result))
+      warning(paste("Non-finite result for expression:", expr_text, "=", result))
       return(NA)
     }
     return(result)
   }, error = function(e) {
-    warning(paste("Erreur lors de l'évaluation de l'expression:", expr, "-", e$message))
+    warning(paste("Error during expression evaluation:", expr_text, "-", e$message))
     return(NA)
   })
 }
+

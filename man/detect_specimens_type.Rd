@@ -4,7 +4,7 @@
 \alias{detect_specimens_type}
 \title{Détection automatique du type d'identifiant d'espèce}
 \usage{
-detect_specimens_type(values)
+detect_specimens_type(x, specimens)
 }
 \description{
 Détection automatique du type d'identifiant d'espèce
