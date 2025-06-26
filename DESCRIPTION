@@ -1,31 +1,27 @@
 Package: GCuber
 Type: Package
-Title: GCuber
+Title: GCuber - Estimation du volume, de la biomasse et du carbone forestier
 Version: 0.1.2
 Authors@R: c(
-    person("Antonin", "Caussin", , "antonin.caussin@student.uliege.be", role = c("aut", "cre")),
-    person(, "Université de Liège - Département d'enseignement AGRO BIO-TECH", role = "cph"),
-    person("Gauthier", "Ligot", , "gligot@uliege.be", role = "aut")
-  )
-Description: Estimation du volumes de bois, de la biomasse et du stock de carbonne forestier allon à partir des équations allométriques eistantes.
+    person("Antonin", "Caussin", email = "antonin.caussin@student.uliege.be", role = c("aut", "cre")),
+    person(given = NA, family = "Université de Liège - Département d'enseignement AGRO BIO-TECH", role = "cph"),
+    person("Gauthier", "Ligot", email = "gligot@uliege.be", role = "aut")
+)
+Description: Estimation du volume de bois, de la biomasse et du stock de carbone forestier à partir d'équations allométriques existantes. Le package permet le calcul automatisé à partir de données dendrométriques, avec prise en compte des espèces, des hauteurs, des diamètres et des conversions entre circonférences.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
-Language: En
-Imports :
+Language: fr
+Imports:
     dplyr,
     gt,
     kableExtra,
     knitr
-Suggests: 
+Suggests:
     rmarkdown,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
-Depends: 
-    dplyr,
-    gt,
-    kableExtra,
-    knitr,
+Depends:
     R (>= 3.5)
 Config/testthat/edition: 3
