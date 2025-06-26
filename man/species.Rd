@@ -37,5 +37,5 @@ carbofor_species()
 
 }
 \seealso{
-\code{\link{carbofor_species}} for the full function documentation
+\code{\link{carbofor_species}} for the full version of this function.
 }

@@ -1,12 +1,12 @@
 #' Valide les paramètres d'entrée pour la fonction carbofor
-#' @param df Le data.frame d'entrée
+#' @param x Le data.frame d'entrée
 #' @param volume_type Type de volume à calculer
 #' @param equation_id Identifiant de l'équation
 #' @param source Source des équations ("Dagnellie", "Aflan", "Vallet")
 #' @param specimens Nom de la colonne d'identification des espèces
 #' @param C130, C150, D130, D150, HTOT, HDOM Noms des colonnes dendrométriques
 #' @export
-validate_parameters <- function(df,
+validate_parameters <- function(x,
                                 volume_type = "V22",
                                 equation_id = 1,
                                 source = "Dagnellie",
@@ -36,12 +36,15 @@ validate_parameters <- function(df,
 
   required_columns <- c(C130, C150, D130, D150, HTOT, HDOM)
   if (!is.null(specimens)) required_columns <- c(required_columns, specimens)
-  missing_columns <- setdiff(required_columns, names(df))
+
+  missing_columns <- setdiff(required_columns, names(x))
   if (length(missing_columns) > 0) {
     warning(paste("Colonnes manquantes dans les données:", paste(missing_columns, collapse = ", ")))
   }
 
-  if (!any(c(C130, C150, D130, D150) %in% names(df))) {
+
+  if (!any(c(C130, C150, D130, D150) %in% names(x))) {
     stop("Aucune colonne de circonférence ou de diamètre trouvée dans les données.")
   }
+  return(x)
 }

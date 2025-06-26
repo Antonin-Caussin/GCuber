@@ -33,7 +33,7 @@ calculate_volume <- function(df, volume_type = "V22", equation_id = 1, source = 
 
     # Vérification de validité
     d <- df_result$D130[i]
-    if (!is.na(d) && !is.na(eq$D_Min) && !is.na(eq$D_Max)) {
+    if (isTRUE(!is.na(d)) && isTRUE(!is.na(eq$D_Min)) && isTRUE(!is.na(eq$D_Max))) {
       if (d < eq$D_Min) df_result$Validity_Status[i] <- "BELOW_MIN"
       else if (d > eq$D_Max) df_result$Validity_Status[i] <- "ABOVE_MAX"
       else df_result$Validity_Status[i] <- "VALID"
@@ -283,4 +283,4 @@ calculate_individual_variance <- function(df, volume_type = "V22", equation_id =
   return(df)
 }
 
-}
+

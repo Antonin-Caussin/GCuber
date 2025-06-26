@@ -72,7 +72,7 @@ The function expects a data frame named \code{equations} with the following colu
 \dontrun{
 # Load the package and ensure equations data is available
 library(carbofor)
-data("equations")  # Assuming the data is included in the package
+data(equations)  # Assuming the data is included in the package
 
 # Display all available species and equation types
 carbofor_species()
