@@ -6,7 +6,7 @@
 #' @param source Source des équations (ex: "Dagnellie")
 #' @return Le data.frame enrichi avec les colonnes de volume, validité et équation utilisée
 #' @export
-calculate_volume <- function(x, volume_type = "V22", equation_id = 1,
+calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
                              D130 = "D130", specimens = NULL, source = "Dagnellie") {
 
   # Initialisation des compteurs pour le résumé de validité
@@ -124,6 +124,15 @@ calculate_volume <- function(x, volume_type = "V22", equation_id = 1,
       }
     }
 
+    # Vérification des valeurs manquantes dans les variables nécessaires
+    missing_vars <- names(variables)[sapply(variables, function(v) is.na(v) | !is.finite(v))]
+    if (length(missing_vars) > 0) {
+      warning(paste("Missing or invalid input variables at row", i, ":", paste(missing_vars, collapse = ", ")))
+      x$Validity_Status[i] <- "MISSING_INPUT"
+      next
+    }
+
+
     a0_value <- eq$A0[1]
 
     # DEBUG: Display equation details
@@ -225,7 +234,7 @@ calculate_volume <- function(x, volume_type = "V22", equation_id = 1,
 #' @param total_volume_col Nom de la colonne contenant le volume total (ex: "V22")
 #' @return Le data.frame enrichi avec les colonnes E, Bark_Volume et Wood_Volume
 #' @export
-calculate_bark_thickness <- function(df, total_volume_col = "V22") {
+calculate_bark_thickness <- function(df, equations,total_volume_col = "V22") {
   if (!exists("equations")) stop("Le data.frame 'equations' doit être chargé dans l'environnement global.")
   bark_eqs <- equations[equations$Y == "E", ]
   if (nrow(bark_eqs) == 0) {
@@ -291,22 +300,22 @@ calculate_bark_thickness <- function(df, total_volume_col = "V22") {
 #' @return Le data.frame enrichi avec les colonnes de biomasse et carbone
 #' @export
 # Calculate biomass with multiple equations per species and corresponding carbon
-calculate_biomass <- function(x) {
+calculate_biomass <- function(x, equations) {
   cat("[DEBUG] ==================== BIOMASS CALCULATION ====================\n")
 
-  cat("[DEBUG] Available equations in equations_df:", nrow(equations_df), "\n")
-  cat("[DEBUG] Unique species in equations_df:", length(unique(equations_df$Species)), "\n")
+  cat("[DEBUG] Available equations in equations:", nrow(equations), "\n")
+  cat("[DEBUG] Unique species in equations:", length(unique(equations$Species)), "\n")
 
   calculated_biomass <- 0
   species_without_equations <- c()
 
   # Filter biomass equations (assuming biomass type is "BIOMASS" or similar)
-  eqs_biomass <- equations_df[equations_df$Y == "BIOMASS", ]  # Ajustez selon votre nomenclature
+  eqs_biomass <- equations[equations$Y == "BIOMASS", ]  # Ajustez selon votre nomenclature
 
   cat("[DEBUG] Number of biomass equations found:", nrow(eqs_biomass), "\n")
 
   if (nrow(eqs_biomass) == 0) {
-    warning("No biomass equations found in equations_df")
+    warning("No biomass equations found in equations")
     return(x)
   }
 
