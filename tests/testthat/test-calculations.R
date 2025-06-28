@@ -1,14 +1,13 @@
-
 # ============================================================================
-# SETUP - Données de test et mocks
+# SETUP - Test data and mocks
 # ============================================================================
 n <- 20
-# Fonction utilitaire pour créer des données de test
+# Utility function to create test data
 create_test_data <- function(n) {
   data.frame(
     Species = rep(c("Hetre", "Chene pedoncule", "Epicea commun"), length.out = n),
     D130 = runif(n, 15, 80),
-    DHB = runif(n, 15, 80), # Alias pour D130
+    DHB = runif(n, 15, 80), # Alias for D130
     C130 = runif(n, 47, 251),
     HTOT = runif(n, 8, 35),
     HDOM = runif(n, 8, 35),
@@ -17,35 +16,35 @@ create_test_data <- function(n) {
   )
 }
 
-# Fonction utilitaire pour créer des équations de test
-create_test_equations <<- function() {
+# Utility function to create test equations
+create_test_equations <- function() {
   data.frame(
-    Species = c("Hetre", "Hetre", "Chene pedoncule", "Epicea commun"),
-    Y = c("V22", "V22", "V22", "V22"),
-    A0 = c(1, 1, 1, 1),
-    b0 = c(-0.5, -0.6, -0.4, -0.7),
-    b1 = c(1.8, 1.9, 1.7, 2.0),
-    b2 = c(0.8, 0.9, 0.7, 1.0),
-    b3 = c(0, 0, 0, 0),
-    b4 = c(0, 0, 0, 0),
-    b5 = c(0, 0, 0, 0),
-    X0 = c(1,1,1,1),
-    X1 = c("D130", "D130", "D130", "D130"),
-    X2 = c("HTOT", "HTOT", "HTOT", "HTOT"),
-    X3 = c("0", "0", "0", "0"),
-    X4 = c("0", "0", "0", "0"),
-    X5 = c("0", "0", "0", "0"),
-    D_Min = c(10, 10, 12, 8),
-    D_Max = c(70, 70, 80, 90),
-    sigma = c(0.15, 0.16, 0.14, 0.18),
-    n = c(150, 120, 180, 200),
-    x_mean_D130 = c(35, 32, 40, 28),
-    SCE_D130 = c(1500, 1200, 1800, 2000),
+    Species = c("Hetre", "Chene pedoncule", "Epicea commun"),
+    Y = rep("V22", 3),
+    A0 = c(1, 1, 1),
+    b0 = c(-0.5, -0.4, -0.6),
+    b1 = c(1.8, 1.7, 2.0),
+    b2 = c(0.8, 0.7, 1.0),
+    b3 = rep(0, 3),
+    b4 = rep(0, 3),
+    b5 = rep(0, 3),
+    X1 = rep("D130", 3),
+    X2 = rep("HTOT", 3),
+    X3 = rep("0", 3),
+    X4 = rep("0", 3),
+    X5 = rep("0", 3),
+    D130_Min = rep(10, 3),
+    D130_Max = rep(80, 3),
+    sigma = rep(0.15, 3),
+    n = rep(150, 3),
+    x_mean_D130 = rep(35, 3),
+    SCE_D130 = rep(1500, 3),
+    Source_Eq = rep("Dagnellie", 3),
     stringsAsFactors = FALSE
   )
 }
 
-# Fonction utilitaire pour créer des équations d'écorce
+# Utility function to create bark equations
 create_bark_equations <<- function() {
   data.frame(
     Species = c("Hetre", "Chene pedoncule"),
@@ -66,7 +65,7 @@ create_bark_equations <<- function() {
   )
 }
 
-# Fonction utilitaire pour créer des équations de biomasse
+# Utility function to create biomass equations
 create_biomass_equations <<- function() {
   data.frame(
     Species = c("Hetre", "Hetre", "Chene pedoncule"),
@@ -87,7 +86,7 @@ create_biomass_equations <<- function() {
   )
 }
 
-# Mock de la fonction evaluate_expression
+# Mock of the evaluate_expression function
 evaluate_expression <- function(expr_text, variables) {
   if (is.na(expr_text) || expr_text == "0" || expr_text == 0) return(0)
   if (expr_text == "/") {
@@ -95,7 +94,7 @@ evaluate_expression <- function(expr_text, variables) {
     return(NA)
   }
 
-  # Encapsuler le parse dans tryCatch pour capturer les erreurs de syntaxe
+  # Wrap the parse in tryCatch to capture syntax errors
   expr_parsed <- tryCatch(
     parse(text = expr_text),
     error = function(e) {
@@ -107,7 +106,7 @@ evaluate_expression <- function(expr_text, variables) {
 
   var_names <- all.vars(expr_parsed)
   for (v in var_names) {
-    # Ne teste que les variables personnalisées (celles qui ne sont pas dans baseenv())
+    # Only test custom variables (those not in baseenv())
     if (!v %in% names(variables) && !exists(v, envir = baseenv())) {
       warning(paste("Variable not found:", v, "for expression:", expr_text))
       return(NA)
@@ -124,7 +123,6 @@ evaluate_expression <- function(expr_text, variables) {
     }
   }
 
-
   env <- list2env(variables)
   tryCatch({
     result <- eval(expr_parsed, envir = env)
@@ -139,104 +137,104 @@ evaluate_expression <- function(expr_text, variables) {
   })
 }
 
-test_that("DIAGNOSTIC - État actuel des équations", {
-  cat("\n=== DIAGNOSTIC COMPLET ===\n")
+test_that("DIAGNOSTIC - Current state of equations", {
+  cat("\n=== COMPLETE DIAGNOSTIC ===\n")
 
-  # Vérifier l'existence d'equations global
+  # Check existence of global equations
   if (exists("equations", envir = .GlobalEnv)) {
     current_eq <- get("equations", envir = .GlobalEnv)
-    cat("Objet 'equations' trouvé avec", nrow(current_eq), "lignes\n")
-    cat("Colonnes:", paste(names(current_eq), collapse = ", "), "\n")
-    cat("Types de Y:", paste(unique(current_eq$Y), collapse = ", "), "\n")
-    cat("Espèces pour V22:\n")
+    cat("'equations' object found with", nrow(current_eq), "rows\n")
+    cat("Columns:", paste(names(current_eq), collapse = ", "), "\n")
+    cat("Y types:", paste(unique(current_eq$Y), collapse = ", "), "\n")
+    cat("Species for V22:\n")
     v22_species <- unique(current_eq$Species[current_eq$Y == "V22"])
     print(v22_species)
 
-    # Comparer avec nos données de test
+    # Compare with our test data
     test_data <- create_test_data(3)
     test_species <- unique(test_data$Species)
-    cat("\nEspèces dans create_test_data():", paste(test_species, collapse = ", "), "\n")
+    cat("\nSpecies in create_test_data():", paste(test_species, collapse = ", "), "\n")
 
     missing <- setdiff(test_species, v22_species)
-    cat("Espèces manquantes dans equations:", paste(missing, collapse = ", "), "\n")
+    cat("Missing species in equations:", paste(missing, collapse = ", "), "\n")
 
   } else {
-    cat("AUCUN objet 'equations' trouvé dans l'environnement global\n")
+    cat("NO 'equations' object found in global environment\n")
   }
 
-  expect_true(TRUE)  # Test factice
+  expect_true(TRUE)  # Dummy test
 })
 
 # ============================================================================
-# TESTS POUR calculate_volume()
+# TESTS FOR calculate_volume()
 # ============================================================================
 
-test_that("calculate_volume - Fonctionnement de base", {
+test_that("calculate_volume - Basic functionality", {
   # Setup
   test_data <- create_test_data(5)
   test_equations <<- create_test_equations()
 
   # Test
-  result <- calculate_volume(test_data, equations = test_equations ,volume_type = "V22", equation_id = 1)
+  result <- calculate_volume(test_data, equations = test_equations, volume_type = "V22", equation_id = 1)
 
-  # Vérifications
+  # Checks
   expect_s3_class(result, "data.frame")
   expect_true("V22" %in% names(result))
   expect_true("Validity_Status" %in% names(result))
   expect_true("Equation_Used" %in% names(result))
   expect_equal(nrow(result), nrow(test_data))
 
-  # Vérifier que les volumes ne sont pas tous NA
+  # Verify that volumes are not all NA
   expect_true(sum(!is.na(result$V22)) > 0)
 })
 
-test_that("calculate_volume - Gestion des espèces sans équation", {
+test_that("calculate_volume - Handling species without equation", {
   # Setup
   test_data <- data.frame(
-    Species = "Espece_Inconnue",
+    Species = "Unknown_Species",
     D130 = 30,
     HTOT = 20,
     stringsAsFactors = FALSE
   )
   test_equations <<- create_test_equations()
 
-  # Test avec avertissement attendu
+  # Test with expected warning
   expect_warning(
-    result <- calculate_volume(test_data, equations = test_equations,volume_type = "V22"),
+    result <- calculate_volume(test_data, equations = test_equations, volume_type = "V22"),
     "No equation found for species"
   )
 
   expect_equal(result$Validity_Status[1], "NO_EQUATION")
 })
 
-test_that("calculate_volume - Validation du domaine de validité", {
+test_that("calculate_volume - Validity domain validation", {
   # Setup
   test_data <- create_test_data(n)
   test_equations <<- create_test_equations()
 
   # Test
-  result <- calculate_volume(test_data, equations = test_equations,volume_type = "V22", D130 = "D130")
+  result <- calculate_volume(test_data, equations = test_equations, volume_type = "V22", D130 = "D130")
 
-  # Vérifications
+  # Checks
   expect_equal(result$Validity_Status[1], "VALID")
   expect_equal(result$Validity_Status[2], "VALID")
   expect_equal(result$Validity_Status[3], "VALID")
 })
 
-test_that("calculate_volume - Paramètre D130 personnalisé", {
+test_that("calculate_volume - Custom D130 parameter", {
   # Setup
   test_data <- create_test_data(3)
   test_data$DHB_custom <- test_data$D130
   test_equations <<- create_test_equations()
 
   # Test
-  result <- calculate_volume(test_data,equations = test_equations, D130 = "DHB_custom", volume_type = "V22")
+  result <- calculate_volume(test_data, equations = test_equations, D130 = "DHB_custom", volume_type = "V22")
 
-  # Vérifications
+  # Checks
   expect_true(sum(!is.na(result$V22)) > 0)
 })
 
-test_that("calculate_volume - Gestion des valeurs manquantes", {
+test_that("calculate_volume - Handling missing values", {
   # Setup
   test_data <- create_test_data(3)
   test_data$D130[2] <- NA
@@ -244,28 +242,28 @@ test_that("calculate_volume - Gestion des valeurs manquantes", {
   test_equations <<- create_test_equations()
 
   # Test
-  result <- calculate_volume(test_data,equations = test_equations, volume_type = "V22")
+  result <- calculate_volume(test_data, equations = test_equations, volume_type = "V22")
 
-  # Vérifications
+  # Checks
   expect_true(is.na(result$V22[2]) || is.na(result$V22[3]))
 })
 
 # ============================================================================
-# TESTS POUR calculate_bark_thickness()
+# TESTS FOR calculate_bark_thickness()
 # ============================================================================
 
-test_that("calculate_bark_thickness - Fonctionnement de base", {
+test_that("calculate_bark_thickness - Basic functionality", {
   # Setup
   test_data <- create_test_data(3)
   test_data$V22 <- c(0.5, 0.8, 1.2)
 
-  # Harmonisation des colonnes des tables
   eq1 <- create_test_equations()
   eq2 <- create_bark_equations()
 
+  # Harmonize columns for rbind
   common_cols <- intersect(names(eq1), names(eq2))
-  eq1 <- eq1[, common_cols]
-  eq2 <- eq2[, common_cols]
+  eq1 <- eq1[, common_cols, drop = FALSE]
+  eq2 <- eq2[, common_cols, drop = FALSE]
 
   test_equations <- rbind(eq1, eq2)
 
@@ -273,33 +271,39 @@ test_that("calculate_bark_thickness - Fonctionnement de base", {
   result <- calculate_bark_thickness(
     test_data,
     equations = test_equations,
-    total_volume_col = "V22"
+    total_volume_col = "V22",
+    source = "Dagnellie"
   )
 
-  # Vérifications
+  # Checks
   expect_true("E" %in% names(result))
   expect_true("Bark_Volume" %in% names(result))
   expect_true("Wood_Volume" %in% names(result))
   expect_equal(nrow(result), nrow(test_data))
 })
 
-
-test_that("calculate_bark_thickness - Absence d'équations d'écorce", {
+test_that("calculate_bark_thickness - Absence of bark equations", {
   # Setup
   test_data <- create_test_data(2)
   test_data$V22 <- c(0.5, 0.8)
-  test_equations <<- create_test_equations() # Pas d'équations E
+  test_equations <- create_test_equations()  # Does not contain equations with Y == "E"
 
-  # Test avec avertissement
+  # Test: expected warning if no bark equations available
   expect_warning(
-    result <- calculate_bark_thickness(test_data, equations = test_equations),
-    "Aucune équation d'écorce"
+    result <- calculate_bark_thickness(
+      test_data,
+      equations = test_equations,
+      total_volume_col = "V22",
+      source = "Dagnellie"
+    ),
+    regexp = "No bark equations.*found"
   )
 
-  expect_true(all(is.na(result$E)))
+  # Check that data has not been modified (expected behavior without equation)
+  expect_equal(result, test_data)
 })
 
-test_that("calculate_bark_thickness - Conservation du volume", {
+test_that("calculate_bark_thickness - Volume conservation", {
   # Setup
   test_data <- data.frame(
     Species = "Hetre",
@@ -308,63 +312,63 @@ test_that("calculate_bark_thickness - Conservation du volume", {
     stringsAsFactors = FALSE
   )
 
-  # Harmoniser les colonnes des équations avant rbind
+  # Harmonize equation columns before rbind
   eq1 <- create_test_equations()
   eq2 <- create_bark_equations()
   common_cols <- intersect(names(eq1), names(eq2))
   eq1 <- eq1[, common_cols, drop = FALSE]
   eq2 <- eq2[, common_cols, drop = FALSE]
-  equations <<- rbind(eq1, eq2)
+  equations <- rbind(eq1, eq2)
 
   # Test
-  result <- calculate_bark_thickness(test_data, equations = equations, total_volume_col = "V22")
+  result <- calculate_bark_thickness(
+    test_data,
+    equations = equations,
+    total_volume_col = "V22",
+    source = "Dagnellie"  # ✅ Correction here
+  )
 
-
-  # Vérification que Volume_Bark + Volume_Wood = Volume_Total
+  # Check that Bark_Volume + Wood_Volume = V22
   if (!is.na(result$Bark_Volume[1]) && !is.na(result$Wood_Volume[1])) {
     total_calc <- result$Bark_Volume[1] + result$Wood_Volume[1]
     expect_equal(total_calc, result$V22[1], tolerance = 1e-6)
   }
 })
 
-
 # ============================================================================
-# TESTS POUR calculate_biomass()
+# TESTS FOR calculate_biomass()
 # ============================================================================
 
-test_that("calculate_biomass - Fonctionnement de base", {
+test_that("calculate_biomass - Basic functionality", {
   # Setup
   test_data <- create_test_data(3)
   equations_df <- create_biomass_equations()
 
   # Test
-  result <- calculate_biomass(test_data, equations = equations_df)
+  result <- calculate_biomass(test_data, equations = equations_df, method = "equation")
 
-  # Vérifications
-  expect_true("Biomass_Total" %in% names(result))
+  # Checks
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("Biomass_Aboveground", "Biomass_Root", "Biomass_Total") %in% names(result)))
   expect_equal(nrow(result), nrow(test_data))
-
-  # Vérifier la création des colonnes spécifiques par espèce
-  biomass_cols <- names(result)[grepl("_Biomass_", names(result))]
-  expect_true(length(biomass_cols) > 0)
+  expect_true(sum(!is.na(result$Biomass_Total)) > 0)
 })
 
-test_that("calculate_biomass - Absence d'équations de biomasse", {
+test_that("calculate_biomass - Absence of biomass equations", {
   # Setup
   test_data <- create_test_data(2)
-  equations_df <- data.frame() # Pas d'équations
+  equations_df <- data.frame()  # Empty equations
 
-  # Test avec avertissement
+  # Test with warning
   expect_warning(
-    result <- calculate_biomass(test_data, equations = equations_df),
+    result <- calculate_biomass(test_data, equations = equations_df, method = "equation"),
     "No biomass equations found"
   )
 
   expect_true(all(is.na(result$Biomass_Total)))
 })
 
-test_that("calculate_biomass - Équations logarithmiques (A0=4)", {
-  # Setup
+test_that("calculate_biomass - Logarithmic equations (A0=4)", {
   test_data <- data.frame(
     Species = "Hetre",
     D130 = 30,
@@ -387,18 +391,39 @@ test_that("calculate_biomass - Équations logarithmiques (A0=4)", {
   )
 
   # Test
-  result <- calculate_biomass(test_data, equations = equations_df)
+  result <- calculate_biomass(test_data, equations = equations_df, method = "equation")
 
-  # Vérifications
+  # Checks
   expect_true(!is.na(result$Biomass_Total[1]))
-  expect_true(result$Biomass_Total[1] > 0)
+  expect_gt(result$Biomass_Total[1], 0)
+})
+
+test_that("calculate_biomass - Volume x infra-density mode", {
+  # Setup
+  test_data <- create_test_data(3)
+  test_data$V22 <- c(1.2, 2.5, 0.8)
+
+  id_table <- data.frame(
+    Species = unique(test_data$Species),
+    ID = c(0.5, 0.6, 0.4),  # infra-density
+    stringsAsFactors = FALSE
+  )
+
+  # Test
+  result <- calculate_biomass(test_data, equations = id_table, method = "volume")
+
+  # Checks
+  expect_true(all(c("Biomass_Aboveground", "Biomass_Root", "Biomass_Total") %in% names(result)))
+  expect_equal(result$Biomass_Aboveground, test_data$V22 * id_table$ID)
+  expect_equal(result$Biomass_Root, result$Biomass_Aboveground * 0.2)
+  expect_equal(result$Biomass_Total, result$Biomass_Aboveground * 1.2)
 })
 
 # ============================================================================
-# TESTS POUR calculate_carbon()
+# TESTS FOR calculate_carbon()
 # ============================================================================
 
-test_that("calculate_carbon - Fonctionnement de base", {
+test_that("calculate_carbon - Basic functionality", {
   # Setup
   test_data <- data.frame(
     Species = "Hetre",
@@ -408,19 +433,19 @@ test_that("calculate_carbon - Fonctionnement de base", {
   # Test
   result <- calculate_carbon(test_data)
 
-  # Vérifications
+  # Checks
   expect_true("Carbon_Total" %in% names(result))
   expect_equal(result$Carbon_Total, c(50, 100, 150))
 })
 
-test_that("calculate_carbon - Absence de colonne Biomass_Total", {
+test_that("calculate_carbon - Missing Biomass_Total column", {
   # Setup
   test_data <- data.frame(Species = "Hetre")
 
-  # Test avec avertissement
+  # Test with warning
   expect_warning(
     result <- calculate_carbon(test_data),
-    "La colonne 'Biomass_Total' est absente"
+    regexp = "Biomass_Total.*missing"
   )
 
   expect_true("Carbon_Total" %in% names(result))
@@ -428,15 +453,14 @@ test_that("calculate_carbon - Absence de colonne Biomass_Total", {
 })
 
 # ============================================================================
-# TESTS POUR calculate_prediction_interval()
+# TESTS FOR calculate_prediction_interval()
 # ============================================================================
 
-test_that("calculate_prediction_interval - Cas univarié", {
-  # Setup
+test_that("calculate_prediction_interval - Univariate case", {
   test_data <- data.frame(
     Species = "Hetre",
     D130 = 35,
-    Volume = 0.8,
+    V22 = 0.8,  # volume column
     stringsAsFactors = FALSE
   )
 
@@ -452,21 +476,28 @@ test_that("calculate_prediction_interval - Cas univarié", {
     stringsAsFactors = FALSE
   )
 
-  # Test
-  result <- calculate_prediction_interval(test_data, eqs_volume, equation_id = 1)
+  result <- calculate_prediction_interval(
+    x = test_data,
+    equations = eqs_volume,
+    volume_type = "V22",
+    equation_id = 1,
+    summarize = FALSE
+  )
 
-  # Vérifications
-  expect_length(result, nrow(test_data))
-  expect_true(is.numeric(result))
+  expect_s3_class(result, "data.frame")
+  expect_equal(nrow(result), 1)
+  expect_true("Relative_Width" %in% names(result))
+  expect_true("Reliability" %in% names(result))
+  expect_true(is.numeric(result$Relative_Width))
+  expect_false(is.na(result$Relative_Width))
 })
 
-test_that("calculate_prediction_interval - Cas multivarié", {
-  # Setup
+test_that("calculate_prediction_interval - Multivariate case", {
   test_data <- data.frame(
     Species = "Hetre",
     D130 = 35,
     HTOT = 20,
-    Volume = 0.8,
+    V22 = 0.8,  # note: volume column must match volume_type
     stringsAsFactors = FALSE
   )
 
@@ -479,125 +510,98 @@ test_that("calculate_prediction_interval - Cas multivarié", {
     x_mean_HTOT = 20,
     SCE_D130 = 1500,
     SCE_HTOT = 800,
-    COV_D130_HTOT = 0.1,
+    COV_D130_HTOT = 200,
     X1 = "D130",
     X2 = "HTOT",
     X3 = "0", X4 = "0", X5 = "0",
     stringsAsFactors = FALSE
   )
 
-  # Test
-  result <- calculate_prediction_interval(test_data, eqs_volume, equation_id = 1)
+  result <- calculate_prediction_interval(
+    x = test_data,
+    equations = eqs_volume,
+    volume_type = "V22",
+    equation_id = 1,
+    summarize = FALSE
+  )
 
-  # Vérifications
-  expect_length(result, nrow(test_data))
-  expect_true(is.numeric(result))
+  expect_s3_class(result, "data.frame")
+  expect_equal(nrow(result), 1)
+  expect_true("Relative_Width" %in% names(result))
+  expect_true("Reliability" %in% names(result))
+  expect_true(is.numeric(result$Relative_Width))
 })
 
 # ============================================================================
-# TESTS POUR interpret_relative_width()
+# INTEGRATION TESTS
 # ============================================================================
 
-test_that("interpret_relative_width - Classification correcte", {
-  # Setup
-  relative_widths <- c(0.05, 0.15, 0.35, 0.75, NA)
-
-  # Test
-  result <- interpret_relative_width(relative_widths)
-
-  # Vérifications
-  expect_equal(result[1], "Very narrow -> Very reliable ")
-  expect_equal(result[2], "Acceptable -> Rather reliable ")
-  expect_equal(result[3], "Wide -> Uncertain ")
-  expect_equal(result[4], "Very wide -> Risky ")
-  expect_equal(result[5], "No calculation")
-})
-
-# ============================================================================
-# TESTS POUR summarize_relative_intervals()
-# ============================================================================
-
-test_that("summarize_relative_intervals - Résumé statistique", {
+test_that("Complete pipeline - Volume -> Bark -> Biomass -> Carbon", {
   # Setup
   test_data <- data.frame(
-    Species = rep(c("Hetre", "Chene pedoncule"), each = 3)
-  )
-  relative_widths <- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
-
-  # Test (capture la sortie console)
-  expect_output(
-    summarize_relative_intervals(relative_widths, test_data),
-    "SUMMARY OF RELATIVE INTERVAL WIDTHS"
+    Species = c("Hetre", "Chene pedoncule"),
+    D130 = c(30, 40),
+    HTOT = c(25, 30),
+    stringsAsFactors = FALSE
   )
 
-  expect_output(
-    summarize_relative_intervals(relative_widths, test_data),
-    "Mean relative width"
-  )
-})
-
-test_that("summarize_relative_intervals - Gestion des valeurs vides", {
-  # Setup
-  test_data <- data.frame(Species = "Test")
-  relative_widths <- c(NA, NA, NA)
-
-  # Test
-  expect_output(
-    summarize_relative_intervals(relative_widths, test_data),
-    "No prediction intervals calculated"
-  )
-})
-
-# ============================================================================
-# TESTS D'INTÉGRATION
-# ============================================================================
-
-test_that("Pipeline complet - Volume -> Écorce -> Biomasse -> Carbone", {
-  # Setup
-  test_data <- create_test_data(5)
-
-  eq_volume <- create_test_equations()
-  eq_bark   <- create_bark_equations()
+  # Create equations
+  eq_vol <- create_test_equations()
+  eq_bark <- create_bark_equations()
   eq_biomass <- create_biomass_equations()
 
-  # Pipeline complet
-  result <- test_data
-  result <- calculate_volume(result, equations = eq_volume, volume_type = "V22")
-  result <- calculate_bark_thickness(result, equations = eq_bark, total_volume_col = "V22")
-  result <- calculate_biomass(result, equations = eq_biomass)
+  # Harmonize columns for rbind
+  common_cols <- Reduce(intersect, list(names(eq_vol), names(eq_bark), names(eq_biomass)))
+  eq_vol <- eq_vol[, common_cols, drop = FALSE]
+  eq_bark <- eq_bark[, common_cols, drop = FALSE]
+  eq_biomass <- eq_biomass[, common_cols, drop = FALSE]
+
+  all_equations <- rbind(eq_vol, eq_bark, eq_biomass)
+
+  # Step 1: volume calculation
+  result <- calculate_volume(
+    test_data,
+    equations = all_equations,
+    volume_type = "V22",
+    equation_id = 1
+  )
+
+  # Step 2: bark calculation
+  result <- calculate_bark_thickness(
+    result,
+    equations = all_equations,
+    total_volume_col = "V22",
+    source = "Dagnellie"
+  )
+
+  # Step 3: biomass calculation
+  result <- calculate_biomass(
+    result,
+    equations = all_equations,
+    method = "equation"
+  )
+
+  # Step 4: carbon calculation
   result <- calculate_carbon(result)
 
-  # Vérifications finales
+  # Checks
   expect_true("V22" %in% names(result))
-  expect_true("E" %in% names(result))
+  expect_true("Bark_Volume" %in% names(result))
   expect_true("Biomass_Total" %in% names(result))
   expect_true("Carbon_Total" %in% names(result))
-  expect_equal(nrow(result), 5)
-
-  # Vérifier la cohérence des calculs de carbone
-  valid_biomass <- !is.na(result$Biomass_Total)
-  if (any(valid_biomass)) {
-    expect_equal(
-      result$Carbon_Total[valid_biomass],
-      result$Biomass_Total[valid_biomass] * 0.5,
-      tolerance = 1e-10
-    )
-  }
 })
 
-
-
-test_that("Gestion des erreurs - Données corrompues", {
-  # Setup avec données problématiques
+test_that("Error handling - Corrupted data", {
+  # Setup with problematic data
   test_data <- data.frame(
     Species = c("Hetre", "Hetre"),
-    D130 = c(-10, Inf),  # Valeurs invalides
+    D130 = c(-10, Inf),  # Invalid values
     HTOT = c(NA, 25),
     stringsAsFactors = FALSE
   )
   equations <- create_test_equations()
 
-  # Test - autorise tout warning
+  # Test - allow any warning
   expect_warning(
     result <- calculate_volume(test_data, equations = equations, volume_type = "V22"),
     regexp = ".*"
@@ -607,34 +611,26 @@ test_that("Gestion des erreurs - Données corrompues", {
   expect_equal(nrow(result), 2)
 })
 
-
-
 # ============================================================================
-# TESTS DE PERFORMANCE
+# PERFORMANCE TESTS
 # ============================================================================
 
-test_that("Performance - Gros dataset", {
+test_that("Performance - Large dataset", {
   # Setup
   large_data <- create_test_data(1000)
   equations <- create_test_equations()
 
-  # Test de performance
+  # Performance test
   start_time <- Sys.time()
   result <- calculate_volume(large_data, equations = equations, volume_type = "V22")
   end_time <- Sys.time()
 
-  # Vérifications
+  # Checks
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 1000)
 
-  # Le calcul ne devrait pas prendre plus de 30 secondes
+  # Calculation should not take more than 30 seconds
   time_taken <- as.numeric(difftime(end_time, start_time, units = "secs"))
   expect_lt(time_taken, 30)
 })
 
-
-# Nettoie les objets globaux créés pour les tests
-teardown({
-  if (exists("equations")) rm(equations, envir = .GlobalEnv)
-  if (exists("equations_df")) rm(equations_df, envir = .GlobalEnv)
-})

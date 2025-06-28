@@ -42,11 +42,13 @@ test_that("Test avec abréviations d'espèces", {
     C130 = c(94.2, 125.6),
     HTOT = c(25.5, 28.2)
   )
-  result <- carbofor(data,specimens = "Abr", volume_type = "V22", specimens = "Abr")
+  result <- carbofor(data, specimens = "Abr", volume_type = "V22", equation_id = 1)
+  expect_s3_class(result, "data.frame")
   expect_true("V22" %in% colnames(result))
   expect_true("G130" %in% colnames(result))
   expect_true("D130" %in% colnames(result))
 })
+
 
 test_that("Test avec données mixtes (D130 et C150)", {
   data <- data.frame(

@@ -2,20 +2,20 @@
 % Please edit documentation in R/utils.R
 \name{evaluate_expression}
 \alias{evaluate_expression}
-\title{Évalue une expression mathématique en toute sécurité}
+\title{Safely evaluate a mathematical expression}
 \usage{
 evaluate_expression(expr_text, variables)
 }
 \arguments{
-\item{variables}{Liste nommée de variables utilisées dans l'expression}
+\item{expr_text}{A character string representing the mathematical expression to evaluate.}
 
-\item{expr}{Expression mathématique sous forme de chaîne}
+\item{variables}{A named list of variables used within the expression.}
 }
 \value{
-Valeur numérique évaluée ou NA en cas d'erreur
+A numeric value resulting from the evaluation, or `NA` in case of error.
 }
 \description{
-Cette fonction prend une chaîne de caractères représentant une expression mathématique
-et l'évalue dans un environnement contenant les variables nécessaires.
-Elle gère les erreurs, les valeurs manquantes et les cas non finis.
+This function takes a character string representing a mathematical expression
+and evaluates it in a safe environment using the provided named variables.
+It handles syntax errors, missing or invalid values, and non-finite results.
 }

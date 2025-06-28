@@ -1,21 +1,35 @@
-
-#' Convertir un data.frame en objet carbofor_data
+# =====================================================================
+#                             as.carbofor_data()
+# =====================================================================
+#' Convert a data.frame into a carbofor_data object
+#'
+#' @description
+#' Assigns the class "carbofor_data" to a data.frame to allow method dispatching.
+#'
+#' @param x A data.frame containing tree data.
+#'
+#' @return The same data.frame with an additional class "carbofor_data".
 #' @export
 as.carbofor_data <- function(x) {
-  debug_log("Conversion du data.frame en objet 'carbofor_data'")
   class(x) <- c("carbofor_data", class(x))
   return(x)
 }
 
-flags <- list(
-  C130_exists = FALSE,
-  C150_exists = FALSE,
-  D130_exists = FALSE,
-  D150_exists = FALSE,
-  HTOT_exists = FALSE,
-  HDOM_exists = FALSE
-)
-
+# =====================================================================
+#                             update_flags()
+# =====================================================================
+#' Update existence flags for key column names
+#'
+#' @description
+#' Checks whether key variables (diameters, circumferences, heights) exist in the input data
+#' and updates a logical flag list accordingly.
+#'
+#' @param x A data.frame containing tree data.
+#' @param flags A named list of logicals tracking existence of key variables.
+#' @param C130, C150, D130, D150, HTOT, HDOM Column names to check in the data.frame.
+#'
+#' @return An updated list of logical flags indicating column presence.
+#' @export
 update_flags <- function(x, flags, C130, C150, D130, D150, HTOT, HDOM) {
   flags$C130_exists <- C130 %in% colnames(x)
   flags$C150_exists <- C150 %in% colnames(x)
@@ -26,68 +40,181 @@ update_flags <- function(x, flags, C130, C150, D130, D150, HTOT, HDOM) {
   return(flags)
 }
 
-debug_log <- function(msg) {
-  message(sprintf("[DEBUG] %s", msg))
-}
-
-#' Prétraitement des données pour le calcul de volume
+# =====================================================================
+#                         preprocess_data()
+# =====================================================================
+#' Preprocess Tree-Level Data for Allometric Calculations
+#'
+#' @description
+#' This function performs a complete preprocessing pipeline to prepare tree inventory data
+#' for volume, biomass, or carbon calculations. It includes:
+#' \itemize{
+#'   \item Species matching using a reference correspondence table;
+#'   \item Conversion between diameter and circumference measurements at breast height;
+#'   \item Harmonization between C130 and C150 measurements;
+#'   \item Calculation of basal area for each tree record.
+#' }
+#' These steps ensure the dataset is standardized and consistent with the format expected
+#' by downstream modeling functions such as \code{\link{calculate_volumes}} or \code{\link{calculate_biomass}}.
+#'
+#' @param x A `data.frame` containing individual tree measurements. Must include at least one
+#' diameter or circumference variable (D130, D150, C130, or C150) and height measurements.
+#' @param specimens Optional. Character string giving the name of the column used to identify species.
+#' This can be a species code, abbreviation, or full Latin name. Required for species-specific models.
+#' @param C130,C150 Character. Column names storing circumference at 130 cm and 150 cm respectively (in cm).
+#' @param D130,D150 Character. Column names storing diameter at 130 cm and 150 cm respectively (in cm).
+#' @param HTOT Character. Column name for total tree height (in meters).
+#' @param HDOM Character. Column name for dominant height (in meters).
+#' @param ... Additional arguments (currently unused).
+#'
+#' @return
+#' A `data.frame` identical to the input but augmented with:
+#' \itemize{
+#'   \item A `species_model` column containing standardized species names used for model selection;
+#'   \item Derived diameter or circumference variables if conversions were applied;
+#'   \item A `G_m2` column for basal area (in m²) per tree, based on C130 or D130.
+#' }
+#' The data is guaranteed to have the variables needed for further model prediction functions.
+#'
+#' @details
+#' The function applies the following steps in order:
+#' \enumerate{
+#'   \item \code{\link{establish_species_correspondence}} — assigns a standard species name;
+#'   \item \code{\link{diameter_conversions}} — converts between diameter and circumference if needed;
+#'   \item \code{\link{convert_circumference}} — harmonizes C130 and C150 using site coefficients;
+#'   \item \code{\link{calculate_basal_areas}} — computes tree-level basal area (G).
+#' }
+#'
+#' All conversions assume measurements are in centimeters (for diameters and circumferences)
+#' and meters for heights.
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(
+#'   C130 = c(100, 120),
+#'   HTOT = c(22, 27),
+#'   HDOM = c(25, 28),
+#'   Species = c("HE", "EP")
+#' )
+#'
+#' df_preprocessed <- preprocess_data(
+#'   x = df,
+#'   specimens = "Species",
+#'   C130 = "C130",
+#'   HTOT = "HTOT",
+#'   HDOM = "HDOM"
+#' )
+#' head(df_preprocessed)
+#' }
+#'
+#' @seealso
+#' \code{\link{validate_parameters}}, \code{\link{calculate_volumes}}, \code{\link{calculate_biomass}},
+#' \code{\link{calculate_prediction_interval}}, \code{\link{calculate_carbon}}.
+#'
 #' @export
+
 preprocess_data <- function(x, specimens = NULL, C130 = "C130", C150 = "C150",
                             D130 = "D130", D150 = "D150", HTOT = "HTOT", HDOM = "HDOM", ...) {
-  debug_log("Début du prétraitement des données")
-
-  x <- establish_species_correspondence(x, specimens)
-  debug_log("Correspondance des espèces établie")
-
+  x <- establish_species_correspondence(x, specimens = specimens)
   x <- diameter_conversions(x, C130 = C130, C150 = C150, D130 = D130, D150 = D150)
-  debug_log("Conversions diamètre/circonférence effectuées")
-
   x <- convert_circumference(x, C130 = C130, C150 = C150)
-  debug_log("Conversion générique entre C130 et C150 effectuée")
-
-  x <- calculate_basal_areas(x, C130 , C150)
-  debug_log("Calcul des surfaces basales terminé")
-
-  debug_log("Fin du prétraitement")
+  x <- calculate_basal_areas(x, C130 = C130, C150 = C150)
   return(x)
 }
 
-#' Correspondance des espèces à partir des codes ou abréviations
+
+# =====================================================================
+#               establish_species_correspondence()
+# =====================================================================
+
+#' Standardize Species Names Using Internal Correspondence Table
+#'
+#' @description
+#' This function standardizes species names in a tree inventory dataset by mapping
+#' species identifiers (codes, abbreviations, or names) to a canonical species name
+#' used for model selection. The correspondence is based on the internal `equations`
+#' database, which must contain a column named `"Species"` and at least one alternative
+#' identification column (e.g., `"Code"`, `"Abbreviation"`).
+#'
+#' This step ensures consistency across datasets using heterogeneous species identifiers.
+#'
+#' @param x A `data.frame` containing tree-level inventory data, including a column
+#' with species identifiers.
+#' @param specimens A character string specifying the column name in `x` that identifies species.
+#' Accepted identifiers include codes (e.g., `"FASY"`), abbreviations (e.g., `"F. sylvatica"`), or full names.
+#'
+#' @return
+#' A `data.frame` identical to the input but with a new standardized `Species` column
+#' corresponding to the canonical names used in the model database. If no match is found
+#' for some records, a warning is issued and `NA` is assigned to the `Species` field.
+#'
+#' @details
+#' The function performs the following steps:
+#' \enumerate{
+#'   \item Detects the type of specimen identifier using \code{\link{detect_specimens_type}}.
+#'   \item Loads a mapping between the provided `specimens` column and the standardized `Species` column.
+#'   \item Merges this mapping with the input dataset.
+#'   \item Handles column name conflicts and ensures `Species` is uniquely assigned.
+#' }
+#' The internal object `equations` must be available in the environment and include
+#' a column `"Species"` along with the corresponding identification column.
+#'
+#' @section Warnings:
+#' If the specified `specimens` column does not exist in `x`, or if `equations` does not
+#' contain the appropriate mapping columns, the function throws an error.
+#' A warning is issued if any identifiers cannot be matched.
+#'
+#' @examples
+#' \dontrun{
+#' # Suppose `equations` contains: Species | Code
+#' #                              ---------|------
+#' #                              Hetre | HE
+#' #                              Epicea commun     | EP
+#'
+#' df <- data.frame(
+#'   TreeID = 1:3,
+#'   Code = c("HE", "EP", "XXXX"),
+#'   DBH = c(32.1, 28.4, 25.3)
+#' )
+#'
+#' df <- establish_species_correspondence(df, specimens = "Code")
+#' head(df)
+#' }
+#'
+#' @seealso
+#' \code{\link{detect_specimens_type}}, \code{\link{preprocess_data}}, \code{\link{validate_parameters}},
+#' \code{\link{calculate_volumes}}, \code{\link{carbofor_species}}
+#'
 #' @export
-# Establish species correspondence
+
 establish_species_correspondence <- function(x, specimens) {
   if (is.null(specimens)) {
     stop("No species identification column specified or found in the data.")
   }
 
   if (!(specimens %in% colnames(x))) {
-    stop(paste("The specified column '", specimens, "' does not exist in the data.", sep=""))
+    stop(paste("The specified column '", specimens, "' does not exist in the data.", sep = ""))
   }
 
   specimens_type <- detect_specimens_type(x, specimens)
 
-  # Add Species column if necessary
   if (specimens_type != "Species" || specimens != "Species") {
-    # Check required columns in equations
     if (!all(c("Species", specimens_type) %in% colnames(equations))) {
       stop(paste("The 'equations' dataframe must contain the columns 'Species' and '",
-                 specimens_type, "'", sep=""))
+                 specimens_type, "'", sep = ""))
     }
 
-    # Create mapping
     mapping_df <- unique(equations[, c("Species", specimens_type)])
     names(mapping_df) <- c("Species", specimens)
-
-    # Merge
 
     conflicts <- intersect(names(x), names(mapping_df))
     conflicts <- setdiff(conflicts, specimens)
     if (length(conflicts) > 0) {
       x <- x[, !(names(x) %in% conflicts)]
     }
+
     x <- merge(x, mapping_df, by = specimens, all.x = TRUE)
 
-    # Clean duplicated columns
     if ("Species.x" %in% colnames(x)) {
       names(x)[names(x) == "Species.x"] <- "Species"
       if ("Species.y" %in% colnames(x)) {
@@ -95,46 +222,78 @@ establish_species_correspondence <- function(x, specimens) {
       }
     }
 
-    # Check for missing correspondences
     missing_mask <- is.na(x$Species)
     if (any(missing_mask)) {
       na_values <- unique(x[[specimens]][is.na(x$Species)])
       warning(paste("No correspondence found for the following values of",
-                    specimens, ":", paste(na_values, collapse=", ")))
+                    specimens, ":", paste(na_values, collapse = ", ")))
     }
   } else {
     names(x)[names(x) == "Species"] <- "Species"
   }
 
-  #debug
-  cat("[DEBUG] ==================== SPECIES CORRESPONDENCE ====================\n")
-  cat("[DEBUG] Used specimens column:", specimens, " (type:", specimens_type, ")\n")
-  cat("[DEBUG] equations dimensions: [", nrow(equations), "x", ncol(equations), "]\n")
-  cat("[DEBUG] equations columns:", paste(colnames(equations), collapse = ", "), "\n")
-  cat("[DEBUG] Number of rows before merge:", nrow(df), "\n")
-  if (exists("mapping_df")) {
-    cat("[DEBUG] Correspondences created:", nrow(mapping_df), "\n")
-    cat("[DEBUG] Mapping preview:\n")
-    print(utils::head(mapping_df, 3))
-  }
-  cat("[DEBUG] Number of rows after merge:", nrow(x), "\n")
-  values_without_correspondence <- unique(x[[specimens]][is.na(x$Species)])
-  if (length(values_without_correspondence) > 0) {
-    cat("[DEBUG] [Warning]  Values without correspondence (", length(values_without_correspondence), "):",
-        paste(utils::head(values_without_correspondence, 5), collapse = ", "), "\n")
-  }
-  cat("[DEBUG] [OK]Species correspondence completed\n\n")
-
   return(x)
 }
 
-#' Détection automatique du type d'identifiant d'espèce
+
+# =====================================================================
+#                    detect_specimens_type()
+# =====================================================================
+
+#' Detect the Format of Species Identifiers in Tree Inventory Data
+#'
+#' @description
+#' Automatically infers the type of species identifier provided in a given column,
+#' based on the data type and the average string length. This function helps
+#' distinguish between:
+#' \itemize{
+#'   \item \code{"Code"}: numerical species codes (e.g., \code{3} for Hetre, \code{41} for epicea commun);
+#'   \item \code{"Abr"}: short alphanumeric abbreviations (e.g., \code{"HE"} for Hetre, \code{"EP"} for epicea commun);
+#'   \item \code{"Species"}: full species names (e.g., \code{"Hetre"}, \code{"epicea commun"}).
+#' }
+#' The function is used internally to standardize species identifiers before applying
+#' species-specific allometric models.
+#'
+#' @param x A `data.frame` containing the column to analyze.
+#' @param specimens A character string indicating the name of the column to inspect for species identifiers.
+#'
+#' @return
+#' A character string indicating the detected format of the species identifier.
+#' One of: \code{"Code"}, \code{"Abr"}, or \code{"Species"}.
+#'
+#' @details
+#' The function first removes missing values, then:
+#' \itemize{
+#'   \item Returns \code{"Code"} if the non-missing values are numeric;
+#'   \item Returns \code{"Abr"} if the mean number of characters is ≤ 4;
+#'   \item Returns \code{"Species"} otherwise.
+#' }
+#' If the column contains only missing values, or an unsupported data type, an error is raised.
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(
+#'   Code = c(3, 41, 3),
+#'   Abr = c("HE", "EP", "HE"),
+#'   Species = c("Hetre", "epicea commun", "Hetre")
+#' )
+#'
+#' detect_specimens_type(df, specimens = "Code")     # Returns "Code"
+#' detect_specimens_type(df, specimens = "Abr")      # Returns "Abr"
+#' detect_specimens_type(df, specimens = "Species")  # Returns "Species"
+#' }
+#'
+#' @seealso
+#' \code{\link{establish_species_correspondence}}, \code{\link{preprocess_data}},
+#' \code{\link{validate_parameters}}
+#'
 #' @export
+
 detect_specimens_type <- function(x, specimens) {
   sample_values <- na.omit(x[[specimens]])
 
   if (length(sample_values) == 0) {
-    stop(paste("Column '", specimens, "' contains only missing values.", sep=""))
+    stop(paste("Column '", specimens, "' contains only missing values.", sep = ""))
   }
 
   if (is.numeric(sample_values)) {
@@ -143,380 +302,261 @@ detect_specimens_type <- function(x, specimens) {
     if (is.factor(sample_values)) {
       sample_values <- as.character(sample_values)
     }
-
     mean_length <- mean(nchar(sample_values))
     specimens_type <- if (mean_length <= 4) "Abr" else "Species"
   } else {
-    stop(paste("Data type in column '", specimens, "' is not recognized.", sep=""))
+    stop(paste("Data type in column '", specimens, "' is not recognized.", sep = ""))
   }
 
-  #debug
-  cat("[DEBUG] ==================== SPECIMENS TYPE DETECTION ====================\n")
-  cat("[DEBUG] Analyzed specimens column:", specimens, "\n")
-  cat("[DEBUG] R data type:", class(x[[specimens]]), "\n")
-  cat("[DEBUG] Number of non-NA values:", length(sample_values), "\n")
-  cat("[DEBUG] Sample values:", paste(utils::head(sample_values, 3), collapse = ", "), "\n")
-  if (is.character(sample_values) || is.factor(sample_values)) {
-    cat("[DEBUG] Average character length:", round(mean_length, 2), "\n")
-  }
-  cat("[DEBUG] Detected identification type:", specimens_type, "\n")
-  cat("[DEBUG] [OK]Specimens type detection completed\n\n")
   return(specimens_type)
 }
 
-#' Conversion diamètre <-> circonférence
+
+# =====================================================================
+#                    diameter_conversions()
+# =====================================================================
+
+#' Convert Between Diameter and Circumference Measurements
+#'
+#' @description
+#' Converts missing diameter or circumference values at breast height
+#' using the formula: \code{C = pi * D}. The function works in both directions:
+#' \itemize{
+#'   \item If diameter is known and circumference is missing, it computes circumference;
+#'   \item If circumference is known and diameter is missing, it computes diameter.
+#' }
+#' The function supports measurements at both 130 cm and 150 cm above ground.
+#'
+#' @param x A data.frame containing tree inventory data with at least one of the diameter or circumference columns.
+#' @param C130 Character. Name of the column storing circumference at 130 cm above ground (in cm).
+#' @param C150 Character. Name of the column storing circumference at 150 cm above ground (in cm).
+#' @param D130 Character. Name of the column storing diameter at 130 cm above ground (in cm).
+#' @param D150 Character. Name of the column storing diameter at 150 cm above ground (in cm).
+#' @param HTOT Character (unused). Name of the column for total height, included for compatibility.
+#' @param HDOM Character (unused). Name of the column for dominant height, included for compatibility.
+#'
+#' @return
+#' A data.frame identical to the input but with missing diameter or circumference values filled when possible.
+#' Columns are created if they do not exist in the original dataset.
+#'
+#' @details
+#' The function ensures all four measurement columns exist in the dataset. If one is missing,
+#' it is created with \code{NA_real_}. Then, it attempts to complete missing values using
+#' the available ones with the relationships:
+#' \itemize{
+#'   \item \code{C = pi * D}
+#'   \item \code{D = C / pi}
+#' }
+#'
+#' If conversions are expected (i.e., the input diameter exists but circumference is missing),
+#' and the output is still \code{NA}, a warning is issued.
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(
+#'   D130 = c(30, NA),
+#'   C130 = c(NA, 94.2),
+#'   D150 = c(28, NA),
+#'   C150 = c(NA, NA)
+#' )
+#'
+#' result <- diameter_conversions(
+#'   x = df,
+#'   C130 = "C130",
+#'   C150 = "C150",
+#'   D130 = "D130",
+#'   D150 = "D150"
+#' )
+#'
+#' print(result)
+#' }
+#'
+#' @seealso
+#' \code{\link{preprocess_data}}, \code{\link{calculate_basal_areas}}, \code{\link{convert_circumference}}
+#'
 #' @export
-diameter_conversions <- function(x, C130, C150, D130 ,D150, HTOT = "HTOT", HDOM = "HDOM") {
+
+
+diameter_conversions <- function(x, C130, C150, D130, D150, HTOT = "HTOT", HDOM = "HDOM") {
   pi_val <- pi
 
-  # Initialize target columns if they don't exist
-  cat("Type de flags$D130_exists :", typeof(flags$D130_exists), "\n")
-  cat("Valeur de flags$D130_exists :", flags$D130_exists, "\n")
+  # Ensure columns exist; if not, create them with NA
+  if (!(C130 %in% names(x))) x[[C130]] <- NA_real_
+  if (!(C150 %in% names(x))) x[[C150]] <- NA_real_
+  if (!(D130 %in% names(x))) x[[D130]] <- NA_real_
+  if (!(D150 %in% names(x))) x[[D150]] <- NA_real_
 
-  if (!(C130 %in% colnames(x))) x[[C130]] <- NA_real_
-  if (!(C150 %in% colnames(x))) x[[C150]] <- NA_real_
-  if (!(D130 %in% colnames(x))) x[[D130]] <- NA_real_
-  if (!(D150 %in% colnames(x))) x[[D150]] <- NA_real_
+  # Convert D130 -> C130
+  to_fill <- is.na(x[[C130]]) & !is.na(x[[D130]])
+  x[[C130]][to_fill] <- x[[D130]][to_fill] * pi_val
 
-  for (i in seq_len(nrow(x))) {
-    # D130 → C130 (TOUJOURS si D130 existe)
-    if (!is.na(x[[D130]][i]) && is.na(x[[C130]][i])) {
-      x[[C130]][i] <- x[[D130]][i] * pi_val
-      cat("[DEBUG] Ligne", i, ":", x$Species[i], "- D130", x[[D130]][i], "→ C130", x[[C130]][i], "\n")
-    }
+  # Convert D150 -> C150
+  to_fill <- is.na(x[[C150]]) & !is.na(x[[D150]])
+  x[[C150]][to_fill] <- x[[D150]][to_fill] * pi_val
 
-    # D150 → C150 (si D150 existe)
-    if (!is.na(x[[D150]][i]) && is.na(x[[C150]][i])) {
-      x[[C150]][i] <- x[[D150]][i] * pi_val
-      cat("[DEBUG] Ligne", i, ":", x$Species[i], "- D150", x[[D150]][i], "→ C150", x[[C150]][i], "\n")
-    }
+  # Convert C130 -> D130
+  to_fill <- is.na(x[[D130]]) & !is.na(x[[C130]])
+  x[[D130]][to_fill] <- x[[C130]][to_fill] / pi_val
 
-    # C130 → D130 (si C130 existe mais pas D130)
-    if (!is.na(x[[C130]][i]) && is.na(x[[D130]][i])) {
-      x[[D130]][i] <- x[[C130]][i] / pi_val
-      cat("[DEBUG] Ligne", i, ":", x$Species[i], "- C130", x[[C130]][i], "→ D130", x[[D130]][i], "\n")
-    }
+  # Convert C150 -> D150
+  to_fill <- is.na(x[[D150]]) & !is.na(x[[C150]])
+  x[[D150]][to_fill] <- x[[C150]][to_fill] / pi_val
 
-    # C150 → D150 (si C150 existe mais pas D150)
-    if (!is.na(x[[C150]][i]) && is.na(x[[D150]][i])) {
-      x[[D150]][i] <- x[[C150]][i] / pi_val
-      cat("[DEBUG] Ligne", i, ":", x$Species[i], "- C150", x[[C150]][i], "→ D150", x[[D150]][i], "\n")
-    }
-  }
-  cat("[DEBUG] Required conversions:\n")
-  if (flags$D130_exists) {
-    na_before_D130 <- sum(is.na(x[[D130]]))
-    cat("[DEBUG]   - D130 to C130: ", nrow(x) - na_before_D130, " values to convert\n")
-    cat("[DEBUG] D130 example:", utils::head(x[[D130]], 5), "\n")
-  }
-  if (flags$D150_exists) {
-    na_before_D150 <- sum(is.na(x[[D150]]))
-    cat("[DEBUG]   - D150 to C150: ", nrow(x) - na_before_D150, " values to convert\n")
-    cat("[DEBUG] D150 example:", utils::head(x[[D150]], 5), "\n")
-  }
-  cat("[DEBUG] pi coefficient used:", round(pi, 6), "\n")
-
-  #debug
-  if (flags$D130_exists && "C130" %in% colnames(x)) {
-    successful_conversions_130 <- sum(!is.na(x$C130) & flags$D130_exists & !is.na(x[[D130]]))
-    cat("[DEBUG] [OK]Successful D130 to C130 conversions:", successful_conversions_130, "\n")
-  }
-  if (flags$D150_exists && "C150" %in% colnames(x)) {
-    successful_conversions_150 <- sum(!is.na(x$C150) & flags$D150_exists & !is.na(x[[D150]]))
-    cat("[DEBUG] [OK]Successful D150 to C150 conversions:", successful_conversions_150, "\n")
-  }
-  cat("[DEBUG] [OK]Diameter conversions completed\n\n")
-
-  # Warning messages if some conversions fail
-  if (flags$D130_exists && sum(is.na(x$C130)) > 0 && sum(!is.na(x[[D130]])) > 0) {
+  # Emit warnings if some conversions were expected but not possible
+  if (sum(!is.na(x[[D130]])) > 0 && sum(is.na(x[[C130]])) > 0) {
     warning("Some D130 -> C130 conversions failed (missing or unprocessed values).")
   }
-  if (flags$D150_exists && sum(is.na(x$C150)) > 0 && sum(!is.na(x[[D150]])) > 0) {
+  if (sum(!is.na(x[[D150]])) > 0 && sum(is.na(x[[C150]])) > 0) {
     warning("Some D150 -> C150 conversions failed (missing or unprocessed values).")
   }
-
-  #debug
-  if (C130 %in% colnames(x)) {
-    cat("[DEBUG] C130 result examples:", utils::head(x$C130, 5), "\n")
-  }
-  if (C150 %in% colnames(x)) {
-    cat("[DEBUG] C150 result examples:", utils::head(x$C150, 5), "\n")
-  }
-  cat("Diameter to circumference conversion completed.\n")
-
-  # Update global flags
-
-  flags <- update_flags(x, flags, C130, C150, D130, D150, HTOT , HDOM)
-
 
   return(x)
 }
 
 
-#' Conversion générique entre C130 et C150
+
+# =====================================================================
+#                    convert_circumference()
+# =====================================================================
+
+#' Harmonize C130 and C150 using species-specific conversion coefficients
+#'
+#' @description
+#' Performs bidirectional or directional conversion between C130 and C150 using
+#' species-specific linear models (C150 = HV × C130 + IV). Coefficients must be present in
+#' the `equations` data.frame.
+#'
+#' @param x A data.frame containing at least a Species column and one of the circumference columns.
+#' @param D150, D130 Column names for diameters (optional, only updated at the end).
+#' @param C150, C130 Column names for circumferences.
+#' @param HTOT, HDOM Column names for height variables (not used here but passed for compatibility).
+#'
+#' @return The input data.frame with harmonized C130/C150 and updated diameters if applicable.
 #' @export
-convert_circumference <- function(x, D150 ="D150", D130 ="D130", C150="C150", C130="C130", HTOT="HTOT", HDOM="HDOM") {
-  cat("[DEBUG] ==================== GENERIC CIRCUMFERENCE CONVERSION ====================\n")
+convert_circumference <- function(x, D150 = "D150", D130 = "D130",
+                                  C150 = "C150", C130 = "C130",
+                                  HTOT = "HTOT", HDOM = "HDOM") {
+  C130_has_values <- C130 %in% names(x) && any(!is.na(x[[C130]]))
+  C150_has_values <- C150 %in% names(x) && any(!is.na(x[[C150]]))
 
   skip_conversion <- FALSE
 
-  # Définir les variables locales d'existence des colonnes
-  C130_exists_local <- C130 %in% colnames(x)
-  C150_exists_local <- C150 %in% colnames(x)
-
-  cat("[DEBUG] C130_exists_local =", C130_exists_local, "\n")
-  cat("[DEBUG] C150_exists_local =", C150_exists_local, "\n")
-
-  C130_has_values <- C130_exists_local && sum(!is.na(x[[C130]])) > 0
-  C150_has_values <- C150_exists_local && sum(!is.na(x[[C150]])) > 0
-  cat("[DEBUG] C130_has_values =", C130_has_values, "\n")
-  cat("[DEBUG] C150_has_values =", C150_has_values, "\n")
-
-  # Determine the conversion direction
   if (!C130_has_values && C150_has_values) {
     direction <- "C150_to_C130"
     from_col <- C150
     to_col <- C130
-    cat("[DEBUG] Conversion detected: C150 → C130\n")
   } else if (!C150_has_values && C130_has_values) {
     direction <- "C130_to_C150"
     from_col <- C130
     to_col <- C150
-    cat("[DEBUG] Conversion detected: C130 → C150\n")
   } else if (C130_has_values && C150_has_values) {
-    # CAS AJOUTÉ : Les deux colonnes ont des valeurs
-    cat("[DEBUG] Both C130 and C150 have values - analyzing pattern of missing values\n")
-
-    # Compter les valeurs manquantes dans chaque colonne
-    C130_missing <- sum(is.na(x[[C130]]))
-    C150_missing <- sum(is.na(x[[C150]]))
-
-    cat("[DEBUG] C130 missing values:", C130_missing, "\n")
-    cat("[DEBUG] C150 missing values:", C150_missing, "\n")
-
-    # Analyser les patterns ligne par ligne
-    both_missing <- sum(is.na(x[[C130]]) & is.na(x[[C150]]))
-    both_present <- sum(!is.na(x[[C130]]) & !is.na(x[[C150]]))
-    c130_only <- sum(!is.na(x[[C130]]) & is.na(x[[C150]]))
-    c150_only <- sum(is.na(x[[C130]]) & !is.na(x[[C150]]))
-
-    cat("[DEBUG] Pattern analysis:\n")
-    cat("[DEBUG]   Both missing:", both_missing, "rows\n")
-    cat("[DEBUG]   Both present:", both_present, "rows\n")
-    cat("[DEBUG]   C130 only:", c130_only, "rows\n")
-    cat("[DEBUG]   C150 only:", c150_only, "rows\n")
-
-    if (C130_missing > 0 || C150_missing > 0) {
-      direction <- "bidirectional"
-      cat("[DEBUG] Using bidirectional conversion approach\n")
-    } else {
-      cat("[DEBUG] Both columns are complete - no conversion needed\n")
-      skip_conversion <- TRUE
-    }
+    direction <- "bidirectional"
   } else {
-    cat("[DEBUG] No circumference conversion needed\n")
     skip_conversion <- TRUE
   }
 
-  # Effectuer la conversion si nécessaire
   if (!skip_conversion) {
-    cat("[DEBUG] ==================== CIRCUMFERENCE CONVERSIONS ====================\n")
-
-    if (direction == "bidirectional") {
-      cat("[DEBUG] Using bidirectional conversion approach\n")
-      cat("[DEBUG] Will convert C130→C150 and C150→C130 as needed per row\n")
-    } else {
-      cat("[DEBUG] Detected conversion direction:", direction, "\n")
-      cat("[DEBUG] Source column:", from_col, "\n")
-      cat("[DEBUG] Target column:", to_col, "\n")
-    }
-
-    # Extract conversion coefficients (UNE SEULE FOIS)
     coefs_x <- unique(equations[, c("Species", "HV", "IV")])
-    names(coefs_x)[names(coefs_x) == "Species"] <- "Species"
-
-    cat("[DEBUG] Available coefficients for", nrow(coefs_x), "species\n")
-    cat("[DEBUG] HV/IV coefficients preview:\n")
-    print(utils::head(coefs_x[, c("Species", "HV", "IV")], 3))
-
-    cat("Conversion coefficients preview:\n")
-    print(utils::head(coefs_x))
-
-    # Row-by-row application
-    attempted_conversions <- 0
-    c130_to_c150_conversions <- 0
-    c150_to_c130_conversions <- 0
 
     for (i in seq_len(nrow(x))) {
       tree_species <- x$Species[i]
+      if (is.na(tree_species)) next
+      coef_row <- coefs_x[coefs_x$Species == tree_species, ]
 
-      if (!is.na(tree_species)) {
-        c130_value <- x[[C130]][i]
-        c150_value <- x[[C150]][i]
+      if (nrow(coef_row) == 0 || is.na(coef_row$HV[1]) || is.na(coef_row$IV[1])) next
 
-        # Déterminer quelle conversion effectuer pour cette ligne spécifique
-        current_direction <- NULL
-        current_from_col <- NULL
-        current_to_col <- NULL
-        current_from_value <- NULL
+      HV <- coef_row$HV[1]
+      IV <- coef_row$IV[1]
 
-        if (direction == "bidirectional") {
-          # Approche bidirectionnelle
-          if (is.na(c130_value) && !is.na(c150_value)) {
-            current_direction <- "C150_to_C130"
-            current_from_col <- C150
-            current_to_col <- C130
-            current_from_value <- c150_value
-          } else if (!is.na(c130_value) && is.na(c150_value)) {
-            current_direction <- "C130_to_C150"
-            current_from_col <- C130
-            current_to_col <- C150
-            current_from_value <- c130_value
-          }
-        } else {
-          # Approche directionnelle classique
-          current_direction <- direction
-          current_from_col <- from_col
-          current_to_col <- to_col
-          current_from_value <- x[[from_col]][i]
-          current_to_value <- x[[to_col]][i]
-
-          # Ne convertir que si la valeur source existe ET la valeur cible est manquante
-          if (is.na(current_from_value) || !is.na(current_to_value)) {
-            current_direction <- NULL  # Skip cette ligne
-          }
+      # Bidirectional logic
+      if (direction == "bidirectional") {
+        if (is.na(x[[C130]][i]) && !is.na(x[[C150]][i])) {
+          x[[C130]][i] <- HV * x[[C150]][i] + IV
+        } else if (!is.na(x[[C130]][i]) && is.na(x[[C150]][i])) {
+          x[[C150]][i] <- (x[[C130]][i] - IV) / HV
         }
+      } else {
+        from_value <- x[[from_col]][i]
+        to_value <- x[[to_col]][i]
 
-        # Effectuer la conversion si les conditions sont remplies
-        if (!is.null(current_direction) && !is.na(current_from_value)) {
-          attempted_conversions <- attempted_conversions + 1
-
-          if (current_direction == "C130_to_C150") {
-            c130_to_c150_conversions <- c130_to_c150_conversions + 1
+        if (is.na(to_value) && !is.na(from_value)) {
+          x[[to_col]][i] <- if (direction == "C150_to_C130") {
+            HV * from_value + IV
           } else {
-            c150_to_c130_conversions <- c150_to_c130_conversions + 1
-          }
-
-          coef_row <- coefs_x[coefs_x$Species == tree_species, ]
-
-          if (i <= 5) {
-            cat("Row", i, "- Species:", tree_species, "- Direction:", current_direction, "\n")
-            cat("  From value:", current_from_value, "- Coefficients found:", nrow(coef_row), "\n")
-            if (nrow(coef_row) > 0) {
-              cat("  HV:", coef_row$HV[1], "IV:", coef_row$IV[1], "\n")
-            }
-          }
-
-          if (nrow(coef_row) > 0 && !is.na(coef_row$HV[1]) && !is.na(coef_row$IV[1])) {
-            HV_coef <- coef_row$HV[1]
-            IV_coef <- coef_row$IV[1]
-
-            result_value <- if (current_direction == "C150_to_C130") {
-              HV_coef * current_from_value + IV_coef
-            } else {
-              (current_from_value - IV_coef) / HV_coef
-            }
-
-            x[[current_to_col]][i] <- result_value
-
-            if (i <= 5) {
-              cat("  Conversion:", current_from_value, "to", result_value, "\n")
-            }
-          } else {
-            warning(paste("Unable to convert", current_from_col, "to", current_to_col, "for species:",
-                          tree_species, "at row", i, ". Missing coefficients."))
+            (from_value - IV) / HV
           }
         }
       }
     }
 
-    # Messages de résultats
-    if (direction == "bidirectional") {
-      cat("[DEBUG] Conversions attempted:", attempted_conversions, "\n")
-      cat("[DEBUG] C130→C150 conversions:", c130_to_c150_conversions, "\n")
-      cat("[DEBUG] C150→C130 conversions:", c150_to_c130_conversions, "\n")
-
-      remaining_c130_missing <- sum(is.na(x[[C130]]))
-      remaining_c150_missing <- sum(is.na(x[[C150]]))
-      cat("[DEBUG] After bidirectional conversion:\n")
-      cat("[DEBUG]   Remaining C130 missing:", remaining_c130_missing, "\n")
-      cat("[DEBUG]   Remaining C150 missing:", remaining_c150_missing, "\n")
-    } else {
-      successful_conversions <- sum(!is.na(x[[to_col]]))
-      cat("[DEBUG] Conversions to attempt:", attempted_conversions, "\n")
-      cat("[DEBUG] [OK]Successful", from_col, "to", to_col, "conversions:", successful_conversions, "\n")
-      if (attempted_conversions > successful_conversions) {
-        cat("[DEBUG] [Warning]  Failed conversions:", attempted_conversions - successful_conversions, "\n")
-      }
-
-      failed_conversions <- sum(is.na(x[[to_col]]))
-      if (failed_conversions > 0) {
-        warning(paste(failed_conversions, paste(from_col, "to", to_col),
-                      "conversions failed. Check the data."))
-      }
-    }
-  }
-
-  # Row-by-row calculation of D130
-  if (C130 %in% colnames(x)) {
+    # Recalculate diameters from circumferences
+    pi_val <- pi
     if (!(D130 %in% colnames(x))) x[[D130]] <- NA_real_
+    if (!(D150 %in% colnames(x))) x[[D150]] <- NA_real_
+
     for (i in seq_len(nrow(x))) {
       if (is.na(x[[D130]][i]) && !is.na(x[[C130]][i])) {
-        x[[D130]][i] <- x[[C130]][i] / pi
+        x[[D130]][i] <- x[[C130]][i] / pi_val
       }
-    }
-  }
-
-  # Row-by-row calculation of D150
-  if (C150 %in% colnames(x)) {
-    if (!(D150 %in% colnames(x))) x[[D150]] <- NA_real_
-    for (i in seq_len(nrow(x))) {
       if (is.na(x[[D150]][i]) && !is.na(x[[C150]][i])) {
-        x[[D150]][i] <- x[[C150]][i] / pi
+        x[[D150]][i] <- x[[C150]][i] / pi_val
       }
     }
   }
 
-  if ("D130" %in% colnames(x) && !"D130" %in% colnames(x)) {
-    cat("[DEBUG] [OK]D130 column created from C130\n")
-  }
-  if ("D150" %in% colnames(x) && !"D150" %in% colnames(x)) {
-    cat("[DEBUG] [OK]D150 column created from C150\n")
-  }
-  cat("[DEBUG] [OK]Circumference conversions completed\n\n")
-  flags <- update_flags(x, flags, C130, C150, D130, D150, HTOT, HDOM)
   return(x)
 }
 
+# =====================================================================
+#                    calculate_basal_areas()
+# =====================================================================
 
-# Calculate basal areas
+#' Calculate Basal Area from Tree Circumference
+#'
+#' @description
+#' Computes the basal area (in square meters) at breast height for each tree
+#' using the circumference at 130 cm and/or 150 cm above ground. The formula used is:
+#' \deqn{G = C^2 / (4 * pi * 10000)}
+#' where \eqn{C} is the circumference in centimeters and \eqn{G} is the basal area in square meters.
+#'
+#' @param x A data.frame containing tree inventory data.
+#' @param C130 Character. Name of the column storing circumference at 130 cm (in cm).
+#' @param C150 Character. Name of the column storing circumference at 150 cm (in cm).
+#'
+#' @return
+#' The input data.frame with one or both of the following columns added:
+#' \itemize{
+#'   \item \code{G130}: basal area based on \code{C130};
+#'   \item \code{G150}: basal area based on \code{C150}.
+#' }
+#' Only columns not already present in the data are created. If the corresponding circumference column
+#' is missing, the basal area is not computed.
+#'
+#' @details
+#' The result is expressed in square meters per tree. The division by 10,000 converts from cm² to m².
+#' The function is typically used in preprocessing steps before applying volume or biomass equations.
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(C130 = c(100, 120), C150 = c(105, 125))
+#' df <- calculate_basal_areas(df, C130 = "C130", C150 = "C150")
+#' head(df)
+#' }
+#'
+#' @seealso
+#' \code{\link{preprocess_data}}, \code{\link{diameter_conversions}}, \code{\link{convert_circumference}}
+#'
 #' @export
+
 calculate_basal_areas <- function(x, C130, C150) {
-  #debug
-  cat("[DEBUG] ==================== BASAL AREA CALCULATION ====================\n")
-  calculated_areas <- c()
-  # Calculate G130 if necessary
   if (!"G130" %in% colnames(x) && C130 %in% colnames(x)) {
     x$G130 <- (x[[C130]]^2) / ((4 * pi) * 10000)
-    g130_values <- sum(!is.na(x$G130))
-    cat("[DEBUG] [OK]G130 calculated for", g130_values, "trees\n")
-    cat("[DEBUG] G130 examples:", paste(round(utils::head(x$G130[!is.na(x$G130)], 3), 6), collapse = ", "), "\n")
-    calculated_areas <- c(calculated_areas, "G130")
   }
-  # Calculate G150 if necessary
+
   if (!"G150" %in% colnames(x) && C150 %in% colnames(x)) {
     x$G150 <- (x[[C150]]^2) / ((4 * pi) * 10000)
-    g150_values <- sum(!is.na(x$G150))
-    cat("[DEBUG] [OK]G150 calculated for", g150_values, "trees\n")
-    cat("[DEBUG] G150 examples:", paste(round(utils::head(x$G150[!is.na(x$G150)], 3), 6), collapse = ", "), "\n")
-    calculated_areas <- c(calculated_areas, "G150")
   }
-  if (length(calculated_areas) == 0) {
-    cat("[DEBUG] [INFO]  No basal area to calculate (already present)\n")
-  } else {
-    cat("[DEBUG] Calculated basal areas:", paste(calculated_areas, collapse = ", "), "\n")
-  }
-  cat("[DEBUG] Formula used: G = C^2/(4pi*10000)\n")
-  cat("[DEBUG] [OK]Basal area calculation completed\n\n")
+
   return(x)
 }
+

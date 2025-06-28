@@ -2,10 +2,16 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{as.carbofor_data}
 \alias{as.carbofor_data}
-\title{Convertir un data.frame en objet carbofor_data}
+\title{Convert a data.frame into a carbofor_data object}
 \usage{
 as.carbofor_data(x)
 }
+\arguments{
+\item{x}{A data.frame containing tree data.}
+}
+\value{
+The same data.frame with an additional class "carbofor_data".
+}
 \description{
-Convertir un data.frame en objet carbofor_data
+Assigns the class "carbofor_data" to a data.frame to allow method dispatching.
 }

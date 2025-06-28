@@ -2,7 +2,7 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{convert_circumference}
 \alias{convert_circumference}
-\title{Conversion générique entre C130 et C150}
+\title{Harmonize C130 and C150 using species-specific conversion coefficients}
 \usage{
 convert_circumference(
   x,
@@ -14,6 +14,20 @@ convert_circumference(
   HDOM = "HDOM"
 )
 }
+\arguments{
+\item{x}{A data.frame containing at least a Species column and one of the circumference columns.}
+
+\item{D150, }{D130 Column names for diameters (optional, only updated at the end).}
+
+\item{C150, }{C130 Column names for circumferences.}
+
+\item{HTOT, }{HDOM Column names for height variables (not used here but passed for compatibility).}
+}
+\value{
+The input data.frame with harmonized C130/C150 and updated diameters if applicable.
+}
 \description{
-Conversion générique entre C130 et C150
+Performs bidirectional or directional conversion between C130 and C150 using
+species-specific linear models (C150 = HV × C130 + IV). Coefficients must be present in
+the `equations` data.frame.
 }

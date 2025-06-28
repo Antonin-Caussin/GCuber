@@ -2,16 +2,79 @@
 % Please edit documentation in R/calculations.R
 \name{calculate_biomass}
 \alias{calculate_biomass}
-\title{Calcul de la biomasse à partir des équations spécifiques}
+\title{Calculate biomass using allometric equations or volume × infra-density}
 \usage{
-calculate_biomass(x)
+calculate_biomass(x, equations, method = c("equation", "volume"))
 }
 \arguments{
-\item{df}{Le data.frame contenant les données d'arbres}
+\item{x}{A `data.frame` containing individual tree data. It must include:
+- A `Species` column for species identification.
+- Either volume columns (see `Details`) or measurement variables (e.g., diameter, height) used in allometric equations.}
+
+\item{equations}{A `data.frame` containing model parameters for each species. Depending on the method:
+- For `"equation"`: must include columns `Species`, `Y`, `A0`, `b0`–`b5`, and `X1`–`X5`.
+- For `"volume"`: must include columns `Species` and `ID` (infra-density in g/cm³).}
+
+\item{method}{Character. Biomass estimation method. Either:
+- `"equation"` (uses species-specific allometric models),
+- `"volume"` (uses volume × infra-density). Default is `"volume"`.}
 }
 \value{
-Le data.frame enrichi avec les colonnes de biomasse et carbone
+A modified `data.frame` identical to `x` with three new columns:
+\describe{
+  \item{Biomass_Aboveground}{Estimated aboveground biomass (in consistent volume × density units).}
+  \item{Biomass_Root}{Estimated root biomass, computed as 20\% of the aboveground biomass.}
+  \item{Biomass_Total}{Total biomass, computed as 120\% of the aboveground biomass.}
+}
+
+If `method = "equation"`, additional columns may be added per equation used
+(e.g., `<Species>_Biomass_A0<EqType>_Eq<Index>`) along with metadata columns identifying the equation applied.
 }
 \description{
-Calcule la biomasse pour chaque arbre en appliquant toutes les équations disponibles pour son espèce.
+This function computes tree-level aboveground biomass (and derived root and total biomass)
+using one of two approaches:
+
+- **"equation" method**: applies species-specific allometric models provided in a reference table.
+- **"volume" method**: multiplies measured or estimated tree volume by species-specific wood infra-density (`ID`).
+
+The function supports flexible model structures (including log-linear and additive forms),
+automatic species matching, and fallback options when data are incomplete.
+}
+\details{
+When `method = "volume"`, the function searches for volume columns in `x` whose names match one or more of the following:
+`"V22"`, `"V22B"`, `"V22_HA"`, `"Sawlog"`, `"Aboveground"`, `"Merchantable"`. These columns are summed to compute total volume.
+
+When `method = "equation"`, the function evaluates the model based on the value of `A0`:
+\itemize{
+  \item A0 = 1–3 or 5: additive linear form: \eqn{Y = b0 + b1*X1 + ... + b5*X5}
+  \item A0 = 4: log-linear form: \eqn{log10(Y) = b0 + b1*log10(X1) + ...}
+}
+
+Expressions in `X1:X5` are evaluated dynamically, and variable names must match column names in `x`.
+}
+\section{Limitations}{
+
+- The "volume" method assumes that volume data and wood density are consistent in units (e.g., m³ × g/cm³ → kg).
+- If multiple equations exist per species in `"equation"` mode, all are applied and their results are summed. This assumes they target complementary compartments.
+- No biomass is calculated for species missing in the `equations` table.
+}
+
+\examples{
+# Using volume × density method
+df <- data.frame(Species = c("Fagus", "Quercus"),
+                 V22 = c(0.8, 1.2))
+eq <- data.frame(Species = c("Fagus", "Quercus"), ID = c(0.56, 0.65))
+calculate_biomass(df, eq, method = "volume")
+
+# Using allometric equations
+eqs <- data.frame(Species = "Fagus", Y = "BIOMASS", A0 = 1,
+                  b0 = 0.2, b1 = 0.03, X1 = "D130", X2 = NA, b2 = NA)
+df <- data.frame(Species = "Fagus", D130 = 32)
+calculate_biomass(df, eqs, method = "equation")
+
+}
+\seealso{
+\code{\link{calculate_carbon}} to compute carbon stock from biomass,
+\code{\link{calculate_volume}} for upstream volume computation,
+\code{\link{get_equation_database}} for accessing standard allometric datasets.
 }

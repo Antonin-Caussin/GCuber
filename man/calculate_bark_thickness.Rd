@@ -2,18 +2,32 @@
 % Please edit documentation in R/calculations.R
 \name{calculate_bark_thickness}
 \alias{calculate_bark_thickness}
-\title{Calcul de l'épaisseur et du volume d'écorce}
+\title{Bark thickness and bark volume calculation}
 \usage{
-calculate_bark_thickness(df, total_volume_col = "V22")
+calculate_bark_thickness(df, equations, total_volume_col = "V22", source)
 }
 \arguments{
-\item{df}{Le data.frame contenant les données d'arbres}
+\item{df}{A data.frame containing tree-level data. Must include at least Species, D130, and a total volume column.}
 
-\item{total_volume_col}{Nom de la colonne contenant le volume total (ex: "V22")}
+\item{equations}{A data.frame containing bark thickness equations (Y = "E") with columns:
+Species, A0, b0 to b5, X1 to X5, and optionally Source_Eq.}
+
+\item{total_volume_col}{Name of the column containing the total volume (default = "V22").}
+
+\item{source}{Optional character string specifying the source of the equations (e.g., "Vallet", "Dagnellie").
+If NULL, all sources are considered.}
 }
 \value{
-Le data.frame enrichi avec les colonnes E, Bark_Volume et Wood_Volume
+The input data.frame enriched with the columns:
+\item{E}{Estimated bark thickness (cm)}
+\item{Bark_Volume}{Volume of bark (same unit as total_volume_col)}
+\item{Wood_Volume}{Net wood volume (total - bark)}
 }
 \description{
-Utilise les équations spécifiques (type E) pour estimer l'épaisseur d'écorce, puis calcule le volume d'écorce et le volume de bois net.
+Uses species-specific allometric equations (Y = "E") to estimate bark thickness,
+then computes bark volume and net wood volume from total volume.
+}
+\examples{
+df <- data.frame(Species = "Hetre", D130 = 32, V22 = 1.2)
+result <- calculate_bark_thickness(df, equations = equations, source = "Vallet")
 }

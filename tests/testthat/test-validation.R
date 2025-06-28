@@ -39,28 +39,31 @@ test_that("validate_parameters handles invalid source", {
 
   expect_error(
     validate_parameters(test_data, source = "InvalidSource"),
-    "Source invalide: InvalidSource"
+    regexp = "Invalid source: InvalidSource"
   )
 
   expect_error(
     validate_parameters(test_data, source = "dagnellie"),  # case sensitive
-    "Source invalide: dagnellie"
+    regexp = "Invalid source: dagnellie"
   )
 })
+
+
 
 test_that("validate_parameters handles invalid volume_type", {
   test_data <- create_test_data()
 
   expect_error(
     validate_parameters(test_data, volume_type = "InvalidType"),
-    "Type de volume invalide: InvalidType"
+    regexp = "Invalid volume type: InvalidType"
   )
 
   expect_error(
     validate_parameters(test_data, volume_type = "v22"),  # case sensitive
-    "Type de volume invalide: v22"
+    regexp = "Invalid volume type: v22"
   )
 })
+
 
 test_that("validate_parameters handles equation_id validation for V22", {
   test_data <- create_test_data()
@@ -73,14 +76,15 @@ test_that("validate_parameters handles equation_id validation for V22", {
   # Invalid equation_ids for V22
   expect_error(
     validate_parameters(test_data, volume_type = "V22", equation_id = 0),
-    "Pour le type de volume 'V22', l'identifiant d'équation doit être 1, 2 ou 3."
+    regexp = "For volume type 'V22', equation_id must be 1, 2, or 3"
   )
 
   expect_error(
     validate_parameters(test_data, volume_type = "V22", equation_id = 4),
-    "Pour le type de volume 'V22', l'identifiant d'équation doit être 1, 2 ou 3."
+    regexp = "For volume type 'V22', equation_id must be 1, 2, or 3"
   )
 })
+
 
 test_that("validate_parameters handles equation_id validation for V22B", {
   test_data <- create_test_data()
@@ -91,14 +95,15 @@ test_that("validate_parameters handles equation_id validation for V22B", {
   # Invalid equation_ids for V22B
   expect_error(
     validate_parameters(test_data, volume_type = "V22B", equation_id = 2),
-    "Pour le type de volume 'V22B', seul l'identifiant 1 est valide."
+    regexp = "For volume type 'V22B', only equation_id = 1 is allowed"
   )
 
   expect_error(
     validate_parameters(test_data, volume_type = "V22B", equation_id = 3),
-    "Pour le type de volume 'V22B', seul l'identifiant 1 est valide."
+    regexp = "For volume type 'V22B', only equation_id = 1 is allowed"
   )
 })
+
 
 test_that("validate_parameters handles equation_id validation for V22_HA", {
   test_data <- create_test_data()
@@ -109,9 +114,10 @@ test_that("validate_parameters handles equation_id validation for V22_HA", {
   # Invalid equation_ids for V22_HA
   expect_error(
     validate_parameters(test_data, volume_type = "V22_HA", equation_id = 2),
-    "Pour le type de volume 'V22_HA', seul l'identifiant 1 est valide."
+    regexp = "For volume type 'V22_HA', only equation_id = 1 is allowed"
   )
 })
+
 
 test_that("validate_parameters handles missing columns with warnings", {
   # Test data missing some columns
@@ -124,7 +130,7 @@ test_that("validate_parameters handles missing columns with warnings", {
 
   expect_warning(
     validate_parameters(incomplete_data),
-    "Colonnes manquantes dans les données: C150, D150, HDOM"
+    regexp = "Missing columns in data: C150, D150, HDOM"
   )
 })
 
@@ -136,9 +142,10 @@ test_that("validate_parameters handles missing specimens column", {
 
   expect_warning(
     validate_parameters(test_data_no_species, specimens = "species"),
-    "Colonnes manquantes dans les données: species"
+    regexp = "Missing columns in data: species"
   )
 })
+
 
 test_that("validate_parameters errors when no diameter/circumference columns exist", {
   # Data with no diameter or circumference columns
@@ -150,9 +157,10 @@ test_that("validate_parameters errors when no diameter/circumference columns exi
 
   expect_error(
     validate_parameters(invalid_data),
-    "Aucune colonne de circonférence ou de diamètre trouvée dans les données."
+    regexp = "No diameter or circumference column found in the data"
   )
 })
+
 
 test_that("validate_parameters works with custom column names", {
   # Test data with custom column names
@@ -183,19 +191,23 @@ test_that("validate_parameters validates all source options", {
 
   # Test all valid sources
   expect_silent(validate_parameters(test_data, source = "Dagnellie"))
-  expect_silent(validate_parameters(test_data, source = "Aflan"))
+  expect_silent(validate_parameters(test_data, source = "Algan"))  # <- CORRECT
   expect_silent(validate_parameters(test_data, source = "Vallet"))
+  expect_silent(validate_parameters(test_data, source = "Bouvard"))
+  expect_silent(validate_parameters(test_data, source = "Courbet"))
+  expect_silent(validate_parameters(test_data, source = "Rondeu"))
 })
+
 
 test_that("validate_parameters validates all volume_type options", {
   test_data <- create_test_data()
 
-  # Test all valid volume types with appropriate equation_ids
   expect_silent(validate_parameters(test_data, volume_type = "V22", equation_id = 1))
   expect_silent(validate_parameters(test_data, volume_type = "V22B", equation_id = 1))
   expect_silent(validate_parameters(test_data, volume_type = "V22_HA", equation_id = 1))
-  expect_silent(validate_parameters(test_data, volume_type = "E", equation_id = 1))
+  expect_silent(validate_parameters(test_data, volume_type = "Aboveground", equation_id = 1))  # corrigé ici
 })
+
 
 test_that("validate_parameters handles edge cases", {
   test_data <- create_test_data()
@@ -207,6 +219,7 @@ test_that("validate_parameters handles edge cases", {
   empty_data <- data.frame()
   expect_error(
     validate_parameters(empty_data),
-    "Aucune colonne de circonférence ou de diamètre trouvée dans les données."
+    regexp = "No diameter or circumference column found in the data"
   )
 })
+

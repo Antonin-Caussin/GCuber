@@ -2,10 +2,55 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{detect_specimens_type}
 \alias{detect_specimens_type}
-\title{Détection automatique du type d'identifiant d'espèce}
+\title{Detect the Format of Species Identifiers in Tree Inventory Data}
 \usage{
 detect_specimens_type(x, specimens)
 }
+\arguments{
+\item{x}{A `data.frame` containing the column to analyze.}
+
+\item{specimens}{A character string indicating the name of the column to inspect for species identifiers.}
+}
+\value{
+A character string indicating the detected format of the species identifier.
+One of: \code{"Code"}, \code{"Abr"}, or \code{"Species"}.
+}
 \description{
-Détection automatique du type d'identifiant d'espèce
+Automatically infers the type of species identifier provided in a given column,
+based on the data type and the average string length. This function helps
+distinguish between:
+\itemize{
+  \item \code{"Code"}: numerical species codes (e.g., \code{3} for Hetre, \code{41} for epicea commun);
+  \item \code{"Abr"}: short alphanumeric abbreviations (e.g., \code{"HE"} for Hetre, \code{"EP"} for epicea commun);
+  \item \code{"Species"}: full species names (e.g., \code{"Hetre"}, \code{"epicea commun"}).
+}
+The function is used internally to standardize species identifiers before applying
+species-specific allometric models.
+}
+\details{
+The function first removes missing values, then:
+\itemize{
+  \item Returns \code{"Code"} if the non-missing values are numeric;
+  \item Returns \code{"Abr"} if the mean number of characters is ≤ 4;
+  \item Returns \code{"Species"} otherwise.
+}
+If the column contains only missing values, or an unsupported data type, an error is raised.
+}
+\examples{
+\dontrun{
+df <- data.frame(
+  Code = c(3, 41, 3),
+  Abr = c("HE", "EP", "HE"),
+  Species = c("Hetre", "epicea commun", "Hetre")
+)
+
+detect_specimens_type(df, specimens = "Code")     # Returns "Code"
+detect_specimens_type(df, specimens = "Abr")      # Returns "Abr"
+detect_specimens_type(df, specimens = "Species")  # Returns "Species"
+}
+
+}
+\seealso{
+\code{\link{establish_species_correspondence}}, \code{\link{preprocess_data}},
+\code{\link{validate_parameters}}
 }

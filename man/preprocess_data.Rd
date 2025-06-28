@@ -2,7 +2,7 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{preprocess_data}
 \alias{preprocess_data}
-\title{Prétraitement des données pour le calcul de volume}
+\title{Preprocess Tree-Level Data for Allometric Calculations}
 \usage{
 preprocess_data(
   x,
@@ -16,6 +16,77 @@ preprocess_data(
   ...
 )
 }
+\arguments{
+\item{x}{A `data.frame` containing individual tree measurements. Must include at least one
+diameter or circumference variable (D130, D150, C130, or C150) and height measurements.}
+
+\item{specimens}{Optional. Character string giving the name of the column used to identify species.
+This can be a species code, abbreviation, or full Latin name. Required for species-specific models.}
+
+\item{C130, C150}{Character. Column names storing circumference at 130 cm and 150 cm respectively (in cm).}
+
+\item{D130, D150}{Character. Column names storing diameter at 130 cm and 150 cm respectively (in cm).}
+
+\item{HTOT}{Character. Column name for total tree height (in meters).}
+
+\item{HDOM}{Character. Column name for dominant height (in meters).}
+
+\item{...}{Additional arguments (currently unused).}
+}
+\value{
+A `data.frame` identical to the input but augmented with:
+\itemize{
+  \item A `species_model` column containing standardized species names used for model selection;
+  \item Derived diameter or circumference variables if conversions were applied;
+  \item A `G_m2` column for basal area (in m²) per tree, based on C130 or D130.
+}
+The data is guaranteed to have the variables needed for further model prediction functions.
+}
 \description{
-Prétraitement des données pour le calcul de volume
+This function performs a complete preprocessing pipeline to prepare tree inventory data
+for volume, biomass, or carbon calculations. It includes:
+\itemize{
+  \item Species matching using a reference correspondence table;
+  \item Conversion between diameter and circumference measurements at breast height;
+  \item Harmonization between C130 and C150 measurements;
+  \item Calculation of basal area for each tree record.
+}
+These steps ensure the dataset is standardized and consistent with the format expected
+by downstream modeling functions such as \code{\link{calculate_volumes}} or \code{\link{calculate_biomass}}.
+}
+\details{
+The function applies the following steps in order:
+\enumerate{
+  \item \code{\link{establish_species_correspondence}} — assigns a standard species name;
+  \item \code{\link{diameter_conversions}} — converts between diameter and circumference if needed;
+  \item \code{\link{convert_circumference}} — harmonizes C130 and C150 using site coefficients;
+  \item \code{\link{calculate_basal_areas}} — computes tree-level basal area (G).
+}
+
+All conversions assume measurements are in centimeters (for diameters and circumferences)
+and meters for heights.
+}
+\examples{
+\dontrun{
+df <- data.frame(
+  C130 = c(100, 120),
+  HTOT = c(22, 27),
+  HDOM = c(25, 28),
+  Species = c("HE", "EP")
+)
+
+df_preprocessed <- preprocess_data(
+  x = df,
+  specimens = "Species",
+  C130 = "C130",
+  HTOT = "HTOT",
+  HDOM = "HDOM"
+)
+head(df_preprocessed)
+}
+
+}
+\seealso{
+\code{\link{validate_parameters}}, \code{\link{calculate_volumes}}, \code{\link{calculate_biomass}},
+\code{\link{calculate_prediction_interval}}, \code{\link{calculate_carbon}}.
 }

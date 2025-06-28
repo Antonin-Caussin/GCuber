@@ -2,10 +2,68 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{establish_species_correspondence}
 \alias{establish_species_correspondence}
-\title{Correspondance des espèces à partir des codes ou abréviations}
+\title{Standardize Species Names Using Internal Correspondence Table}
 \usage{
 establish_species_correspondence(x, specimens)
 }
+\arguments{
+\item{x}{A `data.frame` containing tree-level inventory data, including a column
+with species identifiers.}
+
+\item{specimens}{A character string specifying the column name in `x` that identifies species.
+Accepted identifiers include codes (e.g., `"FASY"`), abbreviations (e.g., `"F. sylvatica"`), or full names.}
+}
+\value{
+A `data.frame` identical to the input but with a new standardized `Species` column
+corresponding to the canonical names used in the model database. If no match is found
+for some records, a warning is issued and `NA` is assigned to the `Species` field.
+}
 \description{
-Correspondance des espèces à partir des codes ou abréviations
+This function standardizes species names in a tree inventory dataset by mapping
+species identifiers (codes, abbreviations, or names) to a canonical species name
+used for model selection. The correspondence is based on the internal `equations`
+database, which must contain a column named `"Species"` and at least one alternative
+identification column (e.g., `"Code"`, `"Abbreviation"`).
+
+This step ensures consistency across datasets using heterogeneous species identifiers.
+}
+\details{
+The function performs the following steps:
+\enumerate{
+  \item Detects the type of specimen identifier using \code{\link{detect_specimens_type}}.
+  \item Loads a mapping between the provided `specimens` column and the standardized `Species` column.
+  \item Merges this mapping with the input dataset.
+  \item Handles column name conflicts and ensures `Species` is uniquely assigned.
+}
+The internal object `equations` must be available in the environment and include
+a column `"Species"` along with the corresponding identification column.
+}
+\section{Warnings}{
+
+If the specified `specimens` column does not exist in `x`, or if `equations` does not
+contain the appropriate mapping columns, the function throws an error.
+A warning is issued if any identifiers cannot be matched.
+}
+
+\examples{
+\dontrun{
+# Suppose `equations` contains: Species | Code
+#                              ---------|------
+#                              Hetre | HE
+#                              Epicea commun     | EP
+
+df <- data.frame(
+  TreeID = 1:3,
+  Code = c("HE", "EP", "XXXX"),
+  DBH = c(32.1, 28.4, 25.3)
+)
+
+df <- establish_species_correspondence(df, specimens = "Code")
+head(df)
+}
+
+}
+\seealso{
+\code{\link{detect_specimens_type}}, \code{\link{preprocess_data}}, \code{\link{validate_parameters}},
+\code{\link{calculate_volumes}}, \code{\link{carbofor_species}}
 }

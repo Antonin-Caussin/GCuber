@@ -2,16 +2,20 @@
 % Please edit documentation in R/calculations.R
 \name{calculate_carbon}
 \alias{calculate_carbon}
-\title{Calcul du carbone à partir de la biomasse}
+\title{Carbon calculation from biomass}
 \usage{
 calculate_carbon(df)
 }
 \arguments{
-\item{df}{Le data.frame contenant la colonne Biomass_Total}
+\item{df}{A data.frame containing a Biomass_Total column}
 }
 \value{
-Le data.frame enrichi avec la colonne Carbon_Total
+The same data.frame enriched with the Carbon_Total column
 }
 \description{
-Calcule le carbone total comme 50% de la biomasse totale.
+Calculates total carbon as 50% of total biomass.
+}
+\examples{
+df <- data.frame(Biomass_Total = c(100, 120, 80))
+df <- calculate_carbon(df)
 }

@@ -2,10 +2,71 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{diameter_conversions}
 \alias{diameter_conversions}
-\title{Conversion diamètre <-> circonférence}
+\title{Convert Between Diameter and Circumference Measurements}
 \usage{
 diameter_conversions(x, C130, C150, D130, D150, HTOT = "HTOT", HDOM = "HDOM")
 }
+\arguments{
+\item{x}{A data.frame containing tree inventory data with at least one of the diameter or circumference columns.}
+
+\item{C130}{Character. Name of the column storing circumference at 130 cm above ground (in cm).}
+
+\item{C150}{Character. Name of the column storing circumference at 150 cm above ground (in cm).}
+
+\item{D130}{Character. Name of the column storing diameter at 130 cm above ground (in cm).}
+
+\item{D150}{Character. Name of the column storing diameter at 150 cm above ground (in cm).}
+
+\item{HTOT}{Character (unused). Name of the column for total height, included for compatibility.}
+
+\item{HDOM}{Character (unused). Name of the column for dominant height, included for compatibility.}
+}
+\value{
+A data.frame identical to the input but with missing diameter or circumference values filled when possible.
+Columns are created if they do not exist in the original dataset.
+}
 \description{
-Conversion diamètre <-> circonférence
+Converts missing diameter or circumference values at breast height
+using the formula: \code{C = pi * D}. The function works in both directions:
+\itemize{
+  \item If diameter is known and circumference is missing, it computes circumference;
+  \item If circumference is known and diameter is missing, it computes diameter.
+}
+The function supports measurements at both 130 cm and 150 cm above ground.
+}
+\details{
+The function ensures all four measurement columns exist in the dataset. If one is missing,
+it is created with \code{NA_real_}. Then, it attempts to complete missing values using
+the available ones with the relationships:
+\itemize{
+  \item \code{C = pi * D}
+  \item \code{D = C / pi}
+}
+
+If conversions are expected (i.e., the input diameter exists but circumference is missing),
+and the output is still \code{NA}, a warning is issued.
+}
+\examples{
+\dontrun{
+df <- data.frame(
+  D130 = c(30, NA),
+  C130 = c(NA, 94.2),
+  D150 = c(28, NA),
+  C150 = c(NA, NA)
+)
+
+result <- diameter_conversions(
+  x = df,
+  C130 = "C130",
+  C150 = "C150",
+  D130 = "D130",
+  D150 = "D150"
+)
+
+print(result)
+}
+
+}
+\seealso{
+\code{\link{preprocess_data}}, \code{\link{calculate_basal_areas}}, \code{\link{convert_circumference}}
 }

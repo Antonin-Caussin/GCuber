@@ -2,25 +2,126 @@
 % Please edit documentation in R/calculations.R
 \name{calculate_prediction_interval}
 \alias{calculate_prediction_interval}
-\title{Calcul de la variance individuelle et des intervalles de prédiction}
+\title{Calculate Relative Prediction Intervals for Tree Volume Estimates}
 \usage{
 calculate_prediction_interval(
   x,
-  eqs_volume,
+  equations,
+  volume_type,
   equation_id = 1,
-  confidence_level = 0.95
+  confidence_level = 0.95,
+  source = NULL,
+  summarize = TRUE
 )
 }
 \arguments{
-\item{equation_id}{Identifiant de l'équation utilisée}
+\item{x}{A \code{data.frame} containing individual tree measurements. Must contain:
+\itemize{
+  \item \code{Volume} column with predicted values,
+  \item \code{Species} column matching the \code{equations} table.
+  \item All predictor variables used in the equations (e.g., \code{D130}, \code{HTOT}, etc.).
+}}
 
-\item{df}{Le data.frame contenant les volumes calculés}
+\item{equations}{A \code{data.frame} of allometric model parameters, including:
+\itemize{
+  \item Columns: \code{Y}, \code{Species}, \code{Source_Eq}, \code{sigma}, \code{n},
+  \code{x_mean_*}, \code{SCE_*}, \code{COV_*}, and predictors \code{X1} to \code{X5}.
+}}
 
-\item{volume_type}{Le nom de la colonne de volume (ex: "V22")}
+\item{volume_type}{Character. The type of volume estimate to use (e.g., \code{"V22"}).}
+
+\item{equation_id}{Integer. Index of the equation to use (default = 1).}
+
+\item{confidence_level}{Numeric. Confidence level for the interval (default = 0.95).}
+
+\item{source}{Character. Optional source filter for selecting equations (e.g., \code{"Dagnellie"}).}
+
+\item{summarize}{Logical. If \code{TRUE}, prints summary statistics globally and per species.}
 }
 \value{
-Le data.frame enrichi avec les colonnes Relative_Interval_Width et Interval_Interpretation
+A \code{data.frame}, same as input \code{x}, with additional columns:
+\describe{
+  \item{\code{Relative_Width}}{Numeric vector of relative interval widths.}
+  \item{\code{Reliability}}{Character vector of qualitative interval interpretations.}
+}
 }
 \description{
-Calcule la largeur relative des intervalles de prédiction pour chaque arbre.
+Computes the relative width of prediction intervals for tree volume estimates based on
+species-specific allometric equations and their associated uncertainty. The function supports
+univariate and multivariate models, using provided statistical parameters such as residual
+standard error (`sigma`), number of observations (`n`), variance estimates (`SCE_*`),
+and covariances (`COV_*`).
+
+The function adds two new columns to the input dataset:
+\itemize{
+  \item \code{Relative_Width} — The width of the prediction interval divided by the predicted volume.
+  \item \code{Reliability} — A qualitative interpretation of the interval's reliability.
+}
+Optionally, it prints summary statistics globally and by species.
+}
+\details{
+For each individual tree, the prediction interval is calculated using:
+
+\deqn{
+\text{Variance} = \sigma^2 \left(1 + \frac{1}{n} + \frac{(x - \bar{x})^2}{SCE} \right)
+}
+
+for univariate models, and using the covariance matrix for multivariate models.
+
+The final relative width is computed as:
+
+\deqn{
+\text{Relative Width} = \frac{2 \cdot t_{\alpha/2} \cdot \sqrt{\text{Variance}}}{\hat{Y}}
+}
+
+Where:
+\itemize{
+  \item \eqn{t_{\alpha/2}} is the Student's t quantile at the desired confidence level.
+  \item \eqn{\hat{Y}} is the predicted volume for the individual.
+}
+
+Interpretation is based on thresholds:
+\itemize{
+  \item < 0.10 → "Very narrow → Very reliable"
+  \item ≤ 0.25 → "Acceptable → Rather reliable"
+  \item ≤ 0.50 → "Wide → Uncertain"
+  \item > 0.50 → "Very wide → Risky"
+  \item NA → "No calculation"
+}
+}
+\section{Printed Summary (optional)}{
+
+If \code{summarize = TRUE}, the function prints:
+\itemize{
+  \item Global statistics: count, mean, median, min, max, standard deviation.
+  \item Interval interpretation frequency table.
+  \item Summary by species (count, mean, median, SD).
+  \item Percentiles: P5, P10, P25, P75, P90, P95.
+}
+}
+
+\examples{
+\dontrun{
+df <- data.frame(Species = "Fagus_sylvatica", D130 = 32, Volume = 1.5)
+equations <- data.frame(
+  Y = "V22",
+  Species = "Fagus_sylvatica",
+  sigma = 0.2,
+  n = 100,
+  x_mean_D130 = 30,
+  SCE_D130 = 200,
+  X1 = "log(D130)",
+  Source_Eq = "Dagnellie"
+)
+
+result <- calculate_prediction_interval(df, equations, volume_type = "V22", source = "Dagnellie")
+head(result)
+}
+
+}
+\seealso{
+\code{\link{carbofor}}, \code{\link{calculate_volume}}, \code{\link{calculate_biomass}}
+}
+\author{
+Antonin Caussin
 }
