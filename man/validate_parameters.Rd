@@ -22,22 +22,20 @@ validate_parameters(
 \item{x}{A `data.frame` containing the tree-level inventory data. Must include
 at least one column related to diameter or circumference at a defined height.}
 
-\item{volume_type}{Character. Type of volume to be computed.
-Accepted values include:
-\itemize{
-  \item \code{"V22"}: Commercial volume over bark from 0 to 22 cm diameter.
-  \item \code{"V22B"}: Commercial volume under bark from 0 to 22 cm diameter.
-  \item \code{"V22_HA"}: Commercial volume over bark extrapolated to hectare scale.
-  \item \code{"Sawlog"}: Sawlog volume.
-  \item \code{"Aboveground"}: Total aboveground volume.
-  \item \code{"Merchantable"}: Merchantable volume.
-}}
+\item{volume_type}{Character. Type of volume to be computed. Accepted values include:
+"V22" (commercial volume over bark from 0 to 22 cm diameter),
+"V22B" (commercial volume under bark from 0 to 22 cm diameter),
+"V22_HA" (commercial volume over bark extrapolated to hectare scale),
+"Sawlog" (sawlog volume),
+"Aboveground" (total aboveground volume),
+and "Merchantable" (merchantable volume).}
 
 \item{equation_id}{Integer. Identifier of the equation to use (typically from an internal database).
 Some volume types only accept specific values for this argument.}
 
 \item{source}{Character. Source of the allometric equations.
-Must be one of: \code{"Dagnellie"}, \code{"Algan"}, \code{"Vallet"}, \code("Bouvard"), \code("Rondeu") or \code("Courbet")}
+Must be one of: \code{"Dagnellie"}, \code{"Algan"}, \code{"Vallet"},
+\code{"Bouvard"}, \code{"Rondeu"}, or \code{"Courbet"}.}
 
 \item{specimens}{Optional character. Name of the column containing species identifiers
 (codes, abbreviations, or full names), used to select the appropriate model.}
@@ -95,6 +93,6 @@ validate_parameters(
 
 }
 \seealso{
-\code{\link{calculate_volumes}}, \code{\link{carbofor_species}},
+\code{\link{calculate_volume}}, \code{\link{carbofor_species}},
 \code{\link{calculate_prediction_interval}} for downstream use.
 }

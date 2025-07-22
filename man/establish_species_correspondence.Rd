@@ -65,5 +65,5 @@ head(df)
 }
 \seealso{
 \code{\link{detect_specimens_type}}, \code{\link{preprocess_data}}, \code{\link{validate_parameters}},
-\code{\link{calculate_volumes}}, \code{\link{carbofor_species}}
+\code{\link{calculate_volume}}, \code{\link{carbofor_species}}
 }

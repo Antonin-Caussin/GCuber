@@ -325,7 +325,7 @@ calculate_bark_thickness <- function(df, equations, total_volume_col = "V22", so
 #' @seealso
 #' \code{\link{calculate_carbon}} to compute carbon stock from biomass,
 #' \code{\link{calculate_volume}} for upstream volume computation,
-#' \code{\link{get_equation_database}} for accessing standard allometric datasets.
+#' To access the equations, see the internal object `equations` bundled with the package.
 #'
 #' @examples
 #' # Using volume × density method
@@ -336,11 +336,14 @@ calculate_bark_thickness <- function(df, equations, total_volume_col = "V22", so
 #'
 #' # Using allometric equations
 #' eqs <- data.frame(Species = "Fagus", Y = "BIOMASS", A0 = 1,
-#'                   b0 = 0.2, b1 = 0.03, X1 = "D130", X2 = NA, b2 = NA)
+#'                   b0 = 0.2, b1 = 0.03, b2 = NA, b3 = NA, b4 = NA, b5 = NA,
+#'                   X1 = "D130", X2 = NA, X3 = NA, X4 = NA, X5 = NA)
 #' df <- data.frame(Species = "Fagus", D130 = 32)
 #' calculate_biomass(df, eqs, method = "equation")
 #'
+#' @importFrom stats setNames
 #' @export
+
 
 calculate_biomass <- function(x, equations, method = c("equation", "volume")) {
   method <- match.arg(method)
@@ -501,7 +504,7 @@ calculate_carbon <- function(df) {
     return(df)
   }
 
-  df$Carbon_Total <- df$Biomass_Total * 0.5
+  df$Carbon_Total <- df$Biomass_Total * 0.47
   return(df)
 }
 

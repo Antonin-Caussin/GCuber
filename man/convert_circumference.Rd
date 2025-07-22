@@ -2,7 +2,7 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{convert_circumference}
 \alias{convert_circumference}
-\title{Harmonize C130 and C150 using species-specific conversion coefficients}
+\title{Harmonize C130 and C150 Using Species-Specific Conversion Models}
 \usage{
 convert_circumference(
   x,
@@ -15,19 +15,44 @@ convert_circumference(
 )
 }
 \arguments{
-\item{x}{A data.frame containing at least a Species column and one of the circumference columns.}
+\item{x}{A \code{data.frame} containing at least a \code{Species} column and either \code{C130} or \code{C150}.}
 
-\item{D150, }{D130 Column names for diameters (optional, only updated at the end).}
+\item{D150}{Character. Name of the column for diameter at 150 cm (default: \code{"D150"}).}
 
-\item{C150, }{C130 Column names for circumferences.}
+\item{D130}{Character. Name of the column for diameter at 130 cm (default: \code{"D130"}).}
 
-\item{HTOT, }{HDOM Column names for height variables (not used here but passed for compatibility).}
+\item{C150}{Character. Name of the column for circumference at 150 cm (default: \code{"C150"}).}
+
+\item{C130}{Character. Name of the column for circumference at 130 cm (default: \code{"C130"}).}
+
+\item{HTOT}{Character. Column name for total tree height (not used here but passed for consistency).}
+
+\item{HDOM}{Character. Column name for dominant height (not used here but passed for consistency).}
 }
 \value{
-The input data.frame with harmonized C130/C150 and updated diameters if applicable.
+A \code{data.frame} with harmonized \code{C130} and/or \code{C150} columns and updated diameters
+\code{D130} and \code{D150} derived from the converted circumferences.
 }
 \description{
-Performs bidirectional or directional conversion between C130 and C150 using
-species-specific linear models (C150 = HV × C130 + IV). Coefficients must be present in
-the `equations` data.frame.
+Converts between circumference at 130 cm and 150 cm above ground using linear models
+derived from species-specific calibration coefficients. The formula used is:
+\eqn{C_{target} = HV \cdot C_{source} + IV}, where \eqn{HV} and \eqn{IV} are parameters
+retrieved from an internal equations table.
+}
+\details{
+The direction of conversion is automatically inferred based on which of \code{C130} or \code{C150} is missing.
+If both are available, a bidirectional check is performed. The species-specific coefficients \code{HV} and \code{IV}
+must be available in a global object named \code{equations}.
+}
+\examples{
+\dontrun{
+df <- data.frame(Species = "FASY", C150 = 105)
+equations <- data.frame(Species = "FASY", HV = 0.97, IV = 1.5)
+df <- convert_circumference(df)
+head(df)
+}
+
+}
+\seealso{
+\code{\link{diameter_conversions}}, \code{\link{calculate_basal_areas}}, \code{\link{preprocess_data}}
 }

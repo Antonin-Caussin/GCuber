@@ -2,71 +2,46 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{diameter_conversions}
 \alias{diameter_conversions}
-\title{Convert Between Diameter and Circumference Measurements}
+\title{Convert Between Diameter and Circumference at Breast Height}
 \usage{
 diameter_conversions(x, C130, C150, D130, D150, HTOT = "HTOT", HDOM = "HDOM")
 }
 \arguments{
-\item{x}{A data.frame containing tree inventory data with at least one of the diameter or circumference columns.}
+\item{x}{A \code{data.frame} containing tree-level dendrometric measurements. Must include at least one of the columns specified in \code{C130}, \code{C150}, \code{D130}, or \code{D150}.}
 
-\item{C130}{Character. Name of the column storing circumference at 130 cm above ground (in cm).}
+\item{C130}{Character. Name of the column containing circumference at 130 cm (in cm).}
 
-\item{C150}{Character. Name of the column storing circumference at 150 cm above ground (in cm).}
+\item{C150}{Character. Name of the column containing circumference at 150 cm (in cm).}
 
-\item{D130}{Character. Name of the column storing diameter at 130 cm above ground (in cm).}
+\item{D130}{Character. Name of the column containing diameter at 130 cm (in cm).}
 
-\item{D150}{Character. Name of the column storing diameter at 150 cm above ground (in cm).}
+\item{D150}{Character. Name of the column containing diameter at 150 cm (in cm).}
 
-\item{HTOT}{Character (unused). Name of the column for total height, included for compatibility.}
+\item{HTOT}{Character. Name of the column containing total tree height. This parameter is currently unused but retained for compatibility.}
 
-\item{HDOM}{Character (unused). Name of the column for dominant height, included for compatibility.}
+\item{HDOM}{Character. Name of the column containing dominant height. This parameter is currently unused but retained for compatibility.}
 }
 \value{
-A data.frame identical to the input but with missing diameter or circumference values filled when possible.
-Columns are created if they do not exist in the original dataset.
+A \code{data.frame} identical to the input, with missing diameter or circumference values
+imputed where possible using the relationship \eqn{C = \pi \cdot D} or \eqn{D = C / \pi}.
+Columns that do not exist are created and filled with \code{NA_real_} if necessary.
 }
 \description{
-Converts missing diameter or circumference values at breast height
-using the formula: \code{C = pi * D}. The function works in both directions:
-\itemize{
-  \item If diameter is known and circumference is missing, it computes circumference;
-  \item If circumference is known and diameter is missing, it computes diameter.
-}
-The function supports measurements at both 130 cm and 150 cm above ground.
+Completes missing values of tree diameter or circumference at 130 cm and 150 cm
+above ground using the relationship \eqn{C = \pi \cdot D}. This bidirectional conversion
+ensures consistency of forest inventory data when either variable is missing.
 }
 \details{
-The function ensures all four measurement columns exist in the dataset. If one is missing,
-it is created with \code{NA_real_}. Then, it attempts to complete missing values using
-the available ones with the relationships:
-\itemize{
-  \item \code{C = pi * D}
-  \item \code{D = C / pi}
-}
-
-If conversions are expected (i.e., the input diameter exists but circumference is missing),
-and the output is still \code{NA}, a warning is issued.
+This function does not overwrite existing values. It only fills in missing values
+based on the complementary measurement. If a conversion is expected but the required
+source variable is \code{NA}, a warning is issued.
 }
 \examples{
-\dontrun{
-df <- data.frame(
-  D130 = c(30, NA),
-  C130 = c(NA, 94.2),
-  D150 = c(28, NA),
-  C150 = c(NA, NA)
-)
-
-result <- diameter_conversions(
-  x = df,
-  C130 = "C130",
-  C150 = "C150",
-  D130 = "D130",
-  D150 = "D150"
-)
-
-print(result)
-}
+df <- data.frame(D130 = c(30, NA), C130 = c(NA, 94.2))
+df <- diameter_conversions(df, C130 = "C130", C150 = "C150", D130 = "D130", D150 = "D150")
+print(df)
 
 }
 \seealso{
-\code{\link{preprocess_data}}, \code{\link{calculate_basal_areas}}, \code{\link{convert_circumference}}
+\code{\link{convert_circumference}}, \code{\link{calculate_basal_areas}}, \code{\link{preprocess_data}}
 }

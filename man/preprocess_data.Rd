@@ -52,7 +52,7 @@ for volume, biomass, or carbon calculations. It includes:
   \item Calculation of basal area for each tree record.
 }
 These steps ensure the dataset is standardized and consistent with the format expected
-by downstream modeling functions such as \code{\link{calculate_volumes}} or \code{\link{calculate_biomass}}.
+by downstream modeling functions such as \code{\link{calculate_volume}} or \code{\link{calculate_biomass}}.
 }
 \details{
 The function applies the following steps in order:
@@ -87,6 +87,6 @@ head(df_preprocessed)
 
 }
 \seealso{
-\code{\link{validate_parameters}}, \code{\link{calculate_volumes}}, \code{\link{calculate_biomass}},
+\code{\link{validate_parameters}}, \code{\link{calculate_volume}}, \code{\link{calculate_biomass}},
 \code{\link{calculate_prediction_interval}}, \code{\link{calculate_carbon}}.
 }

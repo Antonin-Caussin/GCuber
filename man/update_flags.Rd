@@ -2,21 +2,51 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{update_flags}
 \alias{update_flags}
-\title{Update existence flags for key column names}
+\title{Update Logical Flags for Key Tree Measurement Columns}
 \usage{
 update_flags(x, flags, C130, C150, D130, D150, HTOT, HDOM)
 }
 \arguments{
-\item{x}{A data.frame containing tree data.}
+\item{x}{A `data.frame` containing tree-level dendrometric data.}
 
-\item{flags}{A named list of logicals tracking existence of key variables.}
+\item{flags}{A named list of logical values indicating which variables currently exist.
+This list typically includes: `C130_exists`, `C150_exists`, `D130_exists`,
+`D150_exists`, `HTOT_exists`, `HDOM_exists`.}
 
-\item{C130, }{C150, D130, D150, HTOT, HDOM Column names to check in the data.frame.}
+\item{C130}{Character. Name of the column for circumference at 130 cm above ground.}
+
+\item{C150}{Character. Name of the column for circumference at 150 cm above ground.}
+
+\item{D130}{Character. Name of the column for diameter at 130 cm above ground.}
+
+\item{D150}{Character. Name of the column for diameter at 150 cm above ground.}
+
+\item{HTOT}{Character. Name of the column for total tree height.}
+
+\item{HDOM}{Character. Name of the column for dominant height in the plot.}
 }
 \value{
-An updated list of logical flags indicating column presence.
+A list of updated logical values indicating the presence or absence of each
+        specified column in the input data.frame.
 }
 \description{
-Checks whether key variables (diameters, circumferences, heights) exist in the input data
-and updates a logical flag list accordingly.
+This internal utility function checks for the presence of key dendrometric variables
+(diameters, circumferences, heights) in a data.frame and updates a list of logical
+flags accordingly. It helps downstream functions know which columns are available
+for processing.
+}
+\examples{
+\dontrun{
+df <- data.frame(D130 = c(30, 32), HTOT = c(25, 27))
+flags <- list(C130_exists = FALSE, C150_exists = FALSE,
+              D130_exists = FALSE, D150_exists = FALSE,
+              HTOT_exists = FALSE, HDOM_exists = FALSE)
+flags <- update_flags(df, flags, C130 = "C130", C150 = "C150",
+                      D130 = "D130", D150 = "D150", HTOT = "HTOT", HDOM = "HDOM")
+print(flags)
+}
+
+}
+\seealso{
+\code{\link{validate_parameters}}, \code{\link{preprocess_data}}
 }

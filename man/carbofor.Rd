@@ -2,71 +2,22 @@
 % Please edit documentation in R/carbofor.R
 \name{carbofor}
 \alias{carbofor}
-\title{Compute tree volumes, bark thickness, biomass, and carbon content}
+\title{Main entry point to compute forest inventory metrics}
 \usage{
 carbofor(x, ...)
 }
 \arguments{
-\item{x}{A data.frame containing tree-level dendrometric measurements.}
+\item{x}{An object containing tree inventory data. Typically a data.frame.}
 
-\item{...}{Additional arguments passed to internal methods.}
-
-\item{volume_type}{Character. Type of volume to compute. One of `"V22"`, `"V22B"`, `"E"`, or `"V22_HA"`.}
-
-\item{equation_id}{Integer. Identifier for the equation to be used within a given volume type.}
-
-\item{carbon}{Logical. If `TRUE`, calculates aerial biomass and associated carbon content.}
-
-\item{bark}{Logical. If `TRUE`, estimates bark thickness and adjusts the total volume accordingly.}
-
-\item{remove_na}{Logical. If `TRUE`, rows with missing computed volume are removed from the output.}
-
-\item{source}{Character. The source of the allometric equations. Options include `"Dagnellie"`, `"Aflan"`, and `"Vallet"`.}
-
-\item{specimens}{Character. Column name in `x` indicating species identification (code, abbreviation, or full name).
-Required for matching with internal equations.}
-
-\item{D130, }{D150 Character. Column names for tree diameter at 130 cm and 150 cm.}
-
-\item{C130, }{C150 Character. Column names for tree circumference at 130 cm and 150 cm.}
-
-\item{HTOT, }{HDOM Character. Column names for total tree height and dominant height.}
+\item{...}{Additional arguments passed to class-specific methods.}
 }
 \value{
-A data.frame similar to the input with added columns depending on selected options:
-\itemize{
-  \item `volume_type` (e.g., "V22") — computed volume.
-  \item `G130`, `G150` — basal areas at 130 cm and 150 cm (if applicable).
-  \item `Ecorce_mm` — bark thickness (if `bark = TRUE`).
-  \item `Biomass_kg` — aerial biomass (if `carbon = TRUE`).
-  \item `Carbon_kg` — carbon content (if `carbon = TRUE`).
-}
+A data.frame or object containing the computed variables, depending on the method used.
 }
 \description{
-This function is the main interface to calculate tree volume, optional bark thickness,
-biomass, and carbon stock using species-specific allometric equations.
-It supports different volume types, handles data preprocessing (including species mapping
-and diameter-circumference conversions), and offers flexible options for source models.
-
-The function is designed to work with a `data.frame` of tree measurements and integrates
-several steps of forest mensuration into a single call.
-}
-\examples{
-\dontrun{
-df <- data.frame(
-  C130 = c(50, 60),
-  HTOT = c(20, 25),
-  Species = c("Hetre", "Epicea commun")
-)
-
-result <- carbofor(df,
-                   volume_type = "V22",
-                   equation_id = 1,
-                   carbon = TRUE,
-                   bark = TRUE,
-                   specimens = "Species")
-}
-
+This is the generic method for computing tree volume, bark thickness,
+aboveground biomass, and carbon content from forest inventory data.
+It delegates to specific methods depending on the class of the input `x`.
 }
 \seealso{
 \code{\link{calculate_volume}} — Core function for volume computation using selected allometric models.

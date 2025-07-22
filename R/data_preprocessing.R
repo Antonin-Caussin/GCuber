@@ -18,18 +18,45 @@ as.carbofor_data <- function(x) {
 # =====================================================================
 #                             update_flags()
 # =====================================================================
-#' Update existence flags for key column names
+
+#' Update Logical Flags for Key Tree Measurement Columns
 #'
 #' @description
-#' Checks whether key variables (diameters, circumferences, heights) exist in the input data
-#' and updates a logical flag list accordingly.
+#' This internal utility function checks for the presence of key dendrometric variables
+#' (diameters, circumferences, heights) in a data.frame and updates a list of logical
+#' flags accordingly. It helps downstream functions know which columns are available
+#' for processing.
 #'
-#' @param x A data.frame containing tree data.
-#' @param flags A named list of logicals tracking existence of key variables.
-#' @param C130, C150, D130, D150, HTOT, HDOM Column names to check in the data.frame.
+#' @param x A `data.frame` containing tree-level dendrometric data.
+#' @param flags A named list of logical values indicating which variables currently exist.
+#'              This list typically includes: `C130_exists`, `C150_exists`, `D130_exists`,
+#'              `D150_exists`, `HTOT_exists`, `HDOM_exists`.
+#' @param C130 Character. Name of the column for circumference at 130 cm above ground.
+#' @param C150 Character. Name of the column for circumference at 150 cm above ground.
+#' @param D130 Character. Name of the column for diameter at 130 cm above ground.
+#' @param D150 Character. Name of the column for diameter at 150 cm above ground.
+#' @param HTOT Character. Name of the column for total tree height.
+#' @param HDOM Character. Name of the column for dominant height in the plot.
 #'
-#' @return An updated list of logical flags indicating column presence.
+#' @return A list of updated logical values indicating the presence or absence of each
+#'         specified column in the input data.frame.
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(D130 = c(30, 32), HTOT = c(25, 27))
+#' flags <- list(C130_exists = FALSE, C150_exists = FALSE,
+#'               D130_exists = FALSE, D150_exists = FALSE,
+#'               HTOT_exists = FALSE, HDOM_exists = FALSE)
+#' flags <- update_flags(df, flags, C130 = "C130", C150 = "C150",
+#'                       D130 = "D130", D150 = "D150", HTOT = "HTOT", HDOM = "HDOM")
+#' print(flags)
+#' }
+#'
+#' @seealso
+#' \code{\link{validate_parameters}}, \code{\link{preprocess_data}}
+#'
 #' @export
+
 update_flags <- function(x, flags, C130, C150, D130, D150, HTOT, HDOM) {
   flags$C130_exists <- C130 %in% colnames(x)
   flags$C150_exists <- C150 %in% colnames(x)
@@ -55,7 +82,7 @@ update_flags <- function(x, flags, C130, C150, D130, D150, HTOT, HDOM) {
 #'   \item Calculation of basal area for each tree record.
 #' }
 #' These steps ensure the dataset is standardized and consistent with the format expected
-#' by downstream modeling functions such as \code{\link{calculate_volumes}} or \code{\link{calculate_biomass}}.
+#' by downstream modeling functions such as \code{\link{calculate_volume}} or \code{\link{calculate_biomass}}.
 #'
 #' @param x A `data.frame` containing individual tree measurements. Must include at least one
 #' diameter or circumference variable (D130, D150, C130, or C150) and height measurements.
@@ -108,7 +135,7 @@ update_flags <- function(x, flags, C130, C150, D130, D150, HTOT, HDOM) {
 #' }
 #'
 #' @seealso
-#' \code{\link{validate_parameters}}, \code{\link{calculate_volumes}}, \code{\link{calculate_biomass}},
+#' \code{\link{validate_parameters}}, \code{\link{calculate_volume}}, \code{\link{calculate_biomass}},
 #' \code{\link{calculate_prediction_interval}}, \code{\link{calculate_carbon}}.
 #'
 #' @export
@@ -183,7 +210,7 @@ preprocess_data <- function(x, specimens = NULL, C130 = "C130", C150 = "C150",
 #'
 #' @seealso
 #' \code{\link{detect_specimens_type}}, \code{\link{preprocess_data}}, \code{\link{validate_parameters}},
-#' \code{\link{calculate_volumes}}, \code{\link{carbofor_species}}
+#' \code{\link{calculate_volume}}, \code{\link{carbofor_species}}
 #'
 #' @export
 
@@ -287,7 +314,9 @@ establish_species_correspondence <- function(x, specimens) {
 #' \code{\link{establish_species_correspondence}}, \code{\link{preprocess_data}},
 #' \code{\link{validate_parameters}}
 #'
+#' @importFrom stats na.omit
 #' @export
+
 
 detect_specimens_type <- function(x, specimens) {
   sample_values <- na.omit(x[[specimens]])
@@ -316,65 +345,41 @@ detect_specimens_type <- function(x, specimens) {
 #                    diameter_conversions()
 # =====================================================================
 
-#' Convert Between Diameter and Circumference Measurements
+#' Convert Between Diameter and Circumference at Breast Height
 #'
 #' @description
-#' Converts missing diameter or circumference values at breast height
-#' using the formula: \code{C = pi * D}. The function works in both directions:
-#' \itemize{
-#'   \item If diameter is known and circumference is missing, it computes circumference;
-#'   \item If circumference is known and diameter is missing, it computes diameter.
-#' }
-#' The function supports measurements at both 130 cm and 150 cm above ground.
+#' Completes missing values of tree diameter or circumference at 130 cm and 150 cm
+#' above ground using the relationship \eqn{C = \pi \cdot D}. This bidirectional conversion
+#' ensures consistency of forest inventory data when either variable is missing.
 #'
-#' @param x A data.frame containing tree inventory data with at least one of the diameter or circumference columns.
-#' @param C130 Character. Name of the column storing circumference at 130 cm above ground (in cm).
-#' @param C150 Character. Name of the column storing circumference at 150 cm above ground (in cm).
-#' @param D130 Character. Name of the column storing diameter at 130 cm above ground (in cm).
-#' @param D150 Character. Name of the column storing diameter at 150 cm above ground (in cm).
-#' @param HTOT Character (unused). Name of the column for total height, included for compatibility.
-#' @param HDOM Character (unused). Name of the column for dominant height, included for compatibility.
+#' @param x A \code{data.frame} containing tree-level dendrometric measurements. Must include at least one of the columns specified in \code{C130}, \code{C150}, \code{D130}, or \code{D150}.
+#' @param C130 Character. Name of the column containing circumference at 130 cm (in cm).
+#' @param C150 Character. Name of the column containing circumference at 150 cm (in cm).
+#' @param D130 Character. Name of the column containing diameter at 130 cm (in cm).
+#' @param D150 Character. Name of the column containing diameter at 150 cm (in cm).
+#' @param HTOT Character. Name of the column containing total tree height. This parameter is currently unused but retained for compatibility.
+#' @param HDOM Character. Name of the column containing dominant height. This parameter is currently unused but retained for compatibility.
 #'
 #' @return
-#' A data.frame identical to the input but with missing diameter or circumference values filled when possible.
-#' Columns are created if they do not exist in the original dataset.
+#' A \code{data.frame} identical to the input, with missing diameter or circumference values
+#' imputed where possible using the relationship \eqn{C = \pi \cdot D} or \eqn{D = C / \pi}.
+#' Columns that do not exist are created and filled with \code{NA_real_} if necessary.
 #'
 #' @details
-#' The function ensures all four measurement columns exist in the dataset. If one is missing,
-#' it is created with \code{NA_real_}. Then, it attempts to complete missing values using
-#' the available ones with the relationships:
-#' \itemize{
-#'   \item \code{C = pi * D}
-#'   \item \code{D = C / pi}
-#' }
-#'
-#' If conversions are expected (i.e., the input diameter exists but circumference is missing),
-#' and the output is still \code{NA}, a warning is issued.
-#'
-#' @examples
-#' \dontrun{
-#' df <- data.frame(
-#'   D130 = c(30, NA),
-#'   C130 = c(NA, 94.2),
-#'   D150 = c(28, NA),
-#'   C150 = c(NA, NA)
-#' )
-#'
-#' result <- diameter_conversions(
-#'   x = df,
-#'   C130 = "C130",
-#'   C150 = "C150",
-#'   D130 = "D130",
-#'   D150 = "D150"
-#' )
-#'
-#' print(result)
-#' }
+#' This function does not overwrite existing values. It only fills in missing values
+#' based on the complementary measurement. If a conversion is expected but the required
+#' source variable is \code{NA}, a warning is issued.
 #'
 #' @seealso
-#' \code{\link{preprocess_data}}, \code{\link{calculate_basal_areas}}, \code{\link{convert_circumference}}
+#' \code{\link{convert_circumference}}, \code{\link{calculate_basal_areas}}, \code{\link{preprocess_data}}
+#'
+#' @examples
+#' df <- data.frame(D130 = c(30, NA), C130 = c(NA, 94.2))
+#' df <- diameter_conversions(df, C130 = "C130", C150 = "C150", D130 = "D130", D150 = "D150")
+#' print(df)
 #'
 #' @export
+
 
 
 diameter_conversions <- function(x, C130, C150, D130, D150, HTOT = "HTOT", HDOM = "HDOM") {
@@ -419,20 +424,44 @@ diameter_conversions <- function(x, C130, C150, D130, D150, HTOT = "HTOT", HDOM 
 #                    convert_circumference()
 # =====================================================================
 
-#' Harmonize C130 and C150 using species-specific conversion coefficients
+#' Harmonize C130 and C150 Using Species-Specific Conversion Models
 #'
 #' @description
-#' Performs bidirectional or directional conversion between C130 and C150 using
-#' species-specific linear models (C150 = HV × C130 + IV). Coefficients must be present in
-#' the `equations` data.frame.
+#' Converts between circumference at 130 cm and 150 cm above ground using linear models
+#' derived from species-specific calibration coefficients. The formula used is:
+#' \eqn{C_{target} = HV \cdot C_{source} + IV}, where \eqn{HV} and \eqn{IV} are parameters
+#' retrieved from an internal equations table.
 #'
-#' @param x A data.frame containing at least a Species column and one of the circumference columns.
-#' @param D150, D130 Column names for diameters (optional, only updated at the end).
-#' @param C150, C130 Column names for circumferences.
-#' @param HTOT, HDOM Column names for height variables (not used here but passed for compatibility).
+#' @param x A \code{data.frame} containing at least a \code{Species} column and either \code{C130} or \code{C150}.
+#' @param D150 Character. Name of the column for diameter at 150 cm (default: \code{"D150"}).
+#' @param D130 Character. Name of the column for diameter at 130 cm (default: \code{"D130"}).
+#' @param C150 Character. Name of the column for circumference at 150 cm (default: \code{"C150"}).
+#' @param C130 Character. Name of the column for circumference at 130 cm (default: \code{"C130"}).
+#' @param HTOT Character. Column name for total tree height (not used here but passed for consistency).
+#' @param HDOM Character. Column name for dominant height (not used here but passed for consistency).
 #'
-#' @return The input data.frame with harmonized C130/C150 and updated diameters if applicable.
+#' @return
+#' A \code{data.frame} with harmonized \code{C130} and/or \code{C150} columns and updated diameters
+#' \code{D130} and \code{D150} derived from the converted circumferences.
+#'
+#' @details
+#' The direction of conversion is automatically inferred based on which of \code{C130} or \code{C150} is missing.
+#' If both are available, a bidirectional check is performed. The species-specific coefficients \code{HV} and \code{IV}
+#' must be available in a global object named \code{equations}.
+#'
+#' @seealso
+#' \code{\link{diameter_conversions}}, \code{\link{calculate_basal_areas}}, \code{\link{preprocess_data}}
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(Species = "FASY", C150 = 105)
+#' equations <- data.frame(Species = "FASY", HV = 0.97, IV = 1.5)
+#' df <- convert_circumference(df)
+#' head(df)
+#' }
+#'
 #' @export
+
 convert_circumference <- function(x, D150 = "D150", D130 = "D130",
                                   C150 = "C150", C130 = "C130",
                                   HTOT = "HTOT", HDOM = "HDOM") {
@@ -511,40 +540,36 @@ convert_circumference <- function(x, D150 = "D150", D130 = "D130",
 #                    calculate_basal_areas()
 # =====================================================================
 
-#' Calculate Basal Area from Tree Circumference
+#' Compute Basal Area from Tree Circumference
 #'
 #' @description
-#' Computes the basal area (in square meters) at breast height for each tree
-#' using the circumference at 130 cm and/or 150 cm above ground. The formula used is:
-#' \deqn{G = C^2 / (4 * pi * 10000)}
-#' where \eqn{C} is the circumference in centimeters and \eqn{G} is the basal area in square meters.
+#' Calculates the basal area (in m²) for individual trees using circumference at breast height.
+#' The formula used is: \eqn{G = C^2 / (4 \pi \cdot 10^4)}, where \eqn{C} is in cm and \eqn{G} is in m².
 #'
-#' @param x A data.frame containing tree inventory data.
-#' @param C130 Character. Name of the column storing circumference at 130 cm (in cm).
-#' @param C150 Character. Name of the column storing circumference at 150 cm (in cm).
+#' @param x A \code{data.frame} containing tree-level measurements.
+#' @param C130 Character. Name of the column with circumference at 130 cm (in cm).
+#' @param C150 Character. Name of the column with circumference at 150 cm (in cm).
 #'
 #' @return
-#' The input data.frame with one or both of the following columns added:
+#' A \code{data.frame} identical to the input, with additional columns:
 #' \itemize{
-#'   \item \code{G130}: basal area based on \code{C130};
-#'   \item \code{G150}: basal area based on \code{C150}.
+#'   \item \code{G130}: basal area computed from \code{C130} (if available);
+#'   \item \code{G150}: basal area computed from \code{C150} (if available).
 #' }
-#' Only columns not already present in the data are created. If the corresponding circumference column
-#' is missing, the basal area is not computed.
+#' Basal areas are returned in square meters.
 #'
 #' @details
-#' The result is expressed in square meters per tree. The division by 10,000 converts from cm² to m².
-#' The function is typically used in preprocessing steps before applying volume or biomass equations.
-#'
-#' @examples
-#' \dontrun{
-#' df <- data.frame(C130 = c(100, 120), C150 = c(105, 125))
-#' df <- calculate_basal_areas(df, C130 = "C130", C150 = "C150")
-#' head(df)
-#' }
+#' This function does not overwrite existing columns. Only \code{G130} or \code{G150}
+#' not already present are computed. The circumference must be in centimeters;
+#' the resulting basal area is in square meters.
 #'
 #' @seealso
 #' \code{\link{preprocess_data}}, \code{\link{diameter_conversions}}, \code{\link{convert_circumference}}
+#'
+#' @examples
+#' df <- data.frame(C130 = c(100, 120), C150 = c(105, 125))
+#' df <- calculate_basal_areas(df, C130 = "C130", C150 = "C150")
+#' head(df)
 #'
 #' @export
 

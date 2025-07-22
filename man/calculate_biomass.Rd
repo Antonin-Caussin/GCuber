@@ -68,7 +68,8 @@ calculate_biomass(df, eq, method = "volume")
 
 # Using allometric equations
 eqs <- data.frame(Species = "Fagus", Y = "BIOMASS", A0 = 1,
-                  b0 = 0.2, b1 = 0.03, X1 = "D130", X2 = NA, b2 = NA)
+                  b0 = 0.2, b1 = 0.03, b2 = NA, b3 = NA, b4 = NA, b5 = NA,
+                  X1 = "D130", X2 = NA, X3 = NA, X4 = NA, X5 = NA)
 df <- data.frame(Species = "Fagus", D130 = 32)
 calculate_biomass(df, eqs, method = "equation")
 
@@ -76,5 +77,5 @@ calculate_biomass(df, eqs, method = "equation")
 \seealso{
 \code{\link{calculate_carbon}} to compute carbon stock from biomass,
 \code{\link{calculate_volume}} for upstream volume computation,
-\code{\link{get_equation_database}} for accessing standard allometric datasets.
+To access the equations, see the internal object `equations` bundled with the package.
 }

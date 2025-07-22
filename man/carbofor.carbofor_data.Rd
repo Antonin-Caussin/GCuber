@@ -2,7 +2,7 @@
 % Please edit documentation in R/carbofor.R
 \name{carbofor.carbofor_data}
 \alias{carbofor.carbofor_data}
-\title{Calculate tree volume, bark, biomass and carbon from a data.frame}
+\title{Compute tree volume, bark thickness, biomass and carbon from a data.frame}
 \usage{
 \method{carbofor}{carbofor_data}(
   x,
@@ -25,48 +25,84 @@
 )
 }
 \arguments{
-\item{x}{A data.frame containing individual tree data (must include at least Species and D130).}
+\item{x}{A `data.frame` of class `carbofor_data` containing individual tree measurements.
+Must include at least species identification and diameter data.}
 
-\item{volume_type}{Character string specifying the type of volume to calculate (e.g., "V22", "V22B").}
+\item{volume_type}{Character. The type of volume to compute. Common values include:
+"V22" (commercial volume over bark), "V22B" (under bark), "V22_HA" (per hectare), or "E" (gross volume).}
 
-\item{equation_id}{Integer indicating which equation to apply for each species (default = 1).}
+\item{equation_id}{Integer. Index of the equation to apply per species when multiple models are available.
+Default is 1.}
 
-\item{carbon}{Logical. If TRUE, biomass and carbon will be calculated.}
+\item{carbon}{Logical. If `TRUE`, aboveground biomass and carbon content are computed.}
 
-\item{bark}{Logical. If TRUE, bark thickness and bark/wood volume will be estimated.}
+\item{bark}{Logical. If `TRUE`, bark thickness and bark-adjusted volume are computed.}
 
-\item{remove_na}{Logical. If TRUE, rows with NA in the volume column will be removed.}
+\item{remove_na}{Logical. If `TRUE`, rows with missing computed volume are removed from the output.}
 
-\item{source}{Character string specifying the source of the equations (e.g., "Dagnellie").}
+\item{source}{Character. Identifier of the source for the equations (e.g., "Dagnellie", "Vallet", "Bouvard").}
 
-\item{specimens}{A character vector of specimen IDs used for mapping or metadata consistency.}
+\item{specimens}{Character. Name of the column in `x` used to identify species (e.g., code, abbreviation, or full name).}
 
-\item{D130, }{C130, D150, C150, HTOT, HDOM, H Column names used for diameters, circumferences, and heights.}
+\item{D130}{Character. Column name for diameter at 130 cm height (default = "D130").}
+
+\item{C130}{Character. Column name for circumference at 130 cm height (default = "C130").}
+
+\item{HTOT}{Character. Column name for total tree height (default = "HTOT").}
+
+\item{HDOM}{Character. Column name for dominant height (used for plot-level scaling).}
+
+\item{D150}{Character. Column name for diameter at 150 cm height (default = "D150").}
+
+\item{C150}{Character. Column name for circumference at 150 cm height (default = "C150").}
+
+\item{H}{Character. Optional column name for another height variable used in some equations.}
 
 \item{biomass_method}{Character. Method used to compute biomass if `carbon = TRUE`.
-Options are `"volume"` (default) or `"equation"`.}
+Options are "volume" (volume × density) or "equation" (species-specific biomass model).}
 
-\item{...}{Additional arguments passed to subfunctions.}
-
-\item{equations}{A data.frame of allometric equations with fields like Y, A0, b0:b5, X1:X5, Species, etc.}
+\item{...}{Additional arguments passed to internal helper functions (not used directly here).}
 }
 \value{
-A data.frame enriched with calculated columns such as:
-volume (e.g., V22), Validity_Status, Equation_Used, Biomass_Total, Carbon_Total, etc.
+A `data.frame` identical to `x` but enriched with additional columns depending on options:
+\itemize{
+  \item \code{<volume_type>} — Computed volume in m³ (e.g., `V22`, `V22B`, etc.)
+  \item \code{Validity_Status} — Indicates if the DHB falls within the validity domain of the equation.
+  \item \code{Equation_Used} — Description of the equation applied to each row.
+  \item \code{Ecorce_mm} — Estimated bark thickness in millimeters (if `bark = TRUE`).
+  \item \code{Biomass_Aboveground}, \code{Biomass_Root}, \code{Biomass_Total} — Biomass components (if `carbon = TRUE`).
+  \item \code{Carbon_kg} — Total carbon content in kilograms (if `carbon = TRUE`).
+  \item \code{Prediction_Lower}, \code{Prediction_Upper} — Confidence bounds on volume (95% default).
+}
 }
 \description{
-Applies species-specific allometric equations to calculate tree volume, and optionally
-bark thickness/volume and biomass/carbon.
+This method calculates tree volume, bark thickness, aboveground biomass and associated
+carbon stock from individual tree data using species-specific allometric equations.
+It includes internal validation and preprocessing steps such as species mapping,
+harmonization of diameter/circumference measurements, and height variable consistency.
+
+The function supports several volume types and flexible configurations based on the
+source and structure of allometric models stored internally.
 }
 \examples{
-trees <- data.frame(Species = "Hetre", D130 = 32, HTOT = 25)
-specimens <- c("FASY001")
-equations <- get_equation_database()  # User-provided function or object
-result <- carbofor(
-  x = trees,
-  equations = equations,
-  specimens = specimens,
-  carbon = TRUE,
-  bark = TRUE
+\dontrun{
+df <- data.frame(
+  Species = "FASY", D130 = 32, C130 = 100,
+  HTOT = 25, HDOM = 27
 )
+
+result <- carbofor(
+  x = df,
+  volume_type = "V22",
+  carbon = TRUE,
+  bark = TRUE,
+  specimens = "Species",
+  biomass_method = "volume"
+)
+head(result)
+}
+}
+\seealso{
+\code{\link{calculate_volume}}, \code{\link{calculate_biomass}}, \code{\link{calculate_carbon}},
+\code{\link{calculate_bark_thickness}}, \code{\link{validate_parameters}}, \code{\link{preprocess_data}}
 }

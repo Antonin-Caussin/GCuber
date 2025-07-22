@@ -2,42 +2,38 @@
 % Please edit documentation in R/data_preprocessing.R
 \name{calculate_basal_areas}
 \alias{calculate_basal_areas}
-\title{Calculate Basal Area from Tree Circumference}
+\title{Compute Basal Area from Tree Circumference}
 \usage{
 calculate_basal_areas(x, C130, C150)
 }
 \arguments{
-\item{x}{A data.frame containing tree inventory data.}
+\item{x}{A \code{data.frame} containing tree-level measurements.}
 
-\item{C130}{Character. Name of the column storing circumference at 130 cm (in cm).}
+\item{C130}{Character. Name of the column with circumference at 130 cm (in cm).}
 
-\item{C150}{Character. Name of the column storing circumference at 150 cm (in cm).}
+\item{C150}{Character. Name of the column with circumference at 150 cm (in cm).}
 }
 \value{
-The input data.frame with one or both of the following columns added:
+A \code{data.frame} identical to the input, with additional columns:
 \itemize{
-  \item \code{G130}: basal area based on \code{C130};
-  \item \code{G150}: basal area based on \code{C150}.
+  \item \code{G130}: basal area computed from \code{C130} (if available);
+  \item \code{G150}: basal area computed from \code{C150} (if available).
 }
-Only columns not already present in the data are created. If the corresponding circumference column
-is missing, the basal area is not computed.
+Basal areas are returned in square meters.
 }
 \description{
-Computes the basal area (in square meters) at breast height for each tree
-using the circumference at 130 cm and/or 150 cm above ground. The formula used is:
-\deqn{G = C^2 / (4 * pi * 10000)}
-where \eqn{C} is the circumference in centimeters and \eqn{G} is the basal area in square meters.
+Calculates the basal area (in m²) for individual trees using circumference at breast height.
+The formula used is: \eqn{G = C^2 / (4 \pi \cdot 10^4)}, where \eqn{C} is in cm and \eqn{G} is in m².
 }
 \details{
-The result is expressed in square meters per tree. The division by 10,000 converts from cm² to m².
-The function is typically used in preprocessing steps before applying volume or biomass equations.
+This function does not overwrite existing columns. Only \code{G130} or \code{G150}
+not already present are computed. The circumference must be in centimeters;
+the resulting basal area is in square meters.
 }
 \examples{
-\dontrun{
 df <- data.frame(C130 = c(100, 120), C150 = c(105, 125))
 df <- calculate_basal_areas(df, C130 = "C130", C150 = "C150")
 head(df)
-}
 
 }
 \seealso{

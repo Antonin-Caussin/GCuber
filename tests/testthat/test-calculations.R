@@ -435,7 +435,7 @@ test_that("calculate_carbon - Basic functionality", {
 
   # Checks
   expect_true("Carbon_Total" %in% names(result))
-  expect_equal(result$Carbon_Total, c(50, 100, 150))
+  expect_equal(result$Carbon_Total, c(47, 94, 141))
 })
 
 test_that("calculate_carbon - Missing Biomass_Total column", {
