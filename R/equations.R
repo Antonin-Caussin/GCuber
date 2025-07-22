@@ -1,16 +1,13 @@
-
 #' Internal Allometric Equation Database
 #'
 #' @description
 #' A dataset containing species-specific allometric models and associated metadata used
-#' for computing volume, biomass, and carbon in forest inventories. The table includes
-#' both the model coefficients and their applicability domains (e.g., diameter or height ranges),
-#' as well as species matching information.
+#' internally by the GCuber package for computing volume, biomass, and carbon in forest inventories.
 #'
-#' This dataset is used en interne by GCuber functions such as \code{\link{calculate_volume}},
+#' This dataset is used internally by GCuber functions such as \code{\link{calculate_volume}},
 #' \code{\link{calculate_biomass}}, and \code{\link{convert_circumference}}.
 #'
-#' @format A data.frame with 53 columns and N rows (depending on version). Main fields include:
+#' @format A data frame with 53 columns. Main fields include:
 #' \describe{
 #'   \item{Y}{Response variable modeled (e.g., "V22", "BIOMASS").}
 #'   \item{A0}{Equation form code (1–5): determines if equation is additive or log-linear.}
@@ -45,7 +42,7 @@
 #'   \item{HV, IV}{Coefficients for converting C130 to C150 (and vice versa).}
 #' }
 #'
-#' @docType data
 #' @keywords internal
 #' @name equations
+#' @docType data
 NULL

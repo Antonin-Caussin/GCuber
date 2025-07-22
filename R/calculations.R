@@ -20,7 +20,6 @@
 calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
                              D130 = "D130", specimens = NULL, source = "Dagnellie") {
 
-  equations <- equations
   trees_checked <- 0
   trees_outside_domain <- 0
   trees_no_validity_limits <- 0

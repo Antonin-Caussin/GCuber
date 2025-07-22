@@ -123,7 +123,8 @@ carbofor.carbofor_data <- function(x,
                                    H = "H",
                                    biomass_method = "volume",
                                    ...) {
-  equations <- GCuber::equations
+  data("equations", package = "GCuber", envir = environment())
+
 
   validate_parameters(x, volume_type, equation_id, source, specimens, C130, C150, D130, D150, HTOT, HDOM)
 
