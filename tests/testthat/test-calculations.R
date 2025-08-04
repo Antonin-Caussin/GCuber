@@ -276,9 +276,8 @@ test_that("calculate_bark_thickness - Basic functionality", {
   )
 
   # Checks
-  expect_true("E" %in% names(result))
-  expect_true("Bark_Volume" %in% names(result))
-  expect_true("Wood_Volume" %in% names(result))
+  expect_true(" Bark Volume" %in% names(result))
+  expect_true(" Wood Volume" %in% names(result))
   expect_equal(nrow(result), nrow(test_data))
 })
 
@@ -325,12 +324,12 @@ test_that("calculate_bark_thickness - Volume conservation", {
     test_data,
     equations = equations,
     total_volume_col = "V22",
-    source = "Dagnelie"  # ✅ Correction here
+    source = "Dagnelie"  #
   )
 
-  # Check that Bark_Volume + Wood_Volume = V22
-  if (!is.na(result$Bark_Volume[1]) && !is.na(result$Wood_Volume[1])) {
-    total_calc <- result$Bark_Volume[1] + result$Wood_Volume[1]
+  # Check that  Bark Volume +  Wood Volume = V22
+  if (!is.na(result[[" Bark Volume [m^3]"]][1]) && !is.na(result[[" Wood Volume [m^3]"]][1])) {
+    total_calc <- result[[" Bark Volume [m^3]"]][1] + result[[" Wood Volume [m^3]"]][1]
     expect_equal(total_calc, result$V22[1], tolerance = 1e-6)
   }
 })
@@ -349,9 +348,9 @@ test_that("calculate_biomass - Basic functionality", {
 
   # Checks
   expect_s3_class(result, "data.frame")
-  expect_true(all(c("Biomass_Aboveground", "Biomass_Root", "Biomass_Total") %in% names(result)))
+  expect_true(all(c("Biomass_Aboveground", "Biomass_Root", "Biomass Total [kg]") %in% names(result)))
   expect_equal(nrow(result), nrow(test_data))
-  expect_true(sum(!is.na(result$Biomass_Total)) > 0)
+  expect_true(sum(!is.na(result[["Biomass Total [kg]"]])) > 0)
 })
 
 test_that("calculate_biomass - Absence of biomass equations", {
@@ -365,7 +364,7 @@ test_that("calculate_biomass - Absence of biomass equations", {
     "No biomass equations found"
   )
 
-  expect_true(all(is.na(result$Biomass_Total)))
+  expect_true(all(is.na(result[["Biomass Total [kg]"]])))
 })
 
 test_that("calculate_biomass - Logarithmic equations (A0=4)", {
@@ -394,8 +393,8 @@ test_that("calculate_biomass - Logarithmic equations (A0=4)", {
   result <- calculate_biomass(test_data, equations = equations_df, method = "equation")
 
   # Checks
-  expect_true(!is.na(result$Biomass_Total[1]))
-  expect_gt(result$Biomass_Total[1], 0)
+  expect_true(!is.na(result[["Biomass Total [kg]"]][1]))
+  expect_gt(result[["Biomass Total [kg]"]][1], 0)
 })
 
 test_that("calculate_biomass - Volume x infra-density mode", {
@@ -414,9 +413,9 @@ test_that("calculate_biomass - Volume x infra-density mode", {
 
   # Checks
   expect_true(all(c("Biomass_Aboveground", "Biomass_Root", "Biomass_Total") %in% names(result)))
-  expect_equal(result$Biomass_Aboveground, test_data$V22 * id_table$ID)
-  expect_equal(result$Biomass_Root, result$Biomass_Aboveground * 0.2)
-  expect_equal(result$Biomass_Total, result$Biomass_Aboveground * 1.2)
+  expect_equal(result[["Biomass Aboveground [kg]"]], test_data$V22 * id_table$ID)
+  expect_equal(result[["Biomass Root [kg]"]], result[["Biomass Aboveground [kg]"]] * 0.2)
+  expect_equal(result[["Biomass Total [kg]"]], result[["Biomass Aboveground [kg]"]] * 1.2)
 })
 
 # ============================================================================
@@ -434,8 +433,8 @@ test_that("calculate_carbon - Basic functionality", {
   result <- calculate_carbon(test_data)
 
   # Checks
-  expect_true("Carbon_Total" %in% names(result))
-  expect_equal(result$Carbon_Total, c(47, 94, 141))
+  expect_true("Carbon Total [kg]" %in% names(result))
+  expect_equal(result[["Carbon Total [kg]"]], c(47, 94, 141))
 })
 
 test_that("calculate_carbon - Missing Biomass_Total column", {
@@ -448,8 +447,8 @@ test_that("calculate_carbon - Missing Biomass_Total column", {
     regexp = "Biomass_Total.*missing"
   )
 
-  expect_true("Carbon_Total" %in% names(result))
-  expect_true(is.na(result$Carbon_Total[1]))
+  expect_true("Carbon Total [kg]" %in% names(result))
+  expect_true(is.na(result[["Carbon Total [kg]"]][1]))
 })
 
 # ============================================================================
@@ -486,10 +485,10 @@ test_that("calculate_prediction_interval - Univariate case", {
 
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 1)
-  expect_true("Relative_Width" %in% names(result))
-  expect_true("Reliability" %in% names(result))
-  expect_true(is.numeric(result$Relative_Width))
-  expect_false(is.na(result$Relative_Width))
+  expect_true(" Relative Width" %in% names(result))
+  expect_true("  Reliability" %in% names(result))
+  expect_true(is.numeric(result [["Relative Width"]]))
+  expect_false(is.na(result [["Relative Width"]]))
 })
 
 test_that("calculate_prediction_interval - Multivariate case", {
@@ -527,9 +526,9 @@ test_that("calculate_prediction_interval - Multivariate case", {
 
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 1)
-  expect_true("Relative_Width" %in% names(result))
-  expect_true("Reliability" %in% names(result))
-  expect_true(is.numeric(result$Relative_Width))
+  expect_true(" Relative Width" %in% names(result))
+  expect_true(" Reliability" %in% names(result))
+  expect_true(is.numeric(result [["Relative Width"]]))
 })
 
 # ============================================================================
@@ -586,9 +585,9 @@ test_that("Complete pipeline - Volume -> Bark -> Biomass -> Carbon", {
 
   # Checks
   expect_true("V22" %in% names(result))
-  expect_true("Bark_Volume" %in% names(result))
-  expect_true("Biomass_Total" %in% names(result))
-  expect_true("Carbon_Total" %in% names(result))
+  expect_true(" Bark Volume" %in% names(result))
+  expect_true("Biomass Total [kg]" %in% names(result))
+  expect_true("Carbon Total [kg]" %in% names(result))
 })
 
 test_that("Error handling - Corrupted data", {

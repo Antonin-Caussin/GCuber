@@ -123,7 +123,6 @@ carbofor.carbofor_data <- function(x,
                                    H = "H",
                                    biomass_method = "volume",
                                    ...) {
-  utils::data("equations", package = "GCuber", envir = environment())
 
   validate_parameters(x, volume_type, equation_id, source, specimens, C130, C150, D130, D150, HTOT, HDOM)
 
@@ -134,8 +133,8 @@ carbofor.carbofor_data <- function(x,
                         equation_id = equation_id, source = source)
 
   if (bark) {
-    x <- calculate_bark_thickness(x, equations = equations,
-                                  source = source, total_volume_col = volume_type)
+    x <- calculate_bark_thickness(x, equations = equations, volume_type = volume_type,
+                                  source = source, total_volume_col = NULL)
   }
 
   if (carbon) {

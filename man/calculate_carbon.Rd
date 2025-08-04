@@ -10,7 +10,7 @@ calculate_carbon(x)
 \item{x}{A data.frame containing a Biomass_Total column}
 }
 \value{
-The same data.frame enriched with the Carbon_Total column
+The same data.frame enriched with the Carbon Total column
 }
 \description{
 Calculates total carbon as 50% of total biomass.

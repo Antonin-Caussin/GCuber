@@ -7,12 +7,12 @@
 \format{
 A \code{data.frame} with \code{n} rows and the following variables:
 \describe{
-  \item{A0}{Equation intercept}
+  \item{A0}{Equation indentification}
   \item{Abr}{Species abbreviation}
   \item{Anglais}{English name of the species}
   \item{C130_Max}{Maximum value for C130}
   \item{C130_Min}{Minimum value for C130}
-  \item{Code}{Internal code}
+  \item{Code}{Species code}
   \item{D130_Max}{Maximum value for D130}
   \item{D130_Min}{Minimum value for D130}
   \item{Equation}{Equation formula}
@@ -38,7 +38,7 @@ A \code{data.frame} with \code{n} rows and the following variables:
   \item{SCE_HDOM}{Standard error for HDOM}
   \item{SCE_HTOT}{Standard error for HTOT}
   \item{Source_Eq}{Equation source}
-  \item{Source_ID}{Source identifier}
+  \item{Source_ID}{Infra density source}
   \item{Species}{Species}
   \item{Type_Eq}{Equation type}
   \item{X0}{Coefficient X0}

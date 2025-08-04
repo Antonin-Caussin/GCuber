@@ -8,7 +8,7 @@ calculate_biomass(x, equations, method = c("equation", "volume"), bark = FALSE)
 }
 \arguments{
 \item{x}{A `data.frame` containing tree-level input data. Must include a `Species` column. Depending on the method:
-- For `"volume"`: must include one or more volume columns (e.g., `"V22"`, `"Aboveground"`), or `Wood_Volume` and `Bark_Volume` if `bark = TRUE`.
+- For `"volume"`: must include one or more volume columns (e.g., `"V22"`, `"Aboveground"`), or `Wood Volume` and `Bark Volume` if `bark = TRUE`.
 - For `"equation"`: must include the predictor variables required by the selected equations (e.g., `D130`, `HTOT`, etc.).}
 
 \item{equations}{A `data.frame` of allometric equations. Depending on the method:
@@ -19,7 +19,7 @@ calculate_biomass(x, equations, method = c("equation", "volume"), bark = FALSE)
 - `"equation"`: uses allometric models.
 - `"volume"`: uses volume* density. Default is `"volume"`.}
 
-\item{bark}{Logical. If `TRUE` and `method = "volume"`, computes biomass using both `Wood_Volume` and `Bark_Volume`. Default is `FALSE`.}
+\item{bark}{Logical. If `TRUE` and `method = "volume"`, computes biomass using both `Wood Volume` and `Bark Volume`. Default is `FALSE`.}
 }
 \value{
 A modified version of `x` with added biomass columns:
@@ -43,7 +43,7 @@ Computes aboveground biomass at the tree level using one of two methods:
 - **`"equation"`**: applies species-specific allometric models provided in a reference table.
 - **`"volume"`**: multiplies volume data (e.g., V22) by species-specific infra-density (`ID`), with optional bark volume integration.
 
-When `method = "volume"` and `bark = TRUE`, the function uses `Wood_Volume` and `Bark_Volume` (typically from `calculate_bark_thickness()`) to estimate total biomass.
+When `method = "volume"` and `bark = TRUE`, the function uses `Wood Volume` and `Bark Volume` (typically from `calculate_bark_thickness()`) to estimate total biomass.
 
 When `method = "equation"`, one or more equations are applied per species, with results stored in dynamically named columns by type of biomass (`Type_Eq`).
 
@@ -55,7 +55,7 @@ If `bark = FALSE`, the function uses the first available volume column among:
 `V22`, `V22B`, `V22_HA`, `Sawlog`, `Aboveground`, `Merchantable`.
 The selected volume is multiplied by `ID* 1000` (g/cm^3 to kg/m^3).
 
-If `bark = TRUE`, the function uses both `Wood_Volume` and `Bark_Volume`, which must be present in `x`.
+If `bark = TRUE`, the function uses both `Wood Volume` and `Bark Volume`, which must be present in `x`.
 
 ### Equation method
 Equations are applied species-wise. Models are selected by `A0` value:
@@ -69,7 +69,7 @@ Expressions in `X0:X5` are evaluated dynamically using columns in `x`.
 If the `Region` column equals `"Belgium"`, results are scaled by `×1000`.
 }
 \seealso{
-- [calculate_bark_thickness()] to compute `Wood_Volume` and `Bark_Volume`.
+- [calculate_bark_thickness()] to compute `Wood Volume` and `Bark Volume`.
 - [calculate_carbon()] to convert biomass into carbon stock.
 - [calculate_volume()] for volume-based biomass estimation.
 }

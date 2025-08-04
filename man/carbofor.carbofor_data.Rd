@@ -11,7 +11,7 @@
   carbon = FALSE,
   bark = FALSE,
   remove_na = FALSE,
-  source = "Dagnellie",
+  source = "Dagnelie",
   specimens = NULL,
   D130 = "D130",
   C130 = "C130",
@@ -40,7 +40,7 @@ Default is 1.}
 
 \item{remove_na}{Logical. If `TRUE`, rows with missing computed volume are removed from the output.}
 
-\item{source}{Character. Identifier of the source for the equations (e.g., "Dagnellie", "Vallet", "Bouvard").}
+\item{source}{Character. Identifier of the source for the equations (e.g., "Dagnelie", "Vallet", "Bouvard").}
 
 \item{specimens}{Character. Name of the column in `x` used to identify species (e.g., code, abbreviation, or full name).}
 

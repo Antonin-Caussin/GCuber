@@ -28,7 +28,7 @@ test_that("validate_parameters works with valid inputs", {
     x = test_data,
     volume_type = "V22",
     equation_id = 1,
-    source = "Dagnellie",
+    source = "Dagnelie",
     specimens = "species"
   )
   expect_identical(result, test_data)
@@ -43,13 +43,10 @@ test_that("validate_parameters handles invalid source", {
   )
 
   expect_error(
-    validate_parameters(test_data, source = "dagnellie"),  # case sensitive
-    regexp = "Invalid source: dagnellie"
+    validate_parameters(test_data, source = "Dagnellie"),  # case sensitive
+    regexp = "Invalid source: Dagnellie"
   )
 })
-
-
-
 
 test_that("validate_parameters handles invalid volume_type", {
   test_data <- create_test_data()
@@ -64,7 +61,6 @@ test_that("validate_parameters handles invalid volume_type", {
     regexp = "Invalid volume type: v22"
   )
 })
-
 
 test_that("validate_parameters handles equation_id validation for V22", {
   test_data <- create_test_data()
@@ -86,7 +82,6 @@ test_that("validate_parameters handles equation_id validation for V22", {
   )
 })
 
-
 test_that("validate_parameters handles equation_id validation for V22B", {
   test_data <- create_test_data()
 
@@ -104,7 +99,6 @@ test_that("validate_parameters handles equation_id validation for V22B", {
     regexp = "For volume type 'V22B', only equation_id = 1 is allowed"
   )
 })
-
 
 test_that("validate_parameters handles equation_id validation for V22_HA", {
   test_data <- create_test_data()
@@ -191,7 +185,7 @@ test_that("validate_parameters validates all source options", {
   test_data <- create_test_data()
 
   # Test all valid sources
-  expect_silent(validate_parameters(test_data, source = "Dagnellie"))
+  expect_silent(validate_parameters(test_data, source = "Dagnelie"))
   expect_silent(validate_parameters(test_data, source = "Algan"))  # <- CORRECT
   expect_silent(validate_parameters(test_data, source = "Vallet"))
   expect_silent(validate_parameters(test_data, source = "Bouvard"))
