@@ -4,10 +4,10 @@
 \alias{calculate_carbon}
 \title{Carbon calculation from biomass}
 \usage{
-calculate_carbon(df)
+calculate_carbon(x)
 }
 \arguments{
-\item{df}{A data.frame containing a Biomass_Total column}
+\item{x}{A data.frame containing a Biomass_Total column}
 }
 \value{
 The same data.frame enriched with the Carbon_Total column
@@ -16,6 +16,6 @@ The same data.frame enriched with the Carbon_Total column
 Calculates total carbon as 50% of total biomass.
 }
 \examples{
-df <- data.frame(Biomass_Total = c(100, 120, 80))
-df <- calculate_carbon(df)
+x <- data.frame(Biomass_Total = c(100, 120, 80))
+x <- calculate_carbon(x)
 }

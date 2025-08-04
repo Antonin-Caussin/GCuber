@@ -7,6 +7,7 @@ evaluate_expression <- function(expr_text, variables) {
     return(NA)
   }
 
+
   # Encapsuler le parse dans tryCatch pour capturer les erreurs de syntaxe
   expr_parsed <- tryCatch(
     parse(text = expr_text),

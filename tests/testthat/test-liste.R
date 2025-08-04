@@ -15,6 +15,7 @@ test_that("carbofor_species filters correctly by equation_type", {
   expect_true(all(res[["Available_equations"]] == "V22"))
 })
 
+
 test_that("carbofor_species handles invalid species gracefully", {
   res <- carbofor_species(species = "Essence imaginaire")
   expect_s3_class(res, "data.frame")

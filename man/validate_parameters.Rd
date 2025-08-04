@@ -8,7 +8,7 @@ validate_parameters(
   x,
   volume_type = "V22",
   equation_id = 1,
-  source = "Dagnellie",
+  source = "Dagnelie",
   specimens = NULL,
   C130 = "C130",
   C150 = "C150",
@@ -34,7 +34,7 @@ and "Merchantable" (merchantable volume).}
 Some volume types only accept specific values for this argument.}
 
 \item{source}{Character. Source of the allometric equations.
-Must be one of: \code{"Dagnellie"}, \code{"Algan"}, \code{"Vallet"},
+Must be one of: \code{"Dagnelie"}, \code{"Algan"}, \code{"Vallet"},
 \code{"Bouvard"}, \code{"Rondeu"}, or \code{"Courbet"}.}
 
 \item{specimens}{Optional character. Name of the column containing species identifiers
@@ -86,7 +86,7 @@ validate_parameters(
   x = df,
   volume_type = "V22",
   equation_id = 1,
-  source = "Dagnellie",
+  source = "Dagnelie",
   specimens = "Species"
 )
 }

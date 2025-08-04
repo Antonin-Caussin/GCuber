@@ -2,80 +2,74 @@
 % Please edit documentation in R/calculations.R
 \name{calculate_biomass}
 \alias{calculate_biomass}
-\title{Calculate biomass using allometric equations or volume × infra-density}
+\title{Calculate forest biomass using allometric equations or volume* density}
 \usage{
-calculate_biomass(x, equations, method = c("equation", "volume"))
+calculate_biomass(x, equations, method = c("equation", "volume"), bark = FALSE)
 }
 \arguments{
-\item{x}{A `data.frame` containing individual tree data. It must include:
-- A `Species` column for species identification.
-- Either volume columns (see `Details`) or measurement variables (e.g., diameter, height) used in allometric equations.}
+\item{x}{A `data.frame` containing tree-level input data. Must include a `Species` column. Depending on the method:
+- For `"volume"`: must include one or more volume columns (e.g., `"V22"`, `"Aboveground"`), or `Wood_Volume` and `Bark_Volume` if `bark = TRUE`.
+- For `"equation"`: must include the predictor variables required by the selected equations (e.g., `D130`, `HTOT`, etc.).}
 
-\item{equations}{A `data.frame` containing model parameters for each species. Depending on the method:
-- For `"equation"`: must include columns `Species`, `Y`, `A0`, `b0`–`b5`, and `X1`–`X5`.
-- For `"volume"`: must include columns `Species` and `ID` (infra-density in g/cm³).}
+\item{equations}{A `data.frame` of allometric equations. Depending on the method:
+- For `"volume"`: must contain columns `Species` and `ID` (infra-density in g/cm^3).
+- For `"equation"`: must contain `Species`, `Y`, `A0`, `b0`-`b5`, `X0`-`X5`, and optionally `Type_Eq`, `Region`.}
 
-\item{method}{Character. Biomass estimation method. Either:
-- `"equation"` (uses species-specific allometric models),
-- `"volume"` (uses volume × infra-density). Default is `"volume"`.}
+\item{method}{Character string. Method to use for biomass estimation:
+- `"equation"`: uses allometric models.
+- `"volume"`: uses volume* density. Default is `"volume"`.}
+
+\item{bark}{Logical. If `TRUE` and `method = "volume"`, computes biomass using both `Wood_Volume` and `Bark_Volume`. Default is `FALSE`.}
 }
 \value{
-A modified `data.frame` identical to `x` with three new columns:
-\describe{
-  \item{Biomass_Aboveground}{Estimated aboveground biomass (in consistent volume × density units).}
-  \item{Biomass_Root}{Estimated root biomass, computed as 20\% of the aboveground biomass.}
-  \item{Biomass_Total}{Total biomass, computed as 120\% of the aboveground biomass.}
-}
+A modified version of `x` with added biomass columns:
 
-If `method = "equation"`, additional columns may be added per equation used
-(e.g., `<Species>_Biomass_A0<EqType>_Eq<Index>`) along with metadata columns identifying the equation applied.
+- For `method = "equation"`:
+  - One or more columns of the form `Biomass_<Type_Eq>` with aboveground biomass.
+  - `Biomass Root`: root biomass (20% of total).
+  - `Biomass Total`: total biomass (120% of aboveground).
+
+- For `method = "volume"` and `bark = FALSE`:
+  - One column of the form `Biomass_<VolumeType>` (e.g., `Biomass_V22`).
+  - `Biomass Root`, `Biomass_Total`.
+
+- For `method = "volume"` and `bark = TRUE`:
+  - `Biomass_Wood`, `Biomass_Bark`, `Biomass_BarkWood`.
+  - `Biomass Root`, `Biomass_Total`.
 }
 \description{
-This function computes tree-level aboveground biomass (and derived root and total biomass)
-using one of two approaches:
+Computes aboveground biomass at the tree level using one of two methods:
 
-- **"equation" method**: applies species-specific allometric models provided in a reference table.
-- **"volume" method**: multiplies measured or estimated tree volume by species-specific wood infra-density (`ID`).
+- **`"equation"`**: applies species-specific allometric models provided in a reference table.
+- **`"volume"`**: multiplies volume data (e.g., V22) by species-specific infra-density (`ID`), with optional bark volume integration.
 
-The function supports flexible model structures (including log-linear and additive forms),
-automatic species matching, and fallback options when data are incomplete.
+When `method = "volume"` and `bark = TRUE`, the function uses `Wood_Volume` and `Bark_Volume` (typically from `calculate_bark_thickness()`) to estimate total biomass.
+
+When `method = "equation"`, one or more equations are applied per species, with results stored in dynamically named columns by type of biomass (`Type_Eq`).
+
+Root and total biomass are always computed as 20% and 120% of the aboveground biomass, respectively.
 }
 \details{
-When `method = "volume"`, the function searches for volume columns in `x` whose names match one or more of the following:
-`"V22"`, `"V22B"`, `"V22_HA"`, `"Sawlog"`, `"Aboveground"`, `"Merchantable"`. These columns are summed to compute total volume.
+### Volume method
+If `bark = FALSE`, the function uses the first available volume column among:
+`V22`, `V22B`, `V22_HA`, `Sawlog`, `Aboveground`, `Merchantable`.
+The selected volume is multiplied by `ID* 1000` (g/cm^3 to kg/m^3).
 
-When `method = "equation"`, the function evaluates the model based on the value of `A0`:
-\itemize{
-  \item A0 = 1–3 or 5: additive linear form: \eqn{Y = b0 + b1*X1 + ... + b5*X5}
-  \item A0 = 4: log-linear form: \eqn{log10(Y) = b0 + b1*log10(X1) + ...}
-}
+If `bark = TRUE`, the function uses both `Wood_Volume` and `Bark_Volume`, which must be present in `x`.
 
-Expressions in `X1:X5` are evaluated dynamically, and variable names must match column names in `x`.
-}
-\section{Limitations}{
+### Equation method
+Equations are applied species-wise. Models are selected by `A0` value:
 
-- The "volume" method assumes that volume data and wood density are consistent in units (e.g., m³ × g/cm³ → kg).
-- If multiple equations exist per species in `"equation"` mode, all are applied and their results are summed. This assumes they target complementary compartments.
-- No biomass is calculated for species missing in the `equations` table.
-}
+- `A0 = 15`: linear model using up to 3 predictors (e.g., `Y = b0*X0 + b1*X1 + b2*X2`)
+- `A0 = 16`: semi-log model (e.g., `Y = b0*X0 + b1*log(X1)`)
+- `A0 = 17`: power model (e.g., `Y = b0 * X0^b1`)
 
-\examples{
-# Using volume × density method
-df <- data.frame(Species = c("Fagus", "Quercus"),
-                 V22 = c(0.8, 1.2))
-eq <- data.frame(Species = c("Fagus", "Quercus"), ID = c(0.56, 0.65))
-calculate_biomass(df, eq, method = "volume")
+Expressions in `X0:X5` are evaluated dynamically using columns in `x`.
 
-# Using allometric equations
-eqs <- data.frame(Species = "Fagus", Y = "BIOMASS", A0 = 1,
-                  b0 = 0.2, b1 = 0.03, b2 = NA, b3 = NA, b4 = NA, b5 = NA,
-                  X1 = "D130", X2 = NA, X3 = NA, X4 = NA, X5 = NA)
-df <- data.frame(Species = "Fagus", D130 = 32)
-calculate_biomass(df, eqs, method = "equation")
-
+If the `Region` column equals `"Belgium"`, results are scaled by `×1000`.
 }
 \seealso{
-\code{\link{calculate_carbon}} to compute carbon stock from biomass,
-\code{\link{calculate_volume}} for upstream volume computation,
-To access the equations, see the internal object `equations` bundled with the package.
+- [calculate_bark_thickness()] to compute `Wood_Volume` and `Bark_Volume`.
+- [calculate_carbon()] to convert biomass into carbon stock.
+- [calculate_volume()] for volume-based biomass estimation.
 }

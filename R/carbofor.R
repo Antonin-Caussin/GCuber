@@ -144,6 +144,7 @@ carbofor.carbofor_data <- function(x,
     x <- calculate_carbon(x)
   }
 
+
   x <- calculate_prediction_interval(
     x,
     equations = equations,

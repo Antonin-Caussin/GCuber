@@ -39,6 +39,7 @@ test_that("detect_specimens_type fails with empty column", {
   expect_error(detect_specimens_type(df, "empty"), "contains only missing values")
 })
 
+
 test_that("detect_specimens_type fails with unknown type", {
   df <- data.frame(date = as.Date(c("2023-01-01", "2023-01-02")))
   expect_error(detect_specimens_type(df, "date"), "Data type in column.*not recognized")

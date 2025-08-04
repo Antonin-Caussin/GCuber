@@ -24,6 +24,7 @@ test_that("Test avec D130 uniquement", {
   expect_true("G130" %in% colnames(result))
 })
 
+
 test_that("Test avec C150 uniquement", {
   data <- data.frame(
     Species = c("Picea abies", "Fagus sylvatica"),

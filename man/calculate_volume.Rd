@@ -2,7 +2,7 @@
 % Please edit documentation in R/calculations.R
 \name{calculate_volume}
 \alias{calculate_volume}
-\title{Volume calculation from allometric equations}
+\title{Calculate Stem Volume from Allometric Equations}
 \usage{
 calculate_volume(
   x,
@@ -10,33 +10,56 @@ calculate_volume(
   equations,
   equation_id = 1,
   D130 = "D130",
+  GHA150 = "GHA150",
+  GHA130 = "GHA130",
   specimens = NULL,
-  source = "Dagnellie"
+  source = "Dagnelie"
 )
 }
 \arguments{
-\item{x}{A data.frame containing individual tree data (must include at least Species and diameter column)}
+\item{x}{A data.frame containing tree-level observations. Must include at least:
+\itemize{
+  \item \code{Species} (character)
+  \item a diameter column (default name \code{D130})
+}}
 
-\item{volume_type}{Type of volume to calculate (e.g., "V22", "V22B", "V22_HA", "E")}
+\item{volume_type}{Character; type of volume to calculate. Supported values include:
+\code{"V22"}, \code{"V22B"}, \code{"V22_HA"}, \code{"E"}.}
 
-\item{equations}{A data.frame of allometric equations including: Species, A0, b0 to b5, X1 to X5, D_Min, D_Max, Y}
+\item{equations}{A data.frame of allometric equations with columns:
+\code{Species}, \code{A0}, \code{b0} to \code{b5},
+\code{X1} to \code{X5}, \code{D_Min}, \code{D_Max}, \code{Y}, and
+optionally \code{Source_Eq}.}
 
-\item{equation_id}{Index of the equation to use for each species (default is 1)}
+\item{equation_id}{Integer; index of the equation to use for each species
+(default is 1).}
 
-\item{D130}{Name of the diameter variable to use (default = "D130")}
+\item{D130}{Name of the diameter-at-breast-height column (default = \code{"D130"}).}
 
-\item{specimens}{A vector of specimen codes or identifiers, used to map equations to observations}
+\item{GHA150}{Name of the basal-area column at 150 cm (default = \code{"GHA150"}).}
 
-\item{source}{Source of the equations (e.g., "Dagnelie", "Myers")}
+\item{GHA130}{Name of the basal-area column at 130 cm (default = \code{"GHA130"}).}
+
+\item{specimens}{Optional character vector of specimen identifiers, used to map
+equations to individual observations.}
+
+\item{source}{Optional character; source of the equations
+(e.g., \code{"Dagnelie"}, \code{"Myers"}).}
 }
 \value{
-The data.frame enriched with columns: [volume_type], Validity_Status, and Equation_Used
+The input \code{x} enriched with:
+  \itemize{
+    \item a new column \code{[volume_type] [m^3]},
+    \item \code{Validity Status},
+    \item \code{Equation Used},
+    \item one \code{Volume_<Variable>_Validity} column per predictive variable.
+  }
 }
 \description{
-Applies species-specific allometric equations to calculate volume.
+Applies species-specific allometric equations to compute the stem volume
+of individual trees.
 }
-\examples{
-trees <- data.frame(Species = "Fagus_sylvatica", D130 = 32)
-specimens <- c("FASY001")
-result <- calculate_volume(trees, equations = equations, specimens = specimens)
+\seealso{
+\code{\link{calculate_bark_thickness}} for deriving bark and wood volumes
+from total stem volume.
 }

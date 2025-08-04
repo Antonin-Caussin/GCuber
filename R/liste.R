@@ -25,6 +25,7 @@
 #'
 #' @keywords internal
 
+
 # Helper function to build equation string
 build_equation <- function(x_cols, b_cols, y_var) {
   # Get non-zero coefficients and their corresponding variables

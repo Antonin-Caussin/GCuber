@@ -31,6 +31,7 @@
 #'   \item{VC22}{Variable de controle ou d'identification}
 #' }
 #'
+#'
 #' @details
 #' Ces equations permettent d'estimer differentes caracteristiques des arbres (volume, biomasse, carbone)
 #' en fonction de mesures dendrometriques. L'equation generale a la forme:

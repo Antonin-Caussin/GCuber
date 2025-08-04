@@ -2,32 +2,50 @@
 % Please edit documentation in R/calculations.R
 \name{calculate_bark_thickness}
 \alias{calculate_bark_thickness}
-\title{Bark thickness and bark volume calculation}
+\title{Estimate Bark Thickness and Compute Bark & Wood Volumes}
 \usage{
-calculate_bark_thickness(df, equations, total_volume_col = "V22", source)
+calculate_bark_thickness(
+  x,
+  equations,
+  volume_type = "V22",
+  total_volume_col = NULL,
+  source = NULL
+)
 }
 \arguments{
-\item{df}{A data.frame containing tree-level data. Must include at least Species, D130, and a total volume column.}
+\item{x}{A \code{data.frame} of tree-level observations. Must include at least:
+\itemize{
+  \item \code{Species} (character)
+  \item \code{D130} - diameter at breast height (numeric)
+  \item a column with total stem volume (see \code{total_volume_col})
+}}
 
-\item{equations}{A data.frame containing bark thickness equations (Y = "E") with columns:
-Species, A0, b0 to b5, X1 to X5, and optionally Source_Eq.}
+\item{equations}{A \code{data.frame} of bark-thickness allometric equations with columns:
+\code{Species}, \code{A0}, \code{b0} to \code{b5}, \code{X1} to \code{X5},
+optionally \code{Source_Eq}, and \code{Y} == "E".}
 
-\item{total_volume_col}{Name of the column containing the total volume (default = "V22").}
+\item{volume_type}{Character; suffix for default total-volume column name. If
+\code{total_volume_col} is \code{NULL}, uses \code{paste0(volume_type, " [m^3]")}
+(default \code{"V22"}).}
 
-\item{source}{Optional character string specifying the source of the equations (e.g., "Vallet", "Dagnellie").
-If NULL, all sources are considered.}
+\item{total_volume_col}{Optional character; name of the column containing total stem volume.
+If \code{NULL}, constructed from \code{volume_type}.}
+
+\item{source}{Optional character; restrict to equations from this source
+(e.g. \code{"Vallet"}, \code{"Dagnelie"}). If \code{NULL}, all sources are used.}
 }
 \value{
-The input data.frame enriched with the columns:
-\item{E}{Estimated bark thickness (cm)}
-\item{Bark_Volume}{Volume of bark (same unit as total_volume_col)}
-\item{Wood_Volume}{Net wood volume (total - bark)}
+The input \code{x} enriched with three new columns:
+  \itemize{
+    \item \code{E} - estimated bark thickness (cm)
+    \item \code{Bark Volume [m^3]} - volume of bark
+    \item \code{Wood Volume [m^3]} - net wood volume (total minus bark)
+  }
 }
 \description{
-Uses species-specific allometric equations (Y = "E") to estimate bark thickness,
-then computes bark volume and net wood volume from total volume.
+Uses species-specific allometric equations (Y == "E") to estimate bark thickness,
+then derives bark volume and net wood volume from a total stem volume.
 }
-\examples{
-df <- data.frame(Species = "Hetre", D130 = 32, V22 = 1.2)
-result <- calculate_bark_thickness(df, equations = equations, source = "Vallet")
+\seealso{
+\code{\link{calculate_volume}} for computing total stem volume from DBH.
 }

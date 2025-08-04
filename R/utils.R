@@ -48,6 +48,7 @@ evaluate_expression <- function(expr_text, variables) {
     }
   }
 
+
   env <- list2env(variables)
   tryCatch({
     result <- eval(expr_parsed, envir = env)

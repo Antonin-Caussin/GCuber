@@ -7,6 +7,7 @@
 #' This dataset is used internally by GCuber functions such as \code{\link{calculate_volume}},
 #' \code{\link{calculate_biomass}}, and \code{\link{convert_circumference}}.
 #'
+#'
 #' @format A data frame with 53 columns. Main fields include:
 #' \describe{
 #'   \item{Y}{Response variable modeled (e.g., "V22", "BIOMASS").}

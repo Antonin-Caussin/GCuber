@@ -34,7 +34,7 @@ calculate_prediction_interval(
 
 \item{confidence_level}{Numeric. Confidence level for the interval (default = 0.95).}
 
-\item{source}{Character. Optional source filter for selecting equations (e.g., \code{"Dagnellie"}).}
+\item{source}{Character. Optional source filter for selecting equations (e.g., \code{"Dagnelie"}).}
 
 \item{summarize}{Logical. If \code{TRUE}, prints summary statistics globally and per species.}
 }
@@ -54,8 +54,8 @@ and covariances (`COV_*`).
 
 The function adds two new columns to the input dataset:
 \itemize{
-  \item \code{Relative_Width} — The width of the prediction interval divided by the predicted volume.
-  \item \code{Reliability} — A qualitative interpretation of the interval's reliability.
+  \item \code{Relative_Width} - The width of the prediction interval divided by the predicted volume.
+  \item \code{Reliability} - A qualitative interpretation of the interval's reliability.
 }
 Optionally, it prints summary statistics globally and by species.
 }
@@ -82,11 +82,11 @@ Where:
 
 Interpretation is based on thresholds:
 \itemize{
-  \item < 0.10 → "Very narrow → Very reliable"
-  \item ≤ 0.25 → "Acceptable → Rather reliable"
-  \item ≤ 0.50 → "Wide → Uncertain"
-  \item > 0.50 → "Very wide → Risky"
-  \item NA → "No calculation"
+  \item < 0.10 -> "Very narrow -> Very reliable"
+  \item <= 0.25 -> "Acceptable -> Rather reliable"
+  \item <= 0.50 -> "Wide -> Uncertain"
+  \item > 0.50 -> "Very wide -> Risky"
+  \item NA -> "No calculation"
 }
 }
 \section{Printed Summary (optional)}{
@@ -102,7 +102,7 @@ If \code{summarize = TRUE}, the function prints:
 
 \examples{
 \dontrun{
-df <- data.frame(Species = "Fagus_sylvatica", D130 = 32, Volume = 1.5)
+x <- data.frame(Species = "Fagus_sylvatica", D130 = 32, Volume = 1.5)
 equations <- data.frame(
   Y = "V22",
   Species = "Fagus_sylvatica",
@@ -111,10 +111,10 @@ equations <- data.frame(
   x_mean_D130 = 30,
   SCE_D130 = 200,
   X1 = "log(D130)",
-  Source_Eq = "Dagnellie"
+  Source_Eq = "Dagnelie"
 )
 
-result <- calculate_prediction_interval(df, equations, volume_type = "V22", source = "Dagnellie")
+result <- calculate_prediction_interval(x, equations, volume_type = "V22", source = "Dagnelie")
 head(result)
 }
 
