@@ -1,167 +1,171 @@
 # =====================================================================
 #                         calculate_volume()
 # =====================================================================
-#' Volume calculation from allometric equations
-#' @description Applies species-specific allometric equations to calculate volume.
-#' @param x A data.frame containing individual tree data (must include at least Species and diameter column)
-#' @param volume_type Type of volume to calculate (e.g., "V22", "V22B", "V22_HA", "E")
-#' @param equations A data.frame of allometric equations including: Species, A0, b0 to b5, X1 to X5, D_Min, D_Max, Y
-#' @param equation_id Index of the equation to use for each species (default is 1)
-#' @param D130 Name of the diameter variable to use (default = "D130")
-#' @param specimens A vector of specimen codes or identifiers, used to map equations to observations
-#' @param source Source of the equations (e.g., "Dagnelie", "Myers")
-#' @return The data.frame enriched with columns: [volume_type], Validity_Status, and Equation_Used
+#' Calculate Stem Volume from Allometric Equations
+#'
+#' @description
+#' Applies species-specific allometric equations to compute the stem volume
+#' of individual trees.
+#'
+#' @param x
+#'   A data.frame containing tree-level observations. Must include at least:
+#'   \itemize{
+#'     \item \code{Species} (character)
+#'     \item a diameter column (default name \code{D130})
+#'   }
+#' @param volume_type
+#'   Character; type of volume to calculate. Supported values include:
+#'   \code{"V22"}, \code{"V22B"}, \code{"V22_HA"}, \code{"E"}.
+#' @param equations
+#'   A data.frame of allometric equations with columns:
+#'   \code{Species}, \code{A0}, \code{b0} to \code{b5},
+#'   \code{X1} to \code{X5}, \code{D_Min}, \code{D_Max}, \code{Y}, and
+#'   optionally \code{Source_Eq}.
+#' @param equation_id
+#'   Integer; index of the equation to use for each species
+#'   (default is 1).
+#' @param D130
+#'   Name of the diameter-at-breast-height column (default = \code{"D130"}).
+#' @param GHA150
+#'   Name of the basal-area column at 150 cm (default = \code{"GHA150"}).
+#' @param GHA130
+#'   Name of the basal-area column at 130 cm (default = \code{"GHA130"}).
+#' @param specimens
+#'   Optional character vector of specimen identifiers, used to map
+#'   equations to individual observations.
+#' @param source
+#'   Optional character; source of the equations
+#'   (e.g., \code{"Dagnelie"}, \code{"Myers"}).
+#'
+#' @return
+#'   The input \code{x} enriched with:
+#'   \itemize{
+#'     \item a new column \code{[volume_type] [m^3]},
+#'     \item \code{Validity Status},
+#'     \item \code{Equation Used},
+#'     \item one \code{Volume_<Variable>_Validity} column per predictive variable.
+#'   }
+#'
+#' @seealso
+#' \code{\link{calculate_bark_thickness}} for deriving bark and wood volumes
+#' from total stem volume.
+#'
 #' @export
-#' @examples
-#' trees <- data.frame(Species = "Fagus_sylvatica", D130 = 32)
-#' specimens <- c("FASY001")
-#' result <- calculate_volume(trees, equations = equations, specimens = specimens)
+#'
 
 calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
-                             D130 = "D130", specimens = NULL, source = "Dagnellie") {
+                             D130 = "D130", GHA150 = "GHA150", GHA130 = "GHA130",
+                             specimens = NULL, source = "Dagnelie") {
 
-  trees_checked <- 0
-  trees_outside_domain <- 0
-  trees_no_validity_limits <- 0
-  trees_below_min <- 0
-  trees_above_max <- 0
-
-  if (!volume_type %in% names(x)) x[[volume_type]] <- NA_real_
-  if (!"Validity_Status" %in% names(x)) x$Validity_Status <- NA_character_
-  if (!"Equation_Used" %in% names(x)) x$Equation_Used <- NA_character_
+  vol_col <- paste0(volume_type, " [m^3]")
+  if (!vol_col %in% names(x)) x[[vol_col]] <- NA_real_
+  if (!"Validity Status" %in% names(x)) x[["Validity Status"]] <- NA_character_
+  if (!"Equation Used" %in% names(x)) x[["Equation Used"]] <- NA_character_
 
   eqs_volume <- equations[equations$Y == volume_type, ]
-  if (!is.null(source)) {
+  if (!is.null(source) && "Source_Eq" %in% names(eqs_volume)) {
     eqs_volume <- eqs_volume[eqs_volume$Source_Eq == source, ]
   }
 
+  all_validity_vars <- character()
 
   for (i in seq_len(nrow(x))) {
     tree_species <- x$Species[i]
     DHB_value <- x[[D130]][i]
-
-    volume_res <- 0
+    volume_res <- NA_real_
     local_equation_id <- equation_id
     eq_candidates <- eqs_volume[eqs_volume$Species == tree_species, ]
 
     if (nrow(eq_candidates) == 0) {
-      warning(paste("No equation found for species:", tree_species))
-      x$Validity_Status[i] <- "NO_EQUATION"
+      warning(sprintf("Row %d: No equation found for species '%s'", i, tree_species))
+      x[["Validity Status"]][i] <- "NO EQUATION"
       next
     }
 
     if (local_equation_id > nrow(eq_candidates)) {
-      warning(paste("Equation with id", local_equation_id, "does not exist for species", tree_species,
-                    ". Using equation 1 instead."))
+      warning(sprintf("Row %d: Equation id %d not found for '%s', using first.",
+                      i, local_equation_id, tree_species))
       eq <- eq_candidates[1, , drop = FALSE]
     } else {
       eq <- eq_candidates[local_equation_id, , drop = FALSE]
     }
 
-    x$Equation_Used[i] <- paste0(eq$Species, ":", eq$Y, ":A0=", eq$A0)
+    x[["Equation Used"]][i] <- sprintf("%s:%s:A0=%s", eq$Species, eq$Y, eq$A0)
 
     validity_status <- "VALID"
-    if (!is.na(DHB_value)) {
-      trees_checked <- trees_checked + 1
+    used_vars <- character()
 
-      if (!is.na(eq$D130_Min[1]) && !is.na(eq$D130_Max[1])) {
-        D_Min <- eq$D130_Min[1]
-        D_Max <- eq$D130_Max[1]
-
-        if (DHB_value < D_Min) {
-          trees_outside_domain <- trees_outside_domain + 1
-          trees_below_min <- trees_below_min + 1
-          validity_status <- "BELOW_MIN"
-        } else if (DHB_value > D_Max) {
-          trees_outside_domain <- trees_outside_domain + 1
-          trees_above_max <- trees_above_max + 1
-          validity_status <- "ABOVE_MAX"
-        }
-      } else {
-        trees_no_validity_limits <- trees_no_validity_limits + 1
-        validity_status <- "NO_LIMITS"
-      }
-    }
-    x$Validity_Status[i] <- validity_status
-
-    exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
-    exprs <- exprs[!is.na(exprs) & exprs != "0"]
-    vars_needed <- unique(unlist(regmatches(exprs, gregexpr("[A-Za-z_][A-Za-z0-9_]*", exprs))))
-
-    variables <- list()
-    for (v in vars_needed) {
-      if (v %in% names(x)) {
-        variables[[v]] <- x[[v]][i]
-      } else {
-        stop(paste("Variable", v, "is used in an equation but missing from the data."))
+    for (j in 1:5) {
+      expr <- eq[[paste0("X", j)]]
+      if (!is.na(expr) && expr != "0") {
+        vars <- tryCatch(all.vars(parse(text = expr)), error = function(e) NULL)
+        used_vars <- c(used_vars, vars)
       }
     }
 
-    missing_vars <- names(variables)[sapply(variables, function(v) is.na(v) | !is.finite(v))]
-    if (length(missing_vars) > 0) {
-      warning(paste("Missing or invalid input variables at row", i, ":", paste(missing_vars, collapse = ", ")))
-      x$Validity_Status[i] <- "MISSING_INPUT"
-      next
-    }
+    used_vars <- unique(used_vars)
+    all_validity_vars <- unique(c(all_validity_vars, used_vars))
 
-    a0_value <- eq$A0[1]
+    for (var in used_vars) {
+      col_validity <- paste0("Volume_", var, "_Validity")
+      if (!col_validity %in% names(x)) x[[col_validity]] <- NA_character_
 
-    if (is.na(a0_value)) {
-      warning(paste("Missing A0 value for species", tree_species, "at row", i))
-      next
-    } else if (a0_value %in% c(1, 2, 3)) {
-      volume_res <- eq$b0[1]
-      for (j in 1:5) {
-        x_col <- paste0("X", j)
-        b_col <- paste0("b", j)
+      value <- x[[var]][i]
+      min_col <- paste0(var, "_Min")
+      max_col <- paste0(var, "_Max")
 
-        if (!is.na(eq[[x_col]][1]) && eq[[x_col]][1] != "0") {
-          if (eq[[x_col]][1] == "/") {
-            warning(paste("Invalid expression at row", i, "for X", j))
-            next
-          }
-
-          x_val <- tryCatch({
-            evaluate_expression(eq[[x_col]][1], variables)
-          }, error = function(e) {
-            warning(paste("Error during evaluation of X", j, ":", e$message))
-            NA
-          })
-
-          if (length(x_val) == 0 || is.na(x_val)) {
-            warning(paste("Evaluation of X", j, "failed at row", i))
-            next
-          }
-
-          b_val <- eq[[b_col]][1]
-          if (is.na(b_val)) {
-            warning(paste("Missing coefficient b", j, "at row", i))
-            next
-          }
-
-          volume_res <- volume_res + b_val * x_val
+      vstat <- "MISSING"
+      if (!is.na(value)) {
+        if (!is.na(eq[[min_col]]) && !is.na(eq[[max_col]])) {
+          if (value < eq[[min_col]]) vstat <- "BELOW MIN"
+          else if (value > eq[[max_col]]) vstat <- "ABOVE MAX"
+          else vstat <- "VALID"
+        } else {
+          vstat <- "NO LIMITS"
         }
       }
 
-    } else {
-      warning(paste("Unknown equation type (A0 =", a0_value, ") for row", i))
-      next
+      x[[col_validity]][i] <- vstat
+      if (vstat %in% c("BELOW MIN", "ABOVE MAX")) {
+        validity_status <- "OUTSIDE DOMAIN"
+      }
     }
 
-    if (is.na(volume_res) || !is.finite(volume_res)) {
-      warning(paste("Invalid volume result at row", i, ":", volume_res))
-      next
+    x[["Validity Status"]][i] <- validity_status
+
+    if (validity_status %in% c("VALID", "OUTSIDE DOMAIN", "NO LIMITS")) {
+      if (!is.na(eq$A0) && eq$A0 %in% c(1, 2, 3)) {
+        volume_res <- eq$b0
+
+        temp_data <- as.list(x[i, ])
+
+        if (!is.null(eq$Source_Eq) && eq$Source_Eq == "Vallet" && !is.null(temp_data$HTOT)) {
+          temp_data$HTOT <- temp_data$HTOT * 10
+        }
+
+        for (j in 1:5) {
+          x_col <- paste0("X", j)
+          b_col <- paste0("b", j)
+          expr <- eq[[x_col]]
+          if (!is.na(expr) && expr != "0") {
+            x_val <- tryCatch(evaluate_expression(expr, temp_data), error = function(e) NA_real_)
+            volume_res <- volume_res + eq[[b_col]] * x_val
+          }
+        }
+
+        if (!is.null(eq$Source_Eq) && eq$Source_Eq == "Algan") {
+          volume_res <- volume_res / 1000
+        }
+
+        if (!is.null(eq$Source_Eq) && eq$Source_Eq == "Vallet") {
+          volume_res <- volume_res / 1000000
+        }
+      } else {
+        warning(sprintf("Row %d: Unsupported A0 type '%s' for '%s'", i, eq$A0, tree_species))
+      }
+
+      x[[vol_col]][i] <- round(volume_res, 3)
     }
-
-    x[[volume_type]][i] <- volume_res
-  }
-
-  if (trees_outside_domain > 0) {
-    percentage_outside <- round((trees_outside_domain / trees_checked) * 100, 1)
-    warning(paste0("VALIDITY DOMAIN WARNING: ", trees_outside_domain, " trees (",
-                   percentage_outside, "%) have DHB values outside the validity domain. ",
-                   trees_below_min, " trees below D_Min and ",
-                   trees_above_max, " trees above D_Max."))
   }
 
   return(x)
@@ -170,318 +174,410 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
 # =====================================================================
 #                      calculate_bark_thickness()
 # =====================================================================
-#' Bark thickness and bark volume calculation
+#' Estimate Bark Thickness and Compute Bark & Wood Volumes
 #'
 #' @description
-#' Uses species-specific allometric equations (Y = "E") to estimate bark thickness,
-#' then computes bark volume and net wood volume from total volume.
+#' Uses species-specific allometric equations (Y == "E") to estimate bark thickness,
+#' then derives bark volume and net wood volume from a total stem volume.
 #'
-#' @param df A data.frame containing tree-level data. Must include at least Species, D130, and a total volume column.
-#' @param equations A data.frame containing bark thickness equations (Y = "E") with columns:
-#' Species, A0, b0 to b5, X1 to X5, and optionally Source_Eq.
-#' @param total_volume_col Name of the column containing the total volume (default = "V22").
-#' @param source Optional character string specifying the source of the equations (e.g., "Vallet", "Dagnellie").
-#' If NULL, all sources are considered.
+#' @param x
+#'   A \code{data.frame} of tree-level observations. Must include at least:
+#'   \itemize{
+#'     \item \code{Species} (character)
+#'     \item \code{D130} - diameter at breast height (numeric)
+#'     \item a column with total stem volume (see \code{total_volume_col})
+#'   }
+#' @param equations
+#'   A \code{data.frame} of bark-thickness allometric equations with columns:
+#'   \code{Species}, \code{A0}, \code{b0} to \code{b5}, \code{X1} to \code{X5},
+#'   optionally \code{Source_Eq}, and \code{Y} == "E".
+#' @param volume_type
+#'   Character; suffix for default total-volume column name. If
+#'   \code{total_volume_col} is \code{NULL}, uses \code{paste0(volume_type, " [m^3]")}
+#'   (default \code{"V22"}).
+#' @param total_volume_col
+#'   Optional character; name of the column containing total stem volume.
+#'   If \code{NULL}, constructed from \code{volume_type}.
+#' @param source
+#'   Optional character; restrict to equations from this source
+#'   (e.g. \code{"Vallet"}, \code{"Dagnelie"}). If \code{NULL}, all sources are used.
 #'
-#' @return The input data.frame enriched with the columns:
-#' \item{E}{Estimated bark thickness (cm)}
-#' \item{Bark_Volume}{Volume of bark (same unit as total_volume_col)}
-#' \item{Wood_Volume}{Net wood volume (total - bark)}
+#' @return
+#'   The input \code{x} enriched with three new columns:
+#'   \itemize{
+#'     \item \code{E} - estimated bark thickness (cm)
+#'     \item \code{Bark Volume [m^3]} - volume of bark
+#'     \item \code{Wood Volume [m^3]} - net wood volume (total minus bark)
+#'   }
+#'
+#' @seealso
+#' \code{\link{calculate_volume}} for computing total stem volume from DBH.
 #'
 #' @export
-#'
-#' @examples
-#' df <- data.frame(Species = "Hetre", D130 = 32, V22 = 1.2)
-#' result <- calculate_bark_thickness(df, equations = equations, source = "Vallet")
 
-calculate_bark_thickness <- function(df, equations, total_volume_col = "V22", source) {
-  if (!exists("equations")) stop("The 'equations' data.frame must be loaded in the global environment.")
+calculate_bark_thickness <- function(x,equations, volume_type = "V22", total_volume_col = NULL, source = NULL) {
+
+  if (is.null(total_volume_col)) {
+    vol_col <- paste0(volume_type, " [m^3]")
+  } else {
+    vol_col <- total_volume_col
+  }
+
+  vol_col <- if (is.null(total_volume_col)) paste0(volume_type, " [m^3]") else total_volume_col
 
   bark_eqs <- equations[equations$Y == "E", ]
   if (!is.null(source) && "Source_Eq" %in% names(bark_eqs)) {
     bark_eqs <- bark_eqs[bark_eqs$Source_Eq == source, ]
   }
-
   if (nrow(bark_eqs) == 0) {
-    warning("No bark equations (type E) found for the selected source.")
-    return(df)
+    warning("No bark thickness equations found; setting Wood_Volume = Total Volume for all trees.")
+    x[[" Bark Volume [m^3]"]] <- NA_real_
+    x[[" Wood Volume [m^3]"]] <- as.numeric(x[[vol_col]])
+    return(x)
   }
 
-  df$E <- NA_real_
-  df$Bark_Volume <- NA_real_
-  df$Wood_Volume <- NA_real_
+  x[[" Bark Volume [m^3]"]] <- NA_real_
+  x[[" Wood Volume [m^3]"]] <- NA_real_
 
-  for (i in seq_len(nrow(df))) {
-    sp <- df$Species[i]
-    total_vol <- df[[total_volume_col]][i]
-    if (is.na(sp) || is.na(total_vol)) next
+  for (i in seq_len(nrow(x))) {
+    sp <- x$Species[i]
+    tot_vol <- x[[vol_col]][i]
+    if (is.na(sp) || is.na(tot_vol)) next
 
     eq_sp <- bark_eqs[bark_eqs$Species == sp, ]
-    if (nrow(eq_sp) == 0) next
-
-    eq <- eq_sp[1, ]
-    vars <- list()
-    for (v in c("C130", "C150", "D130", "D150", "HTOT", "HDOM", "G130", "G150")) {
-      if (v %in% names(df)) vars[[v]] <- df[[v]][i]
+    if (nrow(eq_sp) == 0) {
+      x[[" Wood Volume [m^3]"]][i] <- tot_vol
+      x[[" Bark Volume [m^3]"]][i] <- NA_real_
+      next
     }
 
+    eq <- eq_sp[1, ]
+    vars <- as.list(x[i, ])
     thickness <- NA_real_
-    if (eq$A0 == 4) {
+
+    if (!is.na(eq$A0) && eq$A0 == 4) {
       val <- evaluate_expression(eq$X1, vars)
       if (!is.na(val) && val > 0) thickness <- 10^(eq$b0 + eq$b1 * log10(val))
-    } else {
+    } else if (!is.na(eq$b0)) {
       thickness <- eq$b0
       for (j in 1:5) {
-        xj <- eq[[paste0("X", j)]]
-        bj <- eq[[paste0("b", j)]]
+        xj <- eq[[paste0("X", j)]]; bj <- eq[[paste0("b", j)]]
         if (!is.na(xj) && xj != "0") {
-          val <- evaluate_expression(xj, vars)
-          if (!is.na(val)) thickness <- thickness + bj * val
+          v <- evaluate_expression(xj, vars)
+          if (!is.na(v)) thickness <- thickness + bj * v
         }
       }
     }
 
     if (!is.na(thickness) && thickness > 0) {
-      if (!is.null(source) && source == "Vallet") {
-        # Vallet fournit directement un ratio surfacique
-        bark_ratio <- thickness
+      r_ext <- x$D130[i] / 2
+      r_int <- r_ext - thickness
+      if (r_int > 0) {
+        ratio <- (r_ext^3 - r_int^3) / r_ext^3
+        x[[" Bark Volume [m^3]"]][i] <- round(tot_vol * ratio,3)
+        x[[" Wood Volume [m^3]"]][i] <- round(tot_vol - x[[" Bark Volume [m^3]"]][i],3)
       } else {
-        # Épaisseur classique à convertir en volume
-        r_ext <- df$D130[i] / 2
-        r_int <- r_ext - thickness
-        if (r_int <= 0) next
-        bark_ratio <- (r_ext^3 - r_int^3) / r_ext^3
+        x[[" Wood Volume [m^3]"]][i] <- round(tot_vol,3)
+        x[[" Bark Volume [m^3]"]][i] <- NA_real_
       }
-
-      bark_vol <- total_vol * bark_ratio
-      wood_vol <- total_vol - bark_vol
-      df$E[i] <- thickness
-      df$Bark_Volume[i] <- bark_vol
-      df$Wood_Volume[i] <- wood_vol
+    } else {
+      x[[" Wood Volume [m^3]"]][i] <- round(tot_vol,3)
+      x[[" Bark Volume [m^3]"]][i] <- NA_real_
     }
   }
 
-  return(df)
+  return(x)
 }
-
-
-
 
 # =====================================================================
 #                           calculate_biomass()
 # =====================================================================
-#' Calculate biomass using allometric equations or volume × infra-density
+#' Calculate forest biomass using allometric equations or volume* density
 #'
 #' @description
-#' This function computes tree-level aboveground biomass (and derived root and total biomass)
-#' using one of two approaches:
+#' Computes aboveground biomass at the tree level using one of two methods:
 #'
-#' - **"equation" method**: applies species-specific allometric models provided in a reference table.
-#' - **"volume" method**: multiplies measured or estimated tree volume by species-specific wood infra-density (`ID`).
+#' - **`"equation"`**: applies species-specific allometric models provided in a reference table.
+#' - **`"volume"`**: multiplies volume data (e.g., V22) by species-specific infra-density (`ID`), with optional bark volume integration.
 #'
-#' The function supports flexible model structures (including log-linear and additive forms),
-#' automatic species matching, and fallback options when data are incomplete.
+#' When `method = "volume"` and `bark = TRUE`, the function uses `Wood_Volume` and `Bark_Volume` (typically from `calculate_bark_thickness()`) to estimate total biomass.
 #'
-#' @param x A `data.frame` containing individual tree data. It must include:
-#'   - A `Species` column for species identification.
-#'   - Either volume columns (see `Details`) or measurement variables (e.g., diameter, height) used in allometric equations.
+#' When `method = "equation"`, one or more equations are applied per species, with results stored in dynamically named columns by type of biomass (`Type_Eq`).
 #'
-#' @param equations A `data.frame` containing model parameters for each species. Depending on the method:
-#'   - For `"equation"`: must include columns `Species`, `Y`, `A0`, `b0`–`b5`, and `X1`–`X5`.
-#'   - For `"volume"`: must include columns `Species` and `ID` (infra-density in g/cm³).
+#' Root and total biomass are always computed as 20% and 120% of the aboveground biomass, respectively.
 #'
-#' @param method Character. Biomass estimation method. Either:
-#'   - `"equation"` (uses species-specific allometric models),
-#'   - `"volume"` (uses volume × infra-density). Default is `"volume"`.
+#' @param x A `data.frame` containing tree-level input data. Must include a `Species` column. Depending on the method:
+#'   - For `"volume"`: must include one or more volume columns (e.g., `"V22"`, `"Aboveground"`), or `Wood_Volume` and `Bark_Volume` if `bark = TRUE`.
+#'   - For `"equation"`: must include the predictor variables required by the selected equations (e.g., `D130`, `HTOT`, etc.).
 #'
-#' @return A modified `data.frame` identical to `x` with three new columns:
-#' \describe{
-#'   \item{Biomass_Aboveground}{Estimated aboveground biomass (in consistent volume × density units).}
-#'   \item{Biomass_Root}{Estimated root biomass, computed as 20\% of the aboveground biomass.}
-#'   \item{Biomass_Total}{Total biomass, computed as 120\% of the aboveground biomass.}
-#' }
+#' @param equations A `data.frame` of allometric equations. Depending on the method:
+#'   - For `"volume"`: must contain columns `Species` and `ID` (infra-density in g/cm^3).
+#'   - For `"equation"`: must contain `Species`, `Y`, `A0`, `b0`-`b5`, `X0`-`X5`, and optionally `Type_Eq`, `Region`.
 #'
-#' If `method = "equation"`, additional columns may be added per equation used
-#' (e.g., `<Species>_Biomass_A0<EqType>_Eq<Index>`) along with metadata columns identifying the equation applied.
+#' @param method Character string. Method to use for biomass estimation:
+#'   - `"equation"`: uses allometric models.
+#'   - `"volume"`: uses volume* density. Default is `"volume"`.
+#'
+#' @param bark Logical. If `TRUE` and `method = "volume"`, computes biomass using both `Wood_Volume` and `Bark_Volume`. Default is `FALSE`.
+#'
+#' @return A modified version of `x` with added biomass columns:
+#'
+#' - For `method = "equation"`:
+#'   - One or more columns of the form `Biomass_<Type_Eq>` with aboveground biomass.
+#'   - `Biomass Root`: root biomass (20% of total).
+#'   - `Biomass Total`: total biomass (120% of aboveground).
+#'
+#' - For `method = "volume"` and `bark = FALSE`:
+#'   - One column of the form `Biomass_<VolumeType>` (e.g., `Biomass_V22`).
+#'   - `Biomass Root`, `Biomass_Total`.
+#'
+#' - For `method = "volume"` and `bark = TRUE`:
+#'   - `Biomass_Wood`, `Biomass_Bark`, `Biomass_BarkWood`.
+#'   - `Biomass Root`, `Biomass_Total`.
 #'
 #' @details
-#' When `method = "volume"`, the function searches for volume columns in `x` whose names match one or more of the following:
-#' `"V22"`, `"V22B"`, `"V22_HA"`, `"Sawlog"`, `"Aboveground"`, `"Merchantable"`. These columns are summed to compute total volume.
+#' ### Volume method
+#' If `bark = FALSE`, the function uses the first available volume column among:
+#' `V22`, `V22B`, `V22_HA`, `Sawlog`, `Aboveground`, `Merchantable`.
+#' The selected volume is multiplied by `ID* 1000` (g/cm^3 to kg/m^3).
 #'
-#' When `method = "equation"`, the function evaluates the model based on the value of `A0`:
-#' \itemize{
-#'   \item A0 = 1–3 or 5: additive linear form: \eqn{Y = b0 + b1*X1 + ... + b5*X5}
-#'   \item A0 = 4: log-linear form: \eqn{log10(Y) = b0 + b1*log10(X1) + ...}
-#' }
+#' If `bark = TRUE`, the function uses both `Wood_Volume` and `Bark_Volume`, which must be present in `x`.
 #'
-#' Expressions in `X1:X5` are evaluated dynamically, and variable names must match column names in `x`.
+#' ### Equation method
+#' Equations are applied species-wise. Models are selected by `A0` value:
 #'
-#' @section Limitations:
-#' - The "volume" method assumes that volume data and wood density are consistent in units (e.g., m³ × g/cm³ → kg).
-#' - If multiple equations exist per species in `"equation"` mode, all are applied and their results are summed. This assumes they target complementary compartments.
-#' - No biomass is calculated for species missing in the `equations` table.
+#' - `A0 = 15`: linear model using up to 3 predictors (e.g., `Y = b0*X0 + b1*X1 + b2*X2`)
+#' - `A0 = 16`: semi-log model (e.g., `Y = b0*X0 + b1*log(X1)`)
+#' - `A0 = 17`: power model (e.g., `Y = b0 * X0^b1`)
+#'
+#' Expressions in `X0:X5` are evaluated dynamically using columns in `x`.
+#'
+#' If the `Region` column equals `"Belgium"`, results are scaled by `×1000`.
 #'
 #' @seealso
-#' \code{\link{calculate_carbon}} to compute carbon stock from biomass,
-#' \code{\link{calculate_volume}} for upstream volume computation,
-#' To access the equations, see the internal object `equations` bundled with the package.
-#'
-#' @examples
-#' # Using volume × density method
-#' df <- data.frame(Species = c("Fagus", "Quercus"),
-#'                  V22 = c(0.8, 1.2))
-#' eq <- data.frame(Species = c("Fagus", "Quercus"), ID = c(0.56, 0.65))
-#' calculate_biomass(df, eq, method = "volume")
-#'
-#' # Using allometric equations
-#' eqs <- data.frame(Species = "Fagus", Y = "BIOMASS", A0 = 1,
-#'                   b0 = 0.2, b1 = 0.03, b2 = NA, b3 = NA, b4 = NA, b5 = NA,
-#'                   X1 = "D130", X2 = NA, X3 = NA, X4 = NA, X5 = NA)
-#' df <- data.frame(Species = "Fagus", D130 = 32)
-#' calculate_biomass(df, eqs, method = "equation")
+#' - [calculate_bark_thickness()] to compute `Wood_Volume` and `Bark_Volume`.
+#' - [calculate_carbon()] to convert biomass into carbon stock.
+#' - [calculate_volume()] for volume-based biomass estimation.
 #'
 #' @importFrom stats setNames
 #' @export
-
-
-calculate_biomass <- function(x, equations, method = c("equation", "volume")) {
+#'
+calculate_biomass <- function(x, equations, method = c("equation", "volume"), bark = FALSE) {
   method <- match.arg(method)
 
   if (method == "equation") {
-    return(calculate_biomass_equation(x, equations))
+    return(calculate_biomass_equation_dynamic(x, equations))
   } else if (method == "volume") {
-    return(calculate_biomass_volume(x, equations))
+    return(calculate_biomass_volume_dynamic(x, equations, bark = bark))
   }
 }
 
-# Internal method: biomass by equation
-calculate_biomass_equation <- function(x, equations) {
-  eqs_biomass <- equations[equations$Y == "BIOMASS", ]
+calculate_biomass_equation_dynamic <- function(x, equations) {
+  # Filter valid biomass equations
+  eqs_biomass <- equations[
+    tolower(equations$Y) == "biomass" &
+      equations$A0 %in% c(15, 16, 17, 18, 19, 20, 21),
+  ]
+
   if (nrow(eqs_biomass) == 0) {
-    warning("No biomass equations found in equations")
+    warning("No valid biomass equations found.")
     return(x)
   }
 
+  # Ensure coefficients are numeric
   b_columns <- paste0("b", 0:5)
   eqs_biomass[b_columns] <- lapply(eqs_biomass[b_columns], as.numeric)
-  species_with_eqs <- unique(eqs_biomass$Species)
 
-  eq_mapping <- list()
-  for (species in species_with_eqs) {
-    eq_mapping[[species]] <- eqs_biomass[eqs_biomass$Species == species, ]
+  # Prepare output columns
+  x[["Biomass Total [kg]"]]  <- NA_real_
+  x[["Biomass Root [kg]"]]   <- NA_real_
+  biomass_cols   <- list()
+  validity_counts <- list()
+
+  # Determine which user vars are used in equations
+  user_vars <- setdiff(names(x), c("Species"))
+  used_vars <- unique(unlist(
+    lapply(eqs_biomass[, paste0("X", 0:5)], function(exprs) {
+      sapply(exprs, function(expr) {
+        vars <- all.vars(parse(text = expr))
+        vars[vars %in% user_vars]
+      })
+    })
+  ))
+
+  # Initialize validity columns and counters
+  for (var in used_vars) {
+    x[[paste0("Biomass_", var, "_Validity")]] <- NA_character_
+    validity_counts[[var]] <- c(VALID=0, BELOW_MIN=0, ABOVE_MAX=0, NO_LIMITS=0, MISSING=0)
   }
 
-  x$Biomass_Aboveground <- NA_real_
-  x$Biomass_Root <- NA_real_
-  x$Biomass_Total <- NA_real_
+  # Split equations by species
+  eq_mapping <- split(eqs_biomass, eqs_biomass$Species)
 
   for (i in seq_len(nrow(x))) {
     sp <- x$Species[i]
-    biomass_total <- 0
+    if (is.na(sp) || !(sp %in% names(eq_mapping))) next
 
-    if (!is.na(sp) && sp %in% names(eq_mapping)) {
-      eqs <- eq_mapping[[sp]]
-      for (j in seq_len(nrow(eqs))) {
-        eq <- eqs[j, ]
-        vars <- list()
-        for (k in 1:5) {
-          xname <- eq[[paste0("X", k)]]
-          if (!is.na(xname) && xname != "0" && xname %in% names(x)) {
-            vars[[xname]] <- x[[xname]][i]
-          }
-        }
+    eqs  <- eq_mapping[[sp]]
+    tot_biomass_i <- 0
 
-        biomass <- eq$b0
-        if (eq$A0 %in% c(1, 2, 3, 5)) {
-          for (k in 1:5) {
-            xexpr <- eq[[paste0("X", k)]]
-            bval <- eq[[paste0("b", k)]]
-            if (!is.na(xexpr) && xexpr != "0" && !is.na(bval)) {
-              val <- evaluate_expression(xexpr, vars)
-              if (!is.na(val)) {
-                biomass <- biomass + bval * val
-              }
-            }
-          }
-        } else if (eq$A0 == 4) {
-          log_sum <- eq$b0
-          for (k in 1:5) {
-            xexpr <- eq[[paste0("X", k)]]
-            bval <- eq[[paste0("b", k)]]
-            if (!is.na(xexpr) && xexpr != "0" && !is.na(bval)) {
-              val <- evaluate_expression(xexpr, vars)
-              if (!is.na(val) && val > 0) {
-                log_sum <- log_sum + bval * log10(val)
-              } else if (!is.na(val) && val <= 0) {
-                warning(paste("Cannot calculate log of non-positive value:", val, "at row", i))
-                log_sum <- NA
-                break
-              }
-            }
-          }
-          if (!is.na(log_sum)) {
-            biomass <- 10^log_sum
-          } else {
-            biomass <- NA
-          }
-        }
+    for (j in seq_len(nrow(eqs))) {
+      eq   <- eqs[j, ]
+      vars <- list()
+      # Always initialize column for this eq type
+      type_eq <- if (!is.na(eq$Type_Eq)) eq$Type_Eq else paste0("AB", eq$A0)
+      col_base <- paste0("Biomass_", type_eq)
+      if (!col_base %in% names(biomass_cols)) {
+        biomass_cols[[col_base]] <- rep(NA_real_, nrow(x))
+      }
 
-        if (!is.na(biomass)) {
-          biomass_total <- biomass_total + biomass
+      # Extract variable values for this equation
+      for (k in 0:5) {
+        expr <- eq[[paste0("X", k)]]
+        if (!is.na(expr) && nzchar(expr) && expr != "0") {
+          for (vn in all.vars(parse(text = expr))) {
+            if (vn %in% user_vars) vars[[vn]] <- x[[vn]][i]
+          }
         }
       }
 
-      if (!is.na(biomass_total) && biomass_total > 0) {
-        x$Biomass_Aboveground[i] <- biomass_total
-        x$Biomass_Root[i] <- biomass_total * 0.2
-        x$Biomass_Total[i] <- biomass_total * 1.2
+      # Update validity counts for each var
+      for (vn in names(vars)) {
+        val     <- vars[[vn]]
+        col_val <- paste0("Biomass_", vn, "_Validity")
+        min_col <- paste0(vn, "_Min")
+        max_col <- paste0(vn, "_Max")
+        if (is.na(val)) {
+          vstat <- "MISSING"
+        } else if (all(c(min_col, max_col) %in% names(eq)) &&
+                   !is.na(eq[[min_col]]) && !is.na(eq[[max_col]])) {
+          vstat <- if (val < eq[[min_col]])      "BELOW MIN"
+          else if (val > eq[[max_col]]) "ABOVE MAX"
+          else                          "VALID"
+        } else {
+          vstat <- "NO LIMITS"
+        }
+        x[[col_val]][i] <- vstat
+        if (vstat %in% names(validity_counts[[vn]])) {
+          validity_counts[[vn]][vstat] <- validity_counts[[vn]][vstat] + 1
+        }
       }
+
+      # Special case A0 = 15
+      if (eq$A0 == 15 && all(c("HTOT", "D130") %in% names(vars))) {
+        g_ab15 <- eq$b0 + eq$b1 * (vars$HTOT * 100) + eq$b2 * (vars$D130^2)
+        kg_ab15 <- g_ab15 / 1000
+        biomass_cols[["Biomass_AB15"]][i] <- kg_ab15
+        tot_biomass_i <- kg_ab15
+        next
+      }
+
+      # Other A0 cases including 19
+      biomass <- NA_real_
+      if (eq$A0 == 16 && !is.na(vars$D130)) {
+        biomass <- eq$b0 * (vars$D130 ^ eq$b1)
+      } else if (eq$A0 == 17 && !is.na(vars$D130)) {
+        biomass <- eq$b0 * ((vars$D130 * 10) ^ eq$b1)
+      } else if (eq$A0 == 18 && !is.na(vars$D130)) {
+        biomass <- exp(eq$b0 + eq$b1 * log(vars$D130)) / 1000
+      } else if (eq$A0 == 20 && !is.na(vars$D130)) {
+        biomass <- exp(eq$b0 + eq$b1 * log(vars$D130))
+      } else if (eq$A0 == 21 && !is.na(vars$D130)) {
+        biomass <- eq$b0 + eq$b1 * log(vars$D130)
+      }
+
+      # Store generic biomass
+      if (!is.na(biomass)) {
+        biomass_cols[[col_base]][i] <- biomass
+        tot_biomass_i <- tot_biomass_i + biomass
+      }
+    }
+
+    # After all eqs for tree i, compute root & total
+    if (tot_biomass_i > 0) {
+      x[["Biomass Root [kg]"]][i]  <- tot_biomass_i * 0.2
+      x[["Biomass Total [kg]"]][i] <- tot_biomass_i * 1.2
+    }
+  }
+
+  # Bind in all biomass_cols
+  for (nm in names(biomass_cols)) {
+    x[[nm]] <- biomass_cols[[nm]]
+  }
+
+  # Final validity warnings without subscript errors
+  get_count <- function(cnts, lvl) if (lvl %in% names(cnts)) cnts[[lvl]] else 0L
+  for (vn in names(validity_counts)) {
+    cnts    <- validity_counts[[vn]]
+    n_below <- get_count(cnts, "BELOW MIN")
+    n_above <- get_count(cnts, "ABOVE MAX")
+    checked <- sum(cnts)
+    if ((n_below + n_above) > 0 && checked > 0) {
+      pct <- round(100 * (n_below + n_above) / checked, 1)
+      warning(sprintf(
+        "VALIDITY DOMAIN WARNING: %s -> %d BELOW MIN, %d ABOVE MAX (%d/%d, %.1f%%)",
+        vn, n_below, n_above, n_below + n_above, checked, pct
+      ))
     }
   }
 
   return(x)
 }
 
-# Internal method: biomass by volume × infra-density
-calculate_biomass_volume <- function(x, equations) {
-  if (!"Species" %in% names(x)) {
-    stop("Column 'Species' is missing in input data.")
-  }
+calculate_biomass_volume_dynamic <- function(x, equations, bark = FALSE) {
+  if (!"Species" %in% names(x)) stop("Column 'Species' is missing.")
+  if (!"ID" %in% names(equations)) stop("Column 'ID' (infra-density) is missing.")
 
-  if (!"ID" %in% names(equations)) {
-    stop("Column 'ID' (infra-density) is missing in equations data.")
-  }
+  id_by_species <- setNames(equations$ID * 1000, equations$Species)
 
-  valid_volume_types <- c("V22", "V22B", "V22_HA", "Sawlog", "Aboveground", "Merchantable")
-  volume_columns <- intersect(valid_volume_types, names(x))
+  if (bark) {
+    biomass_wood <- rep(NA_real_, nrow(x))
+    biomass_bark <- rep(NA_real_, nrow(x))
 
-  if (length(volume_columns) == 0) {
-    stop("No valid volume columns found in input data. Expected one or more of: ",
-         paste(valid_volume_types, collapse = ", "))
-  }
-
-  id_by_species <- setNames(equations$ID, equations$Species)
-  biomass_aboveground <- rep(NA_real_, nrow(x))
-
-  for (i in seq_len(nrow(x))) {
-    species <- x$Species[i]
-    vols <- sum(as.numeric(x[i, volume_columns]), na.rm = TRUE)
-
-    if (!is.na(species) && species %in% names(id_by_species)) {
-      density <- id_by_species[[species]]
-      if (!is.na(vols) && !is.na(density)) {
-        biomass_aboveground[i] <- vols * density
+    for (i in seq_len(nrow(x))) {
+      sp       <- x$Species[i]
+      id       <- id_by_species[sp]
+      wood_vol <- x[["Wood Volume [m^3]"]][i]
+      bark_vol <- x[["Bark Volume [m^3]"]][i]
+      if (!is.na(id)) {
+        if (!is.na(wood_vol)) biomass_wood[i] <- wood_vol * id
+        if (!is.na(bark_vol)) biomass_bark[i] <- bark_vol * id
       }
     }
-  }
 
-  x$Biomass_Aboveground <- biomass_aboveground
-  x$Biomass_Root <- biomass_aboveground * 0.2
-  x$Biomass_Total <- biomass_aboveground * 1.2
+    x[["Biomass Wood  [kg]"]]          <- biomass_wood
+    x[["Biomass Bark [kg]"]]          <- biomass_bark
+    x[["Biomass Aboveground  [kg]"]]  <- rowSums(cbind(biomass_wood, biomass_bark), na.rm = TRUE)
+    x[["Biomass Root [kg]"]]          <- x[["Biomass Aboveground  [kg]"]] * 0.2
+    x[["Biomass Total [kg]"]]         <- x[["Biomass Aboveground  [kg]"]] * 1.2
+
+  } else {
+    valid_volume_types <- c("V22", "V22B", "V22_HA", "Sawlog", "Aboveground", "Merchantable")
+    volume_columns <- intersect(valid_volume_types, names(x))
+    if (length(volume_columns) == 0) {
+      stop("No valid volume columns found. Expected one of: ", paste(valid_volume_types, collapse = ", "))
+    }
+
+    volume_used <- volume_columns[1]
+    biomass    <- rep(NA_real_, nrow(x))
+
+    for (i in seq_len(nrow(x))) {
+      sp  <- x$Species[i]
+      vol <- x[[volume_used]][i]
+      id  <- id_by_species[sp]
+      if (!is.na(sp) && !is.na(vol) && !is.na(id)) {
+        biomass[i] <- vol * id
+      }
+    }
+
+    col_name <- paste0("Biomass ", volume_used)
+    x[[col_name]] <- biomass
+    x[["Biomass Root [kg]"]] <- biomass * 0.2
+    x[["Biomass Total [kg]"]]      <- biomass * 1.2
+  }
 
   return(x)
 }
-
 
 
 # =====================================================================
@@ -489,22 +585,22 @@ calculate_biomass_volume <- function(x, equations) {
 # =====================================================================
 #' Carbon calculation from biomass
 #' @description Calculates total carbon as 50% of total biomass.
-#' @param df A data.frame containing a Biomass_Total column
+#' @param x A data.frame containing a Biomass_Total column
 #' @return The same data.frame enriched with the Carbon_Total column
 #' @export
 #' @examples
-#' df <- data.frame(Biomass_Total = c(100, 120, 80))
-#' df <- calculate_carbon(df)
+#' x <- data.frame(Biomass_Total = c(100, 120, 80))
+#' x <- calculate_carbon(x)
 
-calculate_carbon <- function(df) {
-  if (!"Biomass_Total" %in% names(df)) {
+calculate_carbon <- function(x) {
+  if (!"Biomass Total [kg]" %in% names(x)) {
     warning("Column 'Biomass_Total' is missing. Carbon cannot be calculated.")
-    df$Carbon_Total <- NA_real_
-    return(df)
+    x[[" Carbon Total [kg]"]] <- NA_real_
+    return(x)
   }
 
-  df$Carbon_Total <- df$Biomass_Total * 0.47
-  return(df)
+  x[[" Carbon Total [kg]"]] <- round(x[["Biomass Total [kg]"]]  * 0.47 ,3)
+  return(x)
 }
 
 
@@ -522,8 +618,8 @@ calculate_carbon <- function(df) {
 #'
 #' The function adds two new columns to the input dataset:
 #' \itemize{
-#'   \item \code{Relative_Width} — The width of the prediction interval divided by the predicted volume.
-#'   \item \code{Reliability} — A qualitative interpretation of the interval's reliability.
+#'   \item \code{Relative_Width} - The width of the prediction interval divided by the predicted volume.
+#'   \item \code{Reliability} - A qualitative interpretation of the interval's reliability.
 #' }
 #' Optionally, it prints summary statistics globally and by species.
 #'
@@ -550,11 +646,11 @@ calculate_carbon <- function(df) {
 #'
 #' Interpretation is based on thresholds:
 #' \itemize{
-#'   \item < 0.10 → "Very narrow → Very reliable"
-#'   \item ≤ 0.25 → "Acceptable → Rather reliable"
-#'   \item ≤ 0.50 → "Wide → Uncertain"
-#'   \item > 0.50 → "Very wide → Risky"
-#'   \item NA → "No calculation"
+#'   \item < 0.10 -> "Very narrow -> Very reliable"
+#'   \item <= 0.25 -> "Acceptable -> Rather reliable"
+#'   \item <= 0.50 -> "Wide -> Uncertain"
+#'   \item > 0.50 -> "Very wide -> Risky"
+#'   \item NA -> "No calculation"
 #' }
 #'
 #' @param x A \code{data.frame} containing individual tree measurements. Must contain:
@@ -571,7 +667,7 @@ calculate_carbon <- function(df) {
 #' @param volume_type Character. The type of volume estimate to use (e.g., \code{"V22"}).
 #' @param equation_id Integer. Index of the equation to use (default = 1).
 #' @param confidence_level Numeric. Confidence level for the interval (default = 0.95).
-#' @param source Character. Optional source filter for selecting equations (e.g., \code{"Dagnellie"}).
+#' @param source Character. Optional source filter for selecting equations (e.g., \code{"Dagnelie"}).
 #' @param summarize Logical. If \code{TRUE}, prints summary statistics globally and per species.
 #'
 #' @return A \code{data.frame}, same as input \code{x}, with additional columns:
@@ -591,7 +687,7 @@ calculate_carbon <- function(df) {
 #'
 #' @examples
 #' \dontrun{
-#' df <- data.frame(Species = "Fagus_sylvatica", D130 = 32, Volume = 1.5)
+#' x <- data.frame(Species = "Fagus_sylvatica", D130 = 32, Volume = 1.5)
 #' equations <- data.frame(
 #'   Y = "V22",
 #'   Species = "Fagus_sylvatica",
@@ -600,10 +696,10 @@ calculate_carbon <- function(df) {
 #'   x_mean_D130 = 30,
 #'   SCE_D130 = 200,
 #'   X1 = "log(D130)",
-#'   Source_Eq = "Dagnellie"
+#'   Source_Eq = "Dagnelie"
 #' )
 #'
-#' result <- calculate_prediction_interval(df, equations, volume_type = "V22", source = "Dagnellie")
+#' result <- calculate_prediction_interval(x, equations, volume_type = "V22", source = "Dagnelie")
 #' head(result)
 #' }
 #'
@@ -622,10 +718,10 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
   interpret_relative_width <- function(relative_width) {
     sapply(relative_width, function(rw) {
       if (is.na(rw)) "No calculation"
-      else if (rw < 0.10) "Very narrow -> Very reliable"
-      else if (rw <= 0.25) "Acceptable -> Rather reliable"
-      else if (rw <= 0.50) "Wide -> Uncertain"
-      else "Very wide -> Risky"
+      else if (rw < 0.10) "Very reliable"
+      else if (rw <= 0.25) "Reliable"
+      else if (rw <= 0.50) "Uncertain"
+      else "Risky"
     })
   }
 
@@ -760,7 +856,16 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
     }
 
     t_val <- qt(1 - (1 - confidence_level)/2, df = n - 2)
-    volume_col <- volume_type
+
+    if (volume_type %in% names(x)) {
+      volume_col <- volume_type
+    } else {
+      alt <- paste0(volume_type, " [m^3]")
+      if (alt %in% names(x)) {
+        volume_col <- alt
+      }
+    }
+
     if (!volume_col %in% names(x)) {
       warning(paste("Column", volume_col, "not found in input data. Skipping row", i))
       next
@@ -775,8 +880,9 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
     }
   }
 
-  x$Relative_Width <- relative_width
-  x$Reliability <- interpret_relative_width(relative_width)
+  x[[" Relative Width"]] <- round(relative_width,2)
+  x[[" Reliability"]] <- interpret_relative_width(relative_width)
   if (summarize) summarize_relative_intervals(relative_width, x)
   return(x)
 }
+

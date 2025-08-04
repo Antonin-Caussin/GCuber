@@ -61,7 +61,7 @@ carbofor.data.frame <- function(x, ...) {
 #' @param carbon Logical. If `TRUE`, aboveground biomass and carbon content are computed.
 #' @param bark Logical. If `TRUE`, bark thickness and bark-adjusted volume are computed.
 #' @param remove_na Logical. If `TRUE`, rows with missing computed volume are removed from the output.
-#' @param source Character. Identifier of the source for the equations (e.g., "Dagnellie", "Vallet", "Bouvard").
+#' @param source Character. Identifier of the source for the equations (e.g., "Dagnelie", "Vallet", "Bouvard").
 #' @param specimens Character. Name of the column in `x` used to identify species (e.g., code, abbreviation, or full name).
 #' @param D130 Character. Column name for diameter at 130 cm height (default = "D130").
 #' @param C130 Character. Column name for circumference at 130 cm height (default = "C130").
@@ -112,7 +112,7 @@ carbofor.carbofor_data <- function(x,
                                    carbon = FALSE,
                                    bark = FALSE,
                                    remove_na = FALSE,
-                                   source = "Dagnellie",
+                                   source = "Dagnelie",
                                    specimens = NULL,
                                    D130 = "D130",
                                    C130 = "C130",
@@ -123,8 +123,7 @@ carbofor.carbofor_data <- function(x,
                                    H = "H",
                                    biomass_method = "volume",
                                    ...) {
-  data("equations", package = "GCuber", envir = environment())
-
+  utils::data("equations", package = "GCuber", envir = environment())
 
   validate_parameters(x, volume_type, equation_id, source, specimens, C130, C150, D130, D150, HTOT, HDOM)
 

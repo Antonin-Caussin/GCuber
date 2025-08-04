@@ -28,7 +28,7 @@
 #' @param equation_id Integer. Identifier of the equation to use (typically from an internal database).
 #' Some volume types only accept specific values for this argument.
 #' @param source Character. Source of the allometric equations.
-#' Must be one of: \code{"Dagnellie"}, \code{"Algan"}, \code{"Vallet"},
+#' Must be one of: \code{"Dagnelie"}, \code{"Algan"}, \code{"Vallet"},
 #' \code{"Bouvard"}, \code{"Rondeu"}, or \code{"Courbet"}.
 #' @param specimens Optional character. Name of the column containing species identifiers
 #' (codes, abbreviations, or full names), used to select the appropriate model.
@@ -64,7 +64,7 @@
 #'   x = df,
 #'   volume_type = "V22",
 #'   equation_id = 1,
-#'   source = "Dagnellie",
+#'   source = "Dagnelie",
 #'   specimens = "Species"
 #' )
 #' }
@@ -79,12 +79,12 @@
 validate_parameters <- function(x,
                                 volume_type = "V22",
                                 equation_id = 1,
-                                source = "Dagnellie",
+                                source = "Dagnelie",
                                 specimens = NULL,
                                 C130 = "C130", C150 = "C150",
                                 D130 = "D130", D150 = "D150",
                                 HTOT = "HTOT", HDOM = "HDOM") {
-  valid_sources <- c("Dagnellie", "Algan", "Vallet", "Bouvard","Courbet","Rondeu")
+  valid_sources <- c("Dagnelie", "Algan", "Vallet", "Bouvard","Courbet","Rondeu")
   if (!source %in% valid_sources) {
     stop(paste("Invalid source:", source, "\nValid sources:", paste(valid_sources, collapse = ", ")))
   }

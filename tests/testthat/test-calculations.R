@@ -39,7 +39,7 @@ create_test_equations <- function() {
     n = rep(150, 3),
     x_mean_D130 = rep(35, 3),
     SCE_D130 = rep(1500, 3),
-    Source_Eq = rep("Dagnellie", 3),
+    Source_Eq = rep("Dagnelie", 3),
     stringsAsFactors = FALSE
   )
 }
@@ -179,9 +179,9 @@ test_that("calculate_volume - Basic functionality", {
 
   # Checks
   expect_s3_class(result, "data.frame")
-  expect_true("V22" %in% names(result))
-  expect_true("Validity_Status" %in% names(result))
-  expect_true("Equation_Used" %in% names(result))
+  expect_true("V22 [m^3]" %in% names(result))
+  expect_true("Validity Status" %in% names(result))
+  expect_true("Equation Used" %in% names(result))
   expect_equal(nrow(result), nrow(test_data))
 
   # Verify that volumes are not all NA
@@ -204,7 +204,7 @@ test_that("calculate_volume - Handling species without equation", {
     "No equation found for species"
   )
 
-  expect_equal(result$Validity_Status[1], "NO_EQUATION")
+  expect_equal(result[["Validity Status"]][1], "NO EQUATION")
 })
 
 test_that("calculate_volume - Validity domain validation", {
@@ -216,9 +216,9 @@ test_that("calculate_volume - Validity domain validation", {
   result <- calculate_volume(test_data, equations = test_equations, volume_type = "V22", D130 = "D130")
 
   # Checks
-  expect_equal(result$Validity_Status[1], "VALID")
-  expect_equal(result$Validity_Status[2], "VALID")
-  expect_equal(result$Validity_Status[3], "VALID")
+  expect_equal(result[["Validity Status"]][1], "VALID")
+  expect_equal(result[["Validity Status"]][2], "VALID")
+  expect_equal(result[["Validity Status"]][3], "VALID")
 })
 
 test_that("calculate_volume - Custom D130 parameter", {
@@ -245,7 +245,7 @@ test_that("calculate_volume - Handling missing values", {
   result <- calculate_volume(test_data, equations = test_equations, volume_type = "V22")
 
   # Checks
-  expect_true(is.na(result$V22[2]) || is.na(result$V22[3]))
+  expect_true(is.na(result[["V22 [m^3]"]][2]) || is.na(result[["V22 [m^3]"]][3]))
 })
 
 # ============================================================================
@@ -272,7 +272,7 @@ test_that("calculate_bark_thickness - Basic functionality", {
     test_data,
     equations = test_equations,
     total_volume_col = "V22",
-    source = "Dagnellie"
+    source = "Dagnelie"
   )
 
   # Checks
@@ -294,7 +294,7 @@ test_that("calculate_bark_thickness - Absence of bark equations", {
       test_data,
       equations = test_equations,
       total_volume_col = "V22",
-      source = "Dagnellie"
+      source = "Dagnelie"
     ),
     regexp = "No bark equations.*found"
   )
@@ -325,7 +325,7 @@ test_that("calculate_bark_thickness - Volume conservation", {
     test_data,
     equations = equations,
     total_volume_col = "V22",
-    source = "Dagnellie"  # ✅ Correction here
+    source = "Dagnelie"  # ✅ Correction here
   )
 
   # Check that Bark_Volume + Wood_Volume = V22
@@ -571,7 +571,7 @@ test_that("Complete pipeline - Volume -> Bark -> Biomass -> Carbon", {
     result,
     equations = all_equations,
     total_volume_col = "V22",
-    source = "Dagnellie"
+    source = "Dagnelie"
   )
 
   # Step 3: biomass calculation

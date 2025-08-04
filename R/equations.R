@@ -8,41 +8,65 @@
 #' \code{\link{calculate_biomass}}, and \code{\link{convert_circumference}}.
 #'
 #'
-#' @format A data frame with 53 columns. Main fields include:
+#' @format A \code{data.frame} with \code{n} rows and the following variables:
 #' \describe{
-#'   \item{Y}{Response variable modeled (e.g., "V22", "BIOMASS").}
-#'   \item{A0}{Equation form code (1–5): determines if equation is additive or log-linear.}
-#'   \item{X0–X5}{Predictor variable names used in the equation (e.g., D130, HTOT).}
-#'   \item{b0–b5}{Numeric coefficients associated with predictors.}
-#'   \item{Species}{Canonical species name used internally.}
-#'   \item{Anglais}{Common name in English.}
-#'   \item{Latin}{Latin binomial name.}
-#'   \item{Code}{Numeric code identifying the species.}
-#'   \item{Abr}{Abbreviation (e.g., "HE" for Hêtre).}
-#'   \item{Source_Eq}{Citation or source of the model.}
-#'   \item{Region}{Region where the model was developed.}
-#'   \item{Equation}{Name or label of the original equation.}
-#'   \item{n}{Sample size used to fit the model.}
-#'   \item{sigma}{Standard error of the model.}
-#'   \item{D130_Min, D130_Max}{Min and max D130 in the fitting dataset.}
-#'   \item{x_mean_D130, SCE_D130}{Mean and standard error for D130.}
-#'   \item{C130_Min, C130_Max}{Min and max C130 in the fitting dataset.}
-#'   \item{x_mean_C130, SCE_C130}{Mean and standard error for C130.}
-#'   \item{HTOT_Min, HTOT_Max}{Min and max HTOT in the fitting dataset.}
-#'   \item{x_mean_HTOT, SCE_HTOT}{Mean and standard error for HTOT.}
-#'   \item{HDOM_Min, HDOM_Max}{Min and max HDOM.}
-#'   \item{x_mean_HDOM, SCE_HDOM}{Mean and standard error for HDOM.}
-#'   \item{G130_Min, G130_Max}{Min and max basal area G130.}
-#'   \item{x_mean_G130, SCE_G130}{Mean and standard error for G130.}
-#'   \item{H_Min, H_Max}{Min and max height H.}
-#'   \item{x_mean_H, SCE_H}{Mean and standard error for H.}
-#'   \item{Reference}{Literature or source reference.}
-#'   \item{ID}{Infra-density of the wood (in g/cm³), used for biomass estimation.}
-#'   \item{Source_ID}{Reference source for infra-density.}
-#'   \item{NumEquation}{Unique index of the equation in the dataset.}
-#'   \item{HV, IV}{Coefficients for converting C130 to C150 (and vice versa).}
+#'   \item{A0}{Equation indentification}
+#'   \item{Abr}{Species abbreviation}
+#'   \item{Anglais}{English name of the species}
+#'   \item{C130_Max}{Maximum value for C130}
+#'   \item{C130_Min}{Minimum value for C130}
+#'   \item{Code}{Species code}
+#'   \item{D130_Max}{Maximum value for D130}
+#'   \item{D130_Min}{Minimum value for D130}
+#'   \item{Equation}{Equation formula}
+#'   \item{G130_Max}{Maximum value for G130}
+#'   \item{G130_Min}{Minimum value for G130}
+#'   \item{HDOM_Max}{Maximum value for HDOM}
+#'   \item{HDOM_Min}{Minimum value for HDOM}
+#'   \item{HTOT_Max}{Maximum value for HTOT}
+#'   \item{HTOT_Min}{Minimum value for HTOT}
+#'   \item{HV}{Wood volume}
+#'   \item{H_Max}{Maximum observed height}
+#'   \item{H_Min}{Minimum observed height}
+#'   \item{ID}{Unique identifier}
+#'   \item{IV}{Variation index}
+#'   \item{Latin}{Latin name of the species}
+#'   \item{NumEquation}{Equation number}
+#'   \item{Reference}{Bibliographic reference}
+#'   \item{Region}{Geographic region}
+#'   \item{SCE_C130}{Standard error for C130}
+#'   \item{SCE_D130}{Standard error for D130}
+#'   \item{SCE_G130}{Standard error for G130}
+#'   \item{SCE_H}{Standard error for H}
+#'   \item{SCE_HDOM}{Standard error for HDOM}
+#'   \item{SCE_HTOT}{Standard error for HTOT}
+#'   \item{Source_Eq}{Equation source}
+#'   \item{Source_ID}{Infra density source}
+#'   \item{Species}{Species}
+#'   \item{Type_Eq}{Equation type}
+#'   \item{X0}{Coefficient X0}
+#'   \item{X1}{Coefficient X1}
+#'   \item{X2}{Coefficient X2}
+#'   \item{X3}{Coefficient X3}
+#'   \item{X4}{Coefficient X4}
+#'   \item{X5}{Coefficient X5}
+#'   \item{Y}{Dependent variable}
+#'   \item{b0}{Standard error of b0}
+#'   \item{b1}{Standard error of b1}
+#'   \item{b2}{Standard error of b2}
+#'   \item{b3}{Standard error of b3}
+#'   \item{b4}{Standard error of b4}
+#'   \item{b5}{Standard error of b5}
+#'   \item{n}{Sample size}
+#'   \item{sigma}{Residual standard deviation}
+#'   \item{x_mean_C130}{Mean of C130}
+#'   \item{x_mean_D130}{Mean of D130}
+#'   \item{x_mean_G130}{Mean of G130}
+#'   \item{x_mean_H}{Mean of H}
+#'   \item{x_mean_HDOM}{Mean of HDOM}
+#'   \item{x_mean_HTOT}{Mean of HTOT}
 #' }
-#'
+#' @source Internal package data
 #' @keywords internal
 #' @name equations
 #' @docType data
