@@ -17,6 +17,7 @@
 #' specimens <- c("FASY001")
 #' result <- calculate_volume(trees, equations = equations, specimens = specimens)
 
+
 calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
                              D130 = "D130", specimens = NULL, source = "Dagnellie") {
 
