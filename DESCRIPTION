@@ -1,6 +1,6 @@
-Package: GCubeR
+Package: GCuber
 Type: Package
-Title: GCubeR – Estimation of forest volume, biomass, and carbon
+Title: Estimation of Forest Volume, Biomass, and Carbon
 Version: 0.1.2
 Authors@R: c(person("Antonin", "Caussin", email = "antonin.caussin@student.uliege.be", role = c("aut", "cre")), person(given = NA, family = "Université de Liège - Département d'enseignement AGRO BIO-TECH", role = "cph"), person("Gauthier", "Ligot", email = "gligot@uliege.be", role = "aut"))
 Description: Estimation of timber volume, biomass, and forest carbon stock based on existing allometric equations.  The package provides automated calculations  
