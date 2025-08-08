@@ -421,40 +421,41 @@ test_that("calculate_biomass - Logarithmic equations (A0=18)", {
   expect_equal(result[["Biomass Total [kg]"]][1], expected_biomass * 1.2, tolerance = 1e-8)
 })
 
-test_that("calculate_biomass - Volume x infra-density mode", {
-  test_data <- create_test_data(3)
-  test_data[["V22"]] <- c(1.2, 2.5, 0.8)
+library(testthat)
 
+test_that("calculate_biomass - Volume x infra-density mode (non-bark)", {
+  test_data <- create_test_data(3)
+  test_data[["V22 [m^3]"]] <- c(1.2, 2.5, 0.8)
   id_table <- data.frame(
     Species = unique(test_data$Species),
     ID      = c(0.5, 0.6, 0.4),
     stringsAsFactors = FALSE
   )
-
   result <- calculate_biomass(
     test_data,
     equations = id_table,
-    method    = "volume"
+    method    = "volume",
+    bark      = FALSE
   )
 
   expect_s3_class(result, "data.frame")
-  expect_true(all(c("Biomass V22", "Biomass Root [kg]", "Biomass Total [kg]") %in% names(result)))
 
-  # On intègre le *1000 appliqué à l'ID dans la fonction
-  expected_aboveground <- test_data[["V22"]] * id_table$ID * 1000
-  expect_equal(
-    result[["Biomass V22"]],
-    expected_aboveground
+  expected_cols <- c(
+    "Biomass Wood [kg]",
+    "Biomass Bark [kg]",
+    "Biomass Aboveground [kg]",
+    "Biomass Root [kg]",
+    "Biomass Total [kg]"
   )
-  expect_equal(
-    result[["Biomass Root [kg]"]],
-    expected_aboveground * 0.2
-  )
-  expect_equal(
-    result[["Biomass Total [kg]"]],
-    expected_aboveground * 1.2
-  )
+  expect_true(all(expected_cols %in% names(result)))
+  expected_wood <- test_data[["V22 [m^3]"]] * id_table$ID * 1000
+  expect_equal(result[["Biomass Wood [kg]"]], expected_wood)
+  expect_equal(result[["Biomass Bark [kg]"]], rep(0, length(expected_wood)))
+  expect_equal(result[["Biomass Aboveground [kg]"]], expected_wood)
+  expect_equal(result[["Biomass Root [kg]"]], expected_wood * 0.2)
+  expect_equal(result[["Biomass Total [kg]"]], expected_wood * 1.2)
 })
+
 
 
 
@@ -462,15 +463,15 @@ test_that("calculate_biomass - Volume x infra-density mode", {
 # TESTS FOR calculate_carbon()
 # ============================================================================
 
+library(testthat)
+
 test_that("calculate_carbon - Basic functionality", {
-  # On crée d'abord avec un nom temporaire valide
   test_data <- data.frame(
-    Species         = rep("Hetre", 3),
-    Biomass_kg      = c(100, 200, 300),
-    stringsAsFactors = FALSE
+    Species               = rep("Hetre", 3),
+    `Biomass Total [kg]` = c(100, 200, 300),
+    stringsAsFactors      = FALSE,
+    check.names           = FALSE
   )
-  # Puis on renomme proprement la colonne
-  names(test_data)[names(test_data) == "Biomass_kg"] <- "Biomass Total [kg]"
 
   result <- calculate_carbon(test_data)
 
@@ -479,20 +480,21 @@ test_that("calculate_carbon - Basic functionality", {
   expect_equal(result[["Carbon Total [kg]"]], c(47, 94, 141))
 })
 
-
-
-test_that("calculate_carbon - Missing Biomass_Total column", {
-  test_data <- data.frame(Species = "Hetre", stringsAsFactors = FALSE)
+test_that("calculate_carbon - Missing Biomass Total [kg] column", {
+  test_data <- data.frame(
+    Species = "Hetre",
+    stringsAsFactors = FALSE
+  )
 
   expect_warning(
     result <- calculate_carbon(test_data),
-    regexp = "Biomass_Total.*missing"
+    regexp = "Column 'Biomass_Total' is missing\\. Carbon cannot be calculated\\."
   )
 
-  # La branche warning crée " Carbon Total [kg]" (avec espace initial)
   expect_true("Carbon Total [kg]" %in% names(result))
   expect_true(is.na(result[["Carbon Total [kg]"]][1]))
 })
+
 
 
 # ============================================================================

@@ -138,7 +138,7 @@ carbofor.carbofor_data <- function(x,
   }
 
   if (carbon) {
-    x <- calculate_biomass(x, equations = equations, method = biomass_method)
+    x <- calculate_biomass(x, equations = equations, method = biomass_method, bark = bark)
     x <- calculate_carbon(x)
   }
 

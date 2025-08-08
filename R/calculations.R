@@ -296,7 +296,7 @@ vol_col <- if (is.null(total_volume_col)) {
       r_ext <- x$D130[i] / 2
       r_int <- r_ext - thickness
       if (r_int > 0) {
-        ratio    <- (r_ext^3 - r_int^3) / r_ext^3
+        ratio <- (r_ext^2 - r_int^2) / r_ext^2
         bark_vol <- round(tot_vol * ratio, 3)
         x[["Bark Volume [m^3]"]][i] <- bark_vol
         x[["Wood Volume [m^3]"]][i] <- round(tot_vol - bark_vol, 3)
@@ -387,7 +387,7 @@ vol_col <- if (is.null(total_volume_col)) {
 #'
 calculate_biomass <- function(x, equations, method = c("equation", "volume"), bark = FALSE) {
   method <- match.arg(method)
-
+  message(sprintf("[DEBUG-wrapper] method = %s, bark = %s", method, bark))
   if (method == "equation") {
     return(calculate_biomass_equation_dynamic(x, equations))
   } else if (method == "volume") {
@@ -548,60 +548,67 @@ calculate_biomass_equation_dynamic <- function(x, equations) {
 }
 
 calculate_biomass_volume_dynamic <- function(x, equations, bark = FALSE) {
+  # Debug initial bark argument
+  message(sprintf("[DEBUG] Input parameter bark = %s", bark))
+  # Ensure bark is logical
+  bark <- as.logical(bark)
+  message(sprintf("[DEBUG] Coerced bark = %s", bark))
+
   if (!"Species" %in% names(x)) stop("Column 'Species' is missing.")
   if (!"ID" %in% names(equations)) stop("Column 'ID' (infra-density) is missing.")
 
+  # Infra-density by species (kg/m3)
   id_by_species <- setNames(equations$ID * 1000, equations$Species)
 
+  n <- nrow(x)
+  biomass_wood <- rep(NA_real_, n)
+  biomass_bark <- rep(NA_real_, n)
+
   if (bark) {
-    biomass_wood <- rep(NA_real_, nrow(x))
-    biomass_bark <- rep(NA_real_, nrow(x))
+    message("[DEBUG] Bark mode activated")
+    wood_col <- "Wood Volume [m^3]"
+    bark_col <- "Bark Volume [m^3]"
+    if (!wood_col %in% names(x)) stop(paste("Column not found:", wood_col))
+    if (!bark_col %in% names(x)) stop(paste("Column not found:", bark_col))
 
-    for (i in seq_len(nrow(x))) {
-      sp       <- x$Species[i]
-      id       <- id_by_species[sp]
-      wood_vol <- x[["Wood Volume [m^3]"]][i]
-      bark_vol <- x[["Bark Volume [m^3]"]][i]
-      if (!is.na(id)) {
-        if (!is.na(wood_vol)) biomass_wood[i] <- wood_vol * id
-        if (!is.na(bark_vol)) biomass_bark[i] <- bark_vol * id
-      }
+    for (i in seq_len(n)) {
+      sp <- x$Species[i]
+      id <- id_by_species[sp]
+      vw <- x[[wood_col]][i]
+      vb <- x[[bark_col]][i]
+      if (!is.na(id) && !is.na(vw)) biomass_wood[i] <- vw * id
+      if (!is.na(id) && !is.na(vb)) biomass_bark[i] <- vb * id
+      cat(sprintf("[DEBUG] Row %d: sp=%s, id=%s, vw=%s, vb=%s, bw=%s, bb=%s
+",
+                  i, sp, id, vw, vb, biomass_wood[i], biomass_bark[i]))
     }
-
-    x[["Biomass Wood  [kg]"]]          <- biomass_wood
-    x[["Biomass Bark [kg]"]]          <- biomass_bark
-    x[["Biomass Aboveground  [kg]"]]  <- rowSums(cbind(biomass_wood, biomass_bark), na.rm = TRUE)
-    x[["Biomass Root [kg]"]]          <- x[["Biomass Aboveground  [kg]"]] * 0.2
-    x[["Biomass Total [kg]"]]         <- x[["Biomass Aboveground  [kg]"]] * 1.2
-
   } else {
-    valid_volume_types <- c("V22", "V22B", "V22_HA", "Sawlog", "Aboveground", "Merchantable")
-    volume_columns <- intersect(valid_volume_types, names(x))
-    if (length(volume_columns) == 0) {
-      stop("No valid volume columns found. Expected one of: ", paste(valid_volume_types, collapse = ", "))
-    }
-
-    volume_used <- volume_columns[1]
-    biomass    <- rep(NA_real_, nrow(x))
-
-    for (i in seq_len(nrow(x))) {
-      sp  <- x$Species[i]
-      vol <- x[[volume_used]][i]
+    message("[DEBUG] Bark mode not activated: proceeding without bark" )
+    valid_volume_types <- c("V22 [m^3]", "V22B [m^3]", "V22_HA [m^3]",
+                            "Sawlog [m^3]", "Aboveground [m^3]", "Merchantable [m^3]")
+    cols <- intersect(valid_volume_types, names(x))
+    if (length(cols) == 0) stop("No valid volume columns found. Expected one of: ",
+                                paste(valid_volume_types, collapse = ", "))
+    vol_col <- cols[1]
+    for (i in seq_len(n)) {
+      sp <- x$Species[i]
+      vol <- x[[vol_col]][i]
       id  <- id_by_species[sp]
-      if (!is.na(sp) && !is.na(vol) && !is.na(id)) {
-        biomass[i] <- vol * id
-      }
+      if (!is.na(vol) && !is.na(id)) biomass_wood[i] <- vol * id
     }
-
-    col_name <- paste0("Biomass ", volume_used)
-    x[[col_name]] <- biomass
-    x[["Biomass Root [kg]"]] <- biomass * 0.2
-    x[["Biomass Total [kg]"]]      <- biomass * 1.2
+    biomass_bark <- rep(0, n)
+    cat(sprintf("[DEBUG] Completed non-bark loop: used %s; first wood biomass = %s
+", vol_col, biomass_wood[1]))
   }
+
+  x[["Biomass Wood [kg]"]]        <- biomass_wood
+  x[["Biomass Bark [kg]"]]        <- biomass_bark
+  x[["Biomass Aboveground [kg]"]] <- biomass_wood + biomass_bark
+  x[["Biomass Root [kg]"]]        <- x[["Biomass Aboveground [kg]"]] * 0.2
+  x[["Biomass Total [kg]"]]       <- x[["Biomass Aboveground [kg]"]] * 1.2
 
   return(x)
 }
-
 
 # =====================================================================
 #                         calculate_carbon()
