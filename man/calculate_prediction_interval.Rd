@@ -101,22 +101,98 @@ If \code{summarize = TRUE}, the function prints:
 }
 
 \examples{
-\dontrun{
-x <- data.frame(Species = "Fagus_sylvatica", D130 = 32, Volume = 1.5)
-equations <- data.frame(
-  Y = "V22",
-  Species = "Fagus_sylvatica",
-  sigma = 0.2,
-  n = 100,
-  x_mean_D130 = 30,
-  SCE_D130 = 200,
-  X1 = "log(D130)",
-  Source_Eq = "Dagnelie"
+# --- Minimal input data with a proper volume column -----------------------
+# NOTE: The function expects either a column named exactly volume_type
+#       or "volume_type [m^3]". Here we create "V22 [m^3]".
+trees <- data.frame(
+  Species   = c("Hetre", "Chene pedoncule", "Epicea commun"),
+  D130      = c(32, 40, 28),  # Diameter at 1.30 m [cm]
+  HTOT      = c(25, 30, 22)   # Total height [m]
 )
 
-result <- calculate_prediction_interval(x, equations, volume_type = "V22", source = "Dagnelie")
-head(result)
-}
+# Simple stand-in to get a total stem volume column for the example:
+# (You normally obtain this from calculate_volume().)
+trees[["V22 [m^3]"]] <- round(0.0001 * trees$D130^2 * trees$HTOT, 3)
+
+# --- Equations table for prediction intervals ----------------------------
+# The function filters with Y == volume_type (here "V22").
+# Univariate example with X1 = "D130":
+#  - required columns: sigma, n, x_mean_D130, SCE_D130
+equations <- data.frame(
+  Species       = c("Hetre", "Chene pedoncule", "Epicea commun"),
+  Y             = rep("V22", 3),
+  A0            = NA_real_,
+  X1            = rep("D130", 3),
+  X2            = NA, X3 = NA, X4 = NA, X5 = NA,
+  b0            = NA_real_, b1 = NA_real_, b2 = NA_real_, b3 = NA_real_, b4 = NA_real_, b5 = NA_real_,
+  sigma         = c(0.045, 0.050, 0.040),  # residual std. error
+  n             = c(120, 140, 110),        # sample size
+  x_mean_D130   = c(34, 38, 30),
+  SCE_D130      = c(9800, 11500, 8700),    # sum of squares about the mean for D130
+  Source_Eq     = rep("Dagnelie", 3),
+  check.names   = FALSE
+)
+
+# --- Run prediction interval width computation ---------------------------
+out <- calculate_prediction_interval(
+  x                = trees,
+  equations        = equations,
+  volume_type      = "V22",
+  equation_id      = 1,
+  confidence_level = 0.95,
+  source           = "Dagnelie",
+  summarize        = TRUE
+)
+
+print(out)
+
+# --- Random sample: 10 trees per species ----------------------------------
+set.seed(123)  # for reproducibility
+species <- c("Hetre", "Chene pedoncule", "Epicea commun")
+n_rep   <- 10
+
+trees2 <- do.call(rbind, lapply(species, function(sp) data.frame(
+  Species = sp,
+  D130    = round(runif(n_rep, 20, 60), 1),  # cm
+  HTOT    = round(runif(n_rep, 15, 35), 1)   # m
+)))
+
+# Create the expected volume column name exactly: "V22 [m^3]"
+# (proxy formula with mild random noise)
+trees2[["V22 [m^3]"]] <- round(
+  0.0001 * trees2$D130^2 * trees2$HTOT * runif(nrow(trees2), 0.9, 1.1),
+  3
+)
+
+# --- Univariate equations (X1 = "D130") for prediction intervals ----------
+equations <- data.frame(
+  Species       = species,
+  Y             = rep("V22", 3),
+  A0            = NA_real_,
+  X1            = rep("D130", 3),
+  X2 = NA, X3 = NA, X4 = NA, X5 = NA,
+  b0 = NA_real_, b1 = NA_real_, b2 = NA_real_, b3 = NA_real_, b4 = NA_real_, b5 = NA_real_,
+  sigma         = c(0.045, 0.050, 0.040),
+  n             = c(120, 140, 110),
+  x_mean_D130   = c(34, 38, 30),
+  SCE_D130      = c(9800, 11500, 8700),
+  Source_Eq     = rep("Dagnelie", 3),
+  check.names   = FALSE
+)
+
+# --- Run on the random dataset --------------------------------------------
+out2 <- calculate_prediction_interval(
+  x                = trees2,
+  equations        = equations,
+  volume_type      = "V22",
+  equation_id      = 1,
+  confidence_level = 0.95,
+  source           = "Dagnelie",
+  summarize        = TRUE
+)
+
+head(out2)
+attr(out2, "pi_summary")
 
 }
 \seealso{

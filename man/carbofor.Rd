@@ -22,11 +22,13 @@ It delegates to specific methods depending on the class of the input `x`.
 \seealso{
 \code{\link{calculate_volume}} — Core function for volume computation using selected allometric models.
 
-\code{\link{calculate_biomass}} — Computes aboveground biomass from volume and species coefficients.
+\code{\link{carbofor.carbofor_data}} for the actual computation.
+
+\code{\link{calculate_biomass}} — Computes aboveground biomass from volume  and species coefficients but also using selected allometric models.
 
 \code{\link{calculate_carbon}} — Converts biomass into estimated carbon stock.
 
-\code{\link{calculate_bark_thickness}} — Estimates bark thickness in mm based on empirical rules.
+\code{\link{calculate_bark_thickness}} — Estimates bark thickness based on empirical rules.
 
 \code{\link{preprocess_data}} — Internal preprocessing including species matching and conversion of dendrometric variables.
 

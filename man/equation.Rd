@@ -2,44 +2,48 @@
 % Please edit documentation in R/liste.R
 \name{equation}
 \alias{equation}
-\title{Filter Equations by Type}
+\title{Filter equations by type (wrapper)}
 \usage{
 equation(equation_type, ...)
 }
 \arguments{
-\item{equation_type}{Character string. Type of equation to filter for
-(e.g., "V22", "biomass", "height"). Must match exactly the equation types
-in the Y column of the database.}
+\item{equation_type}{Character scalar. Equation type to filter on
+(e.g., `"V22"`, `"biomass"`, `"height"`). Must match values in `equations$Y`.}
 
-\item{...}{Additional arguments passed to \code{carbofor_species()}}
+\item{...}{Additional arguments passed to [carbofor_species()] (e.g., `plot = FALSE`).}
 }
 \value{
-Same as \code{carbofor_species()}
+The same data frame (invisibly) as returned by [carbofor_species()].
 }
 \description{
-This function provides a convenient way to filter equations by type only.
-It's a wrapper around \code{carbofor_species()} with the equation_type
-parameter pre-specified.
-}
-\details{
-This is a convenience function for users who want to explore all equations
-of a specific type across all species. It's equivalent to calling
-\code{carbofor_species(equation_type = equation_type, ...)}.
+`equation()` is a thin wrapper around [carbofor_species()] that presets the
+`equation_type` argument. Use it to quickly list or display all equations of
+a given type across species.
 }
 \examples{
 \dontrun{
-# Get all V22 equations across all species
-equation("V22")
+# Minimal demo data
+equations <- data.frame(
+  Species   = c("Hetre", "Chene sessile"),
+  Latin     = c("Fagus sylvatica", "Quercus rubra"),
+  Code      = c("3", "41"),
+  Abr       = c("HE", "CHS"),
+  Y         = c("V22", "V22"),
+  A0        = c(1, 2),
+  Source_Eq = c("Dagnelie", "Vallet"),
+  X0 = "1", X1 = "DBH",
+  b0 = c(1.2, 0.9), b1 = c(0.03, 0.04),
+  stringsAsFactors = FALSE
+)
 
-# Get biomass equations without visual formatting
-biomass_data <- equation("biomass", plot = FALSE)
+# All V22 equations across species (summary by source)
+equation("V22", plot = FALSE)
 
-# Equivalent to:
-carbofor_species(equation_type = "V22")
-carbofor_species(equation_type = "biomass", plot = FALSE)
+# Same as:
+carbofor_species(equation_type = "V22", plot = FALSE)
 }
 
 }
 \seealso{
-\code{\link{carbofor_species}} for the main function documentation
+[carbofor_species()]
 }

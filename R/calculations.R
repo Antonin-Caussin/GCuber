@@ -15,12 +15,9 @@
 #'   }
 #' @param volume_type
 #'   Character; type of volume to calculate. Supported values include:
-#'   \code{"V22"}, \code{"V22B"}, \code{"V22_HA"}, \code{"E"}.
+#'   \code{"V22"}, \code{"V22B"}, \code{"V22_HA"}, \code{"Merchantable"}, , \code{"Aboveground"}
 #' @param equations
-#'   A data.frame of allometric equations with columns:
-#'   \code{Species}, \code{A0}, \code{b0} to \code{b5},
-#'   \code{X1} to \code{X5}, \code{D_Min}, \code{D_Max}, \code{Y}, and
-#'   optionally \code{Source_Eq}.
+#'   An internal data frame containing the parameters required for volume calculations.
 #' @param equation_id
 #'   Integer; index of the equation to use for each species
 #'   (default is 1).
@@ -35,21 +32,43 @@
 #'   equations to individual observations.
 #' @param source
 #'   Optional character; source of the equations
-#'   (e.g., \code{"Dagnelie"}, \code{"Myers"}).
+#'   (e.g., \code{"Dagnelie"}, \code{"Algan"}).
 #'
 #' @return
 #'   The input \code{x} enriched with:
 #'   \itemize{
 #'     \item a new column \code{[volume_type] [m^3]},
 #'     \item \code{Validity Status},
-#'     \item \code{Equation Used},
 #'     \item one \code{Volume_<Variable>_Validity} column per predictive variable.
 #'   }
 #'
 #' @seealso
 #' \code{\link{calculate_bark_thickness}} for deriving bark and wood volumes
 #' from total stem volume.
+#' @examples
+#' # =====================================================
+#' # Example 1: Basic volume calculation for Beech and Oak
+#' # =====================================================
 #'
+#' # Input dataset with diameters and heights
+#'
+#' trees <- data.frame(
+#'   Species   = c("Hetre", "Chene pedoncule", "Epicea commun"),
+#'   D130      = c(32, 40, 28),
+#'   HTOT      = c(25, 30, 22),
+#'   C130      = c(100.5, 125.7, 88.0),
+#'   HDOM      = c(27, 31, 23)
+#'   )
+#'
+#' # Run calculation
+#' res <- calculate_volume(trees, volume_type = "V22", equations)
+#' res
+#
+#' # Suppose a species has multiple candidate equations
+#'
+#' # Use the second equation for Beech
+#' res2 <- calculate_volume(trees, volume_type = "V22", equation_id = 2, equations)
+#' res2
 #' @export
 #'
 
@@ -60,7 +79,6 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
   vol_col <- paste0(volume_type, " [m^3]")
   if (!vol_col %in% names(x)) x[[vol_col]] <- NA_real_
   if (!"Validity Status" %in% names(x)) x[["Validity Status"]] <- NA_character_
-  if (!"Equation Used" %in% names(x))   x[["Equation Used"]]   <- NA_character_
 
   eqs_volume <- equations[equations$Y == volume_type, ]
   if (!is.null(source) && "Source_Eq" %in% names(eqs_volume)) {
@@ -89,13 +107,9 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
       eq <- eq_candidates[local_equation_id, , drop = FALSE]
     }
 
-    x[["Equation Used"]][i] <- sprintf("%s:%s:A0=%s",
-                                       eq$Species, eq$Y, eq$A0)
-
     validity_status <- "VALID"
     used_vars       <- character()
 
-    # repérer toutes les variables utilisées dans X1…X5
     for (j in 1:5) {
       expr <- eq[[paste0("X", j)]]
       if (!is.na(expr) && expr != "0") {
@@ -106,7 +120,6 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
     used_vars <- unique(used_vars)
     all_validity_vars <- unique(c(all_validity_vars, used_vars))
 
-    # ——— VALIDATION DES DOMAINES AVEC GESTION DES NA ———
     for (var in used_vars) {
       col_validity <- paste0("Volume_", var, "_Validity")
       if (!col_validity %in% names(x)) x[[col_validity]] <- NA_character_
@@ -114,11 +127,9 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
       value <- x[[var]][i]
 
       if (is.na(value)) {
-        # si la donnée est manquante, on ne compare pas
         vstat <- "MISSING"
         validity_status <- "MISSING"
       } else {
-        # déterminer bornes min/max
         min_col <- paste0(var, "_Min")
         max_col <- paste0(var, "_Max")
         if (all(c(min_col, max_col) %in% names(eq))) {
@@ -131,7 +142,6 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
           limit_min <- limit_max <- NA_real_
         }
 
-        # tests uniquement si bornes non-NA
         if (is.na(limit_min) || is.na(limit_max)) {
           vstat <- "NO LIMITS"
         } else if (value < limit_min) {
@@ -150,7 +160,6 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
 
     x[["Validity Status"]][i] <- validity_status
 
-    # si OK pour le calcul
     if (validity_status %in% c("VALID", "OUTSIDE DOMAIN", "NO LIMITS")) {
       if (!is.na(eq$A0) && eq$A0 %in% c(1,2,3)) {
         volume_res <- eq$b0
@@ -187,15 +196,13 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
   return(x)
 }
 
-
-
 # =====================================================================
 #                      calculate_bark_thickness()
 # =====================================================================
 #' Estimate Bark Thickness and Compute Bark & Wood Volumes
 #'
 #' @description
-#' Uses species-specific allometric equations (Y == "E") to estimate bark thickness,
+#' Uses species-specific allometric equations (Y == "E") to estimate bark thickness or proportion,
 #' then derives bark volume and net wood volume from a total stem volume.
 #'
 #' @param x
@@ -206,9 +213,7 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
 #'     \item a column with total stem volume (see \code{total_volume_col})
 #'   }
 #' @param equations
-#'   A \code{data.frame} of bark-thickness allometric equations with columns:
-#'   \code{Species}, \code{A0}, \code{b0} to \code{b5}, \code{X1} to \code{X5},
-#'   optionally \code{Source_Eq}, and \code{Y} == "E".
+#'   An internal data frame containing the parameters required for volume calculations.
 #' @param volume_type
 #'   Character; suffix for default total-volume column name. If
 #'   \code{total_volume_col} is \code{NULL}, uses \code{paste0(volume_type, " [m^3]")}
@@ -218,16 +223,35 @@ calculate_volume <- function(x, volume_type = "V22", equations, equation_id = 1,
 #'   If \code{NULL}, constructed from \code{volume_type}.
 #' @param source
 #'   Optional character; restrict to equations from this source
-#'   (e.g. \code{"Vallet"}, \code{"Dagnelie"}). If \code{NULL}, all sources are used.
+#'   (e.g., \code{"Dagnelie"}).
 #'
 #' @return
 #'   The input \code{x} enriched with three new columns:
 #'   \itemize{
-#'     \item \code{E} - estimated bark thickness (cm)
 #'     \item \code{Bark Volume [m^3]} - volume of bark
 #'     \item \code{Wood Volume [m^3]} - net wood volume (total minus bark)
 #'   }
 #'
+#' @examples
+#' trees <- data.frame(
+#'   Species = c("Hetre", "Chene pedoncule", "Epicea commun"),
+#'   D130    = c(32, 40, 28),
+#'   HTOT    = c(25, 30, 22),
+#'   C130    = c(100.5, 125.7, 88.0),
+#'   HDOM    = c(27, 31, 23)
+#' )
+#'
+#' # Compute total stem volume (V22)
+#' res <- calculate_volume(trees, volume_type = "V22", equations)
+#'
+#' # Simple expression evaluator (demo only)
+#' evaluate_expression <- function(expr, vars) {
+#'   if (expr %in% names(vars)) as.numeric(vars[[expr]]) else NA_real_
+#' }
+#'
+#' # Split total volume into bark and wood
+#' result <- calculate_bark_thickness(res, equations, volume_type = "V22", source = "Dagnelie")
+#' print(result)
 #' @seealso
 #' \code{\link{calculate_volume}} for computing total stem volume from DBH.
 #'
@@ -244,10 +268,9 @@ vol_col <- if (is.null(total_volume_col)) {
     total_volume_col
   }
 
-  # Filtre des équations d'épaisseur d'écorce (Y == "E")
-  bark_eqs <- subset(equations, Y == "E")
+  bark_eqs <- equations[which(equations[["Y"]] == "E"), , drop = FALSE]
   if (!is.null(source) && "Source_Eq" %in% names(bark_eqs)) {
-    bark_eqs <- subset(bark_eqs, Source_Eq == source)
+    bark_eqs <- bark_eqs[which(bark_eqs[["Source_Eq"]] == source), , drop = FALSE]
   }
 
   if (nrow(bark_eqs) == 0) {
@@ -320,7 +343,7 @@ vol_col <- if (is.null(total_volume_col)) {
 #' @description
 #' Computes aboveground biomass at the tree level using one of two methods:
 #'
-#' - **`"equation"`**: applies species-specific allometric models provided in a reference table.
+#' - **`"equation"`**: applies species-specific allometric models provided in a reference table. Under development, errors may occur. The returned data should therefore be interpreted with caution.
 #' - **`"volume"`**: multiplies volume data (e.g., V22) by species-specific infra-density (`ID`), with optional bark volume integration.
 #'
 #' When `method = "volume"` and `bark = TRUE`, the function uses `Wood Volume` and `Bark Volume` (typically from `calculate_bark_thickness()`) to estimate total biomass.
@@ -360,11 +383,12 @@ vol_col <- if (is.null(total_volume_col)) {
 #'
 #' @details
 #' ### Volume method
-#' If `bark = FALSE`, the function uses the first available volume column among:
-#' `V22`, `V22B`, `V22_HA`, `Sawlog`, `Aboveground`, `Merchantable`.
-#' The selected volume is multiplied by `ID* 1000` (g/cm^3 to kg/m^3).
-#'
-#' If `bark = TRUE`, the function uses both `Wood Volume` and `Bark Volume`, which must be present in `x`.
+#' Computes wood, bark, aboveground, root, and total biomass (in kg) from
+#' volume columns and species infra-density. If `bark = FALSE`, the function
+#' uses the first available volume column among:
+#' `V22 [m^3]`, `V22B [m^3]`, `V22_HA [m^3]`, `Aboveground [m^3]`,
+#' `Merchantable [m^3]`.
+#' If `bark = TRUE`, both `Wood Volume [m^3]` and `Bark Volume [m^3]` must be present.
 #'
 #' ### Equation method
 #' Equations are applied species-wise. Models are selected by `A0` value:
@@ -373,12 +397,10 @@ vol_col <- if (is.null(total_volume_col)) {
 #' - `A0 = 16`: semi-log model (e.g., `Y = b0*X0 + b1*log(X1)`)
 #' - `A0 = 17`: power model (e.g., `Y = b0 * X0^b1`)
 #'
-#' Expressions in `X0:X5` are evaluated dynamically using columns in `x`.
-#'
 #' If the `Region` column equals `"Belgium"`, results are scaled by `×1000`.
 #'
 #' @seealso
-#' - [calculate_bark_thickness()] to compute `Wood Volume` and `Bark Volume`.
+#' - [calculate_bark_thickness()] to compute `Wood Volume [m^3]` and `Bark Volume [m^3]`.
 #' - [calculate_carbon()] to convert biomass into carbon stock.
 #' - [calculate_volume()] for volume-based biomass estimation.
 #'
@@ -488,7 +510,7 @@ calculate_biomass_equation_dynamic <- function(x, equations) {
 
       # Special case A0 = 15
       if (eq$A0 == 15 && all(c("HTOT", "D130") %in% names(vars))) {
-        g_ab15 <- eq$b0 + eq$b1 * (vars$HTOT * 100) + eq$b2 * (vars$D130^2)
+        g_ab15 <- eq$b0 + eq$b1 * (vars$HTOT) + eq$b2 * (vars$D130^2)
         kg_ab15 <- g_ab15 / 1000
         biomass_cols[["Biomass_AB15"]][i] <- kg_ab15
         tot_biomass_i <- kg_ab15
@@ -585,7 +607,7 @@ calculate_biomass_volume_dynamic <- function(x, equations, bark = FALSE) {
   } else {
     message("[DEBUG] Bark mode not activated: proceeding without bark" )
     valid_volume_types <- c("V22 [m^3]", "V22B [m^3]", "V22_HA [m^3]",
-                            "Sawlog [m^3]", "Aboveground [m^3]", "Merchantable [m^3]")
+                            "Aboveground [m^3]", "Merchantable [m^3]")
     cols <- intersect(valid_volume_types, names(x))
     if (length(cols) == 0) stop("No valid volume columns found. Expected one of: ",
                                 paste(valid_volume_types, collapse = ", "))
@@ -624,7 +646,7 @@ calculate_biomass_volume_dynamic <- function(x, equations, bark = FALSE) {
 
 calculate_carbon <- function(x) {
   if (!"Biomass Total [kg]" %in% names(x)) {
-    warning("Column 'Biomass_Total' is missing. Carbon cannot be calculated.")
+    warning("Column 'Biomass Total' is missing. Carbon cannot be calculated.")
     x[["Carbon Total [kg]"]] <- NA_real_
     return(x)
   }
@@ -716,22 +738,96 @@ calculate_carbon <- function(x) {
 #' }
 #'
 #' @examples
-#' \dontrun{
-#' x <- data.frame(Species = "Fagus_sylvatica", D130 = 32, Volume = 1.5)
-#' equations <- data.frame(
-#'   Y = "V22",
-#'   Species = "Fagus_sylvatica",
-#'   sigma = 0.2,
-#'   n = 100,
-#'   x_mean_D130 = 30,
-#'   SCE_D130 = 200,
-#'   X1 = "log(D130)",
-#'   Source_Eq = "Dagnelie"
+#' # --- Minimal input data with a proper volume column -----------------------
+#' #       or "volume_type [m^3]". Here we create "V22 [m^3]".
+#' trees <- data.frame(
+#'   Species   = c("Hetre", "Chene pedoncule", "Epicea commun"),
+#'   D130      = c(32, 40, 28),  # Diameter at 1.30 m [cm]
+#'   HTOT      = c(25, 30, 22)   # Total height [m]
 #' )
 #'
-#' result <- calculate_prediction_interval(x, equations, volume_type = "V22", source = "Dagnelie")
-#' head(result)
-#' }
+#' # Simple stand-in to get a total stem volume column for the example:
+#' # (You normally obtain this from calculate_volume().)
+#' trees[["V22 [m^3]"]] <- round(0.0001 * trees$D130^2 * trees$HTOT, 3)
+#'
+#' # --- Equations table for prediction intervals ----------------------------
+#' # The function filters with Y == volume_type (here "V22").
+#' # Univariate example with X1 = "D130":
+#' #  - required columns: sigma, n, x_mean_D130, SCE_D130
+#' equations <- data.frame(
+#'   Species       = c("Hetre", "Chene pedoncule", "Epicea commun"),
+#'   Y             = rep("V22", 3),
+#'   A0            = NA_real_,
+#'   X1            = rep("D130", 3),
+#'   X2            = NA, X3 = NA, X4 = NA, X5 = NA,
+#'   b0            = NA_real_, b1 = NA_real_, b2 = NA_real_, b3 = NA_real_, b4 = NA_real_, b5 = NA_real_,
+#'   sigma         = c(0.045, 0.050, 0.040),  # residual std. error
+#'   n             = c(120, 140, 110),        # sample size
+#'   x_mean_D130   = c(34, 38, 30),
+#'   SCE_D130      = c(9800, 11500, 8700),    # sum of squares about the mean for D130
+#'   Source_Eq     = rep("Dagnelie", 3),
+#'   check.names   = FALSE
+#' )
+#'
+#' # --- Run prediction interval width computation ---------------------------
+#' out <- calculate_prediction_interval(
+#'   x                = trees,
+#'   equations        = equations,
+#'   volume_type      = "V22",
+#'   equation_id      = 1,
+#'   confidence_level = 0.95,
+#'   source           = "Dagnelie",
+#'   summarize        = TRUE
+#' )
+#'
+#' print(out)
+#'
+#' # --- Random sample: 10 trees per species ----------------------------------
+#' set.seed(123)  # for reproducibility
+#' species <- c("Hetre", "Chene pedoncule", "Epicea commun")
+#' n_rep   <- 100
+#'
+#' trees2 <- do.call(rbind, lapply(species, function(sp) data.frame(
+#'   Species = sp,
+#'   D130    = round(runif(n_rep, 10, 70), 1),  # cm
+#'   HTOT    = round(runif(n_rep, 15, 35), 1)   # m
+#' )))
+#'
+#' # Create the expected volume column name exactly: "V22 [m^3]"
+#' trees2[["V22 [m^3]"]] <- round(
+#'   0.0001 * trees2$D130^2 * trees2$HTOT * runif(nrow(trees2), 0.9, 1.1),
+#'   3
+#' )
+#'
+#' # --- Univariate equations (X1 = "D130") for prediction intervals ----------
+#' equations <- data.frame(
+#'   Species       = species,
+#'   Y             = rep("V22", 3),
+#'   A0            = NA_real_,
+#'   X1            = rep("D130", 3),
+#'   X2 = NA, X3 = NA, X4 = NA, X5 = NA,
+#'   b0 = NA_real_, b1 = NA_real_, b2 = NA_real_, b3 = NA_real_, b4 = NA_real_, b5 = NA_real_,
+#'   sigma         = c(0.045, 0.050, 0.040),
+#'   n             = c(120, 140, 110),
+#'   x_mean_D130   = c(34, 38, 30),
+#'   SCE_D130      = c(9800, 11500, 8700),
+#'   Source_Eq     = rep("Dagnelie", 3),
+#'   check.names   = FALSE
+#' )
+#'
+#' # --- Run on the random dataset --------------------------------------------
+#' out2 <- calculate_prediction_interval(
+#'   x                = trees2,
+#'   equations        = equations,
+#'   volume_type      = "V22",
+#'   equation_id      = 1,
+#'   confidence_level = 0.95,
+#'   source           = "Dagnelie",
+#'   summarize        = TRUE
+#' )
+#'
+#' head(out2)
+#' attr(out2, "pi_summary")
 #'
 #' @seealso
 #' \code{\link{carbofor}}, \code{\link{calculate_volume}}, \code{\link{calculate_biomass}}
@@ -745,6 +841,7 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
                                           confidence_level = 0.95, source = NULL,
                                           summarize = TRUE) {
 
+  # Map numeric widths to textual reliability
   interpret_relative_width <- function(relative_width) {
     sapply(relative_width, function(rw) {
       if (is.na(rw)) "No calculation"
@@ -755,31 +852,43 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
     })
   }
 
+  # Return a useful summary (overall table + per-species stats)
   summarize_relative_intervals <- function(relative_widths, x) {
-    valid_widths <- relative_widths[!is.na(relative_widths)]
-    if (length(valid_widths) == 0) return()
+    valid <- !is.na(relative_widths)
+    if (!any(valid)) return(invisible(list(overall = NULL, by_species = NULL)))
 
-    interpretations <- interpret_relative_width(relative_widths)
-    interpretation_table <- table(interpretations[!is.na(relative_widths)])
+    interp  <- interpret_relative_width(relative_widths[valid])
+    overall <- table(interp)
 
+    by_species <- NULL
     if ("Species" %in% names(x)) {
-      valid_indices <- which(!is.na(relative_widths))
       species_data <- data.frame(
-        Species = x$Species[valid_indices],
-        Relative_Width = valid_widths
+        Species = x$Species[valid],
+        Relative_Width = relative_widths[valid]
       )
-
-      species_summary <- aggregate(Relative_Width ~ Species, data = species_data,
-                                   FUN = function(x) c(n = length(x), mean = mean(x), median = median(x), sd = sd(x)))
+      # aggregate renvoie une colonne-matrice -> on la convertit proprement
+      tmp <- aggregate(Relative_Width ~ Species, data = species_data,
+                       FUN = function(z) c(n = length(z),
+                                           mean = mean(z),
+                                           median = median(z),
+                                           sd = sd(z)))
+      stats <- as.data.frame(tmp$Relative_Width)         # <- matrice -> data.frame
+      names(stats) <- c("n", "mean", "median", "sd")     # noms explicites
+      by_species <- cbind(tmp["Species"], stats)
+      rownames(by_species) <- NULL
     }
+
+    return(list(overall = overall, by_species = by_species))
   }
 
+  # Filter equations of the requested volume type (and source if given)
   eqs_volume <- equations[equations$Y == volume_type, ]
   if (!is.null(source)) eqs_volume <- eqs_volume[eqs_volume$Source_Eq == source, ]
+
   relative_width <- rep(NA_real_, nrow(x))
 
   for (i in seq_len(nrow(x))) {
-    tree_species <- x$Species[i]
+    tree_species  <- x$Species[i]
     eq_candidates <- eqs_volume[eqs_volume$Species == tree_species, ]
     if (nrow(eq_candidates) == 0) {
       warning(paste("No equation found for species:", tree_species))
@@ -789,6 +898,7 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
     local_equation_id <- min(equation_id, nrow(eq_candidates))
     eq <- eq_candidates[local_equation_id, , drop = FALSE]
 
+    # Variables required by the equation (from X1..X5)
     exprs <- as.character(unlist(eq[1, paste0("X", 1:5)]))
     exprs <- exprs[!is.na(exprs) & exprs != "0"]
     vars_needed <- unique(unlist(lapply(exprs, function(expr) {
@@ -796,12 +906,15 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
                error = function(e) regmatches(expr, gregexpr("\\b[A-Za-z_][A-Za-z0-9_]*\\b", expr))[[1]])
     })))
 
+    # Check presence of required variables in x
     missing_vars <- setdiff(vars_needed, names(x))
     if (length(missing_vars) > 0) {
-      warning(paste("Missing variables in dataset:", paste(missing_vars, collapse = ", "), "for species:", tree_species))
+      warning(paste("Missing variables in dataset:", paste(missing_vars, collapse = ", "),
+                    "for species:", tree_species))
       next
     }
 
+    # Extract row values for needed variables
     xi_values <- lapply(vars_needed, function(v) x[[v]][i])
     names(xi_values) <- vars_needed
     if (any(sapply(xi_values, function(val) is.na(val) || !is.finite(val)))) {
@@ -811,10 +924,11 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
 
     n_params <- length(vars_needed)
 
+    # --- Variance of prediction
     if (n_params == 1) {
       var <- vars_needed[1]
       x_mean_col <- paste0("x_mean_", var)
-      sce_col <- paste0("SCE_", var)
+      sce_col    <- paste0("SCE_", var)
       cols_required <- c("sigma", "n", x_mean_col, sce_col)
       missing_cols <- cols_required[!cols_required %in% names(eq)]
       if (length(missing_cols) > 0) {
@@ -822,11 +936,11 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
         next
       }
 
-      sigma <- eq$sigma[1]
-      n <- eq$n[1]
+      sigma  <- eq$sigma[1]
+      n      <- eq$n[1]
       x_mean <- eq[[x_mean_col]][1]
-      SCEx <- eq[[sce_col]][1]
-      xi <- xi_values[[var]]
+      SCEx   <- eq[[sce_col]][1]
+      xi     <- xi_values[[var]]
 
       if (any(is.na(c(sigma, n, x_mean, SCEx)))) {
         warning(paste("Missing parameters for univariate prediction of species:", tree_species))
@@ -837,7 +951,7 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
 
     } else {
       sigma <- eq$sigma[1]
-      n <- eq$n[1]
+      n     <- eq$n[1]
       if (is.na(sigma) || is.na(n)) {
         warning(paste("Missing sigma or n for multivariate model of species:", tree_species))
         next
@@ -846,16 +960,18 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
       x_diff <- numeric(n_params)
       cov_matrix_inv <- matrix(0, nrow = n_params, ncol = n_params)
 
+      # Diagonal from SCE and centerings from x_mean
       for (j in seq_len(n_params)) {
-        var_j <- vars_needed[j]
-        mean_col <- paste0("x_mean_", var_j)
+        var_j   <- vars_needed[j]
+        mean_col<- paste0("x_mean_", var_j)
         sce_col <- paste0("SCE_", var_j)
+
         if (!mean_col %in% names(eq) || is.na(eq[[mean_col]][1])) {
           warning(paste("Missing", mean_col, "for species:", tree_species))
           next
         }
-        x_mean_j <- eq[[mean_col]][1]
-        x_diff[j] <- xi_values[[var_j]] - x_mean_j
+        x_mean_j   <- eq[[mean_col]][1]
+        x_diff[j]  <- xi_values[[var_j]] - x_mean_j
 
         if (!sce_col %in% names(eq) || is.na(eq[[sce_col]][1]) || eq[[sce_col]][1] == 0) {
           warning(paste("Missing or invalid", sce_col, "for species:", tree_species))
@@ -864,6 +980,7 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
         cov_matrix_inv[j, j] <- 1 / eq[[sce_col]][1]
       }
 
+      # Off-diagonals from available covariance terms (if any)
       for (j in seq_len(n_params)) {
         for (k in seq_len(n_params)) {
           if (j != k) {
@@ -885,21 +1002,23 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
       variance_pred <- sigma^2 * (1 + 1/n + quadratic_form)
     }
 
+    # Critical t (kept as original n - 2 to preserve current behavior)
     t_val <- qt(1 - (1 - confidence_level)/2, df = n - 2)
 
+    # Locate the prediction column (volume) to make the relative width
+    volume_col <- NA_character_
     if (volume_type %in% names(x)) {
       volume_col <- volume_type
     } else {
       alt <- paste0(volume_type, " [m^3]")
-      if (alt %in% names(x)) {
-        volume_col <- alt
-      }
+      if (alt %in% names(x)) volume_col <- alt
     }
-
-    if (!volume_col %in% names(x)) {
-      warning(paste("Column", volume_col, "not found in input data. Skipping row", i))
+    if (is.na(volume_col) || !volume_col %in% names(x)) {
+      warning(paste("Column", volume_type, "or", paste0(volume_type, " [m^3]"),
+                    "not found in input data. Skipping row", i))
       next
     }
+
     volume_pred <- x[[volume_col]][i]
 
     if (isTRUE(!is.na(volume_pred) && !is.na(variance_pred) &&
@@ -910,9 +1029,15 @@ calculate_prediction_interval <- function(x, equations, volume_type, equation_id
     }
   }
 
-  x[["Relative Width"]] <- round(relative_width,2)
-  x[["Reliability"]] <- interpret_relative_width(relative_width)
-  if (summarize) summarize_relative_intervals(relative_width, x)
+  # Attach outputs
+  x[["Relative Width"]] <- round(relative_width, 2)
+  x[["Reliability"]]    <- interpret_relative_width(relative_width)
+
+  if (summarize) {
+    attr(x, "pi_summary") <- summarize_relative_intervals(relative_width, x)
+  }
+
   return(x)
 }
+
 

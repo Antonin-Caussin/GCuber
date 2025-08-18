@@ -47,21 +47,23 @@ A warning is issued if any identifiers cannot be matched.
 
 \examples{
 \dontrun{
-# Suppose `equations` contains: Species | Code
-#                              ---------|------
-#                              Hetre | HE
-#                              Epicea commun     | EP
+# Example: establishing correspondence between species identifiers
 
-df <- data.frame(
-  TreeID = 1:3,
-  Code = c("HE", "EP", "XXXX"),
-  DBH = c(32.1, 28.4, 25.3)
-)
+# Case 1: data uses abbreviations
+df_abbr <- data.frame(Abr = c("HE", "CHS"))
+establish_species_correspondence(df_abbr, specimens = "Abr")
+# Returns a data.frame with a new column "Species"
 
-df <- establish_species_correspondence(df, specimens = "Code")
-head(df)
+# Case 2: data uses numeric codes
+df_code <- data.frame(Code = c(101, 103))
+establish_species_correspondence(df_code, specimens = "Code")
+# Returns a data.frame with a new column "Species"
+
+# Case 3: data already uses full species names
+df_species <- data.frame(Species = c("Hetre", "Chene sessile"))
+establish_species_correspondence(df_species, specimens = "Species")
+# Returns the same data.frame (no changes applied)
 }
-
 }
 \seealso{
 \code{\link{detect_specimens_type}}, \code{\link{preprocess_data}}, \code{\link{validate_parameters}},

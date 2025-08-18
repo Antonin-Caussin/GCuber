@@ -13,11 +13,13 @@
 #' @seealso
 #' \code{\link{calculate_volume}} — Core function for volume computation using selected allometric models.
 #'
-#' \code{\link{calculate_biomass}} — Computes aboveground biomass from volume and species coefficients.
+#' \code{\link{carbofor.carbofor_data}} for the actual computation.
+#'
+#' \code{\link{calculate_biomass}} — Computes aboveground biomass from volume  and species coefficients but also using selected allometric models.
 #'
 #' \code{\link{calculate_carbon}} — Converts biomass into estimated carbon stock.
 #'
-#' \code{\link{calculate_bark_thickness}} — Estimates bark thickness in mm based on empirical rules.
+#' \code{\link{calculate_bark_thickness}} — Estimates bark thickness based on empirical rules.
 #'
 #' \code{\link{preprocess_data}} — Internal preprocessing including species matching and conversion of dendrometric variables.
 #'
@@ -54,11 +56,10 @@ carbofor.data.frame <- function(x, ...) {
 #'
 #' @param x A `data.frame` of class `carbofor_data` containing individual tree measurements.
 #' Must include at least species identification and diameter data.
-#' @param volume_type Character. The type of volume to compute. Common values include:
-#' "V22" (commercial volume over bark), "V22B" (under bark), "V22_HA" (per hectare), or "E" (gross volume).
+#' @param volume_type Character. The type of volume to compute (e.g. , "V22" , "V22B" , "V22_HA"  )
 #' @param equation_id Integer. Index of the equation to apply per species when multiple models are available.
 #' Default is 1.
-#' @param carbon Logical. If `TRUE`, aboveground biomass and carbon content are computed.
+#' @param carbon Logical. If `TRUE`, biomass and carbon content are computed.
 #' @param bark Logical. If `TRUE`, bark thickness and bark-adjusted volume are computed.
 #' @param remove_na Logical. If `TRUE`, rows with missing computed volume are removed from the output.
 #' @param source Character. Identifier of the source for the equations (e.g., "Dagnelie", "Vallet", "Bouvard").
@@ -69,7 +70,7 @@ carbofor.data.frame <- function(x, ...) {
 #' @param C150 Character. Column name for circumference at 150 cm height (default = "C150").
 #' @param HTOT Character. Column name for total tree height (default = "HTOT").
 #' @param HDOM Character. Column name for dominant height (used for plot-level scaling).
-#' @param H Character. Optional column name for another height variable used in some equations.
+#' @param H Character. Column name for the distance separating the felling cut level from a reference point.
 #' @param biomass_method Character. Method used to compute biomass if `carbon = TRUE`.
 #' Options are "volume" (volume × density) or "equation" (species-specific biomass model).
 #' @param ... Additional arguments passed to internal helper functions (not used directly here).
@@ -77,12 +78,11 @@ carbofor.data.frame <- function(x, ...) {
 #' @return A `data.frame` identical to `x` but enriched with additional columns depending on options:
 #' \itemize{
 #'   \item \code{<volume_type>} — Computed volume in m³ (e.g., `V22`, `V22B`, etc.)
-#'   \item \code{Validity_Status} — Indicates if the DHB falls within the validity domain of the equation.
-#'   \item \code{Equation_Used} — Description of the equation applied to each row.
-#'   \item \code{Ecorce_mm} — Estimated bark thickness in millimeters (if `bark = TRUE`).
-#'   \item \code{Biomass_Aboveground}, \code{Biomass_Root}, \code{Biomass_Total} — Biomass components (if `carbon = TRUE`).
-#'   \item \code{Carbon_kg} — Total carbon content in kilograms (if `carbon = TRUE`).
-#'   \item \code{Prediction_Lower}, \code{Prediction_Upper} — Confidence bounds on volume (95% default).
+#'   \item \code{Validity Status} — Indicates if the DHB falls within the validity domain of the equation.
+#'   \item \code{Biomass Aboveground}, \code{Biomass Root}, \code{Biomass Total} — Biomass components [kg] (if `carbon = TRUE`).
+#'   \item \code{Carbon} — Total carbon content in kilograms (if `carbon = TRUE`).
+#'   \item \code{Relative_Width} — Relative width of the prediction interval, expressed as a percentage of the predicted volume.
+#'   \item \code{Reliability} — Qualitative interpretation of the interval width (e.g., "High", "Medium", "Low").
 #' }
 #'
 #' @seealso
@@ -91,9 +91,13 @@ carbofor.data.frame <- function(x, ...) {
 #'
 #' @examples
 #' \dontrun{
+#' # Example with European beech and Sessile oak
 #' df <- data.frame(
-#'   Species = "FASY", D130 = 32, C130 = 100,
-#'   HTOT = 25, HDOM = 27
+#'   Species = c("Birch", "Silver fir"),
+#'   D130 = c(32, 40),   # diameter at 1.30 m
+#'   C130 = c(100, 126), # circumference at 1.30 m
+#'   HTOT = c(25, 28),   # total height
+#'   HDOM = c(27, 30)    # dominant height
 #' )
 #'
 #' result <- carbofor(
@@ -104,6 +108,7 @@ carbofor.data.frame <- function(x, ...) {
 #'   specimens = "Species",
 #'   biomass_method = "volume"
 #' )
+#'
 #' head(result)
 #' }
 carbofor.carbofor_data <- function(x,

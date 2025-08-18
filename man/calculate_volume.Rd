@@ -24,12 +24,9 @@ calculate_volume(
 }}
 
 \item{volume_type}{Character; type of volume to calculate. Supported values include:
-\code{"V22"}, \code{"V22B"}, \code{"V22_HA"}, \code{"E"}.}
+\code{"V22"}, \code{"V22B"}, \code{"V22_HA"}, \code{"Merchantable"}, , \code{"Aboveground"}}
 
-\item{equations}{A data.frame of allometric equations with columns:
-\code{Species}, \code{A0}, \code{b0} to \code{b5},
-\code{X1} to \code{X5}, \code{D_Min}, \code{D_Max}, \code{Y}, and
-optionally \code{Source_Eq}.}
+\item{equations}{An internal data frame containing the parameters required for volume calculations.}
 
 \item{equation_id}{Integer; index of the equation to use for each species
 (default is 1).}
@@ -44,20 +41,43 @@ optionally \code{Source_Eq}.}
 equations to individual observations.}
 
 \item{source}{Optional character; source of the equations
-(e.g., \code{"Dagnelie"}, \code{"Myers"}).}
+(e.g., \code{"Dagnelie"}, \code{"Algan"}).}
 }
 \value{
 The input \code{x} enriched with:
   \itemize{
     \item a new column \code{[volume_type] [m^3]},
     \item \code{Validity Status},
-    \item \code{Equation Used},
     \item one \code{Volume_<Variable>_Validity} column per predictive variable.
   }
 }
 \description{
 Applies species-specific allometric equations to compute the stem volume
 of individual trees.
+}
+\examples{
+# =====================================================
+# Example 1: Basic volume calculation for Beech and Oak
+# =====================================================
+
+# Input dataset with diameters and heights
+
+trees <- data.frame(
+  Species   = c("Hetre", "Chene pedoncule", "Epicea commun"),
+  D130      = c(32, 40, 28),
+  HTOT      = c(25, 30, 22),
+  C130      = c(100.5, 125.7, 88.0),
+  HDOM      = c(27, 31, 23)
+  )
+
+# Run calculation
+res <- calculate_volume(trees, volume_type = "V22", equations)
+res
+# Suppose a species has multiple candidate equations
+
+# Use the second equation for Beech
+res2 <- calculate_volume(trees, volume_type = "V22", equation_id = 2, equations)
+res2
 }
 \seealso{
 \code{\link{calculate_bark_thickness}} for deriving bark and wood volumes

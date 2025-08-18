@@ -40,7 +40,7 @@ A modified version of `x` with added biomass columns:
 \description{
 Computes aboveground biomass at the tree level using one of two methods:
 
-- **`"equation"`**: applies species-specific allometric models provided in a reference table.
+- **`"equation"`**: applies species-specific allometric models provided in a reference table. Under development, errors may occur. The returned data should therefore be interpreted with caution.
 - **`"volume"`**: multiplies volume data (e.g., V22) by species-specific infra-density (`ID`), with optional bark volume integration.
 
 When `method = "volume"` and `bark = TRUE`, the function uses `Wood Volume` and `Bark Volume` (typically from `calculate_bark_thickness()`) to estimate total biomass.
@@ -51,11 +51,12 @@ Root and total biomass are always computed as 20% and 120% of the aboveground bi
 }
 \details{
 ### Volume method
-If `bark = FALSE`, the function uses the first available volume column among:
-`V22`, `V22B`, `V22_HA`, `Sawlog`, `Aboveground`, `Merchantable`.
-The selected volume is multiplied by `ID* 1000` (g/cm^3 to kg/m^3).
-
-If `bark = TRUE`, the function uses both `Wood Volume` and `Bark Volume`, which must be present in `x`.
+Computes wood, bark, aboveground, root, and total biomass (in kg) from
+volume columns and species infra-density. If `bark = FALSE`, the function
+uses the first available volume column among:
+`V22 [m^3]`, `V22B [m^3]`, `V22_HA [m^3]`, `Aboveground [m^3]`,
+`Merchantable [m^3]`.
+If `bark = TRUE`, both `Wood Volume [m^3]` and `Bark Volume [m^3]` must be present.
 
 ### Equation method
 Equations are applied species-wise. Models are selected by `A0` value:
@@ -64,12 +65,10 @@ Equations are applied species-wise. Models are selected by `A0` value:
 - `A0 = 16`: semi-log model (e.g., `Y = b0*X0 + b1*log(X1)`)
 - `A0 = 17`: power model (e.g., `Y = b0 * X0^b1`)
 
-Expressions in `X0:X5` are evaluated dynamically using columns in `x`.
-
 If the `Region` column equals `"Belgium"`, results are scaled by `×1000`.
 }
 \seealso{
-- [calculate_bark_thickness()] to compute `Wood Volume` and `Bark Volume`.
+- [calculate_bark_thickness()] to compute `Wood Volume [m^3]` and `Bark Volume [m^3]`.
 - [calculate_carbon()] to convert biomass into carbon stock.
 - [calculate_volume()] for volume-based biomass estimation.
 }

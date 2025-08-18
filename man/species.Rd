@@ -2,40 +2,53 @@
 % Please edit documentation in R/liste.R
 \name{species}
 \alias{species}
-\title{Species - Short Alias for carbofor_species}
+\title{Species — short alias for `carbofor_species()`}
 \usage{
 species(...)
 }
 \arguments{
-\item{...}{Arguments passed to \code{carbofor_species()}}
+\item{...}{Arguments passed through to [carbofor_species()].}
 }
 \value{
-Same as \code{carbofor_species()}
+The same data frame (invisibly) as returned by [carbofor_species()].
 }
 \description{
-This is a convenient short alias for the \code{carbofor_species()} function.
-It provides the same functionality with a more concise function name for
-interactive use.
+`species()` is a convenience alias to `carbofor_species()` for interactive use.
+It accepts the same arguments and returns the same output; the only difference
+is the shorter function name.
 }
 \details{
-This function is identical to \code{carbofor_species()} but with a shorter,
-more convenient name for interactive analysis. All parameters and functionality
-are the same.
+This function is strictly a wrapper. See [carbofor_species()] for details on
+input columns expected in the `equations` data frame, output schema (summary
+vs detailed modes), and display behavior.
 }
 \examples{
 \dontrun{
-# Using the shorter alias - same functionality
-species("Quercus robur")
-species(equation_type = "V22")
-species()  # Show all species and equations
+# Minimal demo data
+equations <- data.frame(
+  Species   = c("Hetre", "Hetre", "Epicea commun"),
+  Latin     = c("Fagus sylvatica", "Fagus sylvatica", "Picea abies"),
+  Code      = c("3", "3", "41"),
+  Abr       = c("HE", "HE", "EP"),
+  Y         = c("V22", "biomass", "V22"),
+  A0        = c(1, 2, 3),
+  Source_Eq = c("Dagnelie", "Vallet", "Dagnelie"),
+  X0 = "1", X1 = "DBH",
+  b0 = c(1.5, 2.0, 0.8), b1 = c(0.02, 0.03, 0.05),
+  stringsAsFactors = FALSE
+)
 
-# Equivalent to:
-carbofor_species("Quercus robur")
-carbofor_species(equation_type = "V22")
-carbofor_species()
+# Summary (one row per Latin species x source)
+species(plot = FALSE)
+
+# Detailed by species (match on `equations$Species`)
+species("Hetre", plot = FALSE)
+
+# Detailed by equation type
+species(equation_type = "V22", plot = FALSE)
 }
 
 }
 \seealso{
-\code{\link{carbofor_species}} for the full version of this function.
+[carbofor_species()]
 }

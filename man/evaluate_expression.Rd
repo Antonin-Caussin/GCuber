@@ -19,3 +19,28 @@ This function takes a character string representing a mathematical expression
 and evaluates it in a safe environment using the provided named variables.
 It handles syntax errors, missing or invalid values, and non-finite results.
 }
+\examples{
+# Basic multiplication with provided variables
+evaluate_expression("D130 * HTOT", list(D130 = 30, HTOT = 20))
+#> [1] 600
+
+# Using a built-in constant (pi) and a formula
+evaluate_expression("pi * (D130/2)^2", list(D130 = 25))
+#> [1] 490.8739
+
+# Missing variable produces a warning and returns NA
+evaluate_expression("D130 * HTOT", list(D130 = 25))
+#> Warning: Variable not found: HTOT in expression: D130 * HTOT
+#> [1] NA
+
+# Invalid expression detected
+evaluate_expression("/", list())
+#> Warning: Invalid expression detected: '/'
+#> [1] NA
+
+# Variable with NA value
+evaluate_expression("D130 * HTOT", list(D130 = NA, HTOT = 20))
+#> Warning: Variable is NA or NULL: D130 in expression: D130 * HTOT
+#> [1] NA
+
+}

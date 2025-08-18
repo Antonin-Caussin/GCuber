@@ -2,48 +2,35 @@
 % Please edit documentation in R/liste.R
 \name{list_equation_types}
 \alias{list_equation_types}
-\title{List Available Equation Types}
+\title{List available equation types}
 \usage{
 list_equation_types()
 }
 \value{
-Invisibly returns a character vector of unique equation types,
-  sorted alphabetically.
+Invisibly returns a character vector of unique equation types, sorted
+alphabetically.
 }
 \description{
-This function displays all available equation types in the carbofor database
-in a numbered, formatted list.
-}
-\details{
-The function extracts unique equation types (Y column values) from the
-equations dataset, sorts them alphabetically, and displays them in a
-numbered list format with a total count. This is useful for exploring
-available equation types before filtering with \code{carbofor_species()}.
-
-Common equation types include:
-\describe{
-  \item{V22}{Volume calculations}
-  \item{biomass}{Biomass estimations}
-  \item{height}{Height predictions}
-  \item{Other types}{Depending on the database content}
-}
+Prints and returns the set of unique equation types (values of `equations$Y`).
+Useful to discover valid values for the `equation_type` filter of
+[carbofor_species()].
 }
 \examples{
 \dontrun{
-# Display all available equation types
-list_equation_types()
+equations <- data.frame(
+  Y = c("V22", "biomass", "V22", "height")
+)
 
-# Store equation types for programmatic use
-available_types <- list_equation_types()
-head(available_types)
+# Print a numbered list and get the types vector
+types <- list_equation_types()
+types
 
-# Check if a specific equation type is available
+# Sanity checks
 "V22" \%in\% list_equation_types()
 "biomass" \%in\% list_equation_types()
 }
 
 }
 \seealso{
-\code{\link{list_species}} for listing species,
-  \code{\link{carbofor_species}} for filtering by equation type
+[list_species()], [carbofor_species()]
 }

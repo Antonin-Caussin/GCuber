@@ -184,7 +184,6 @@ test_that("calculate_volume - Basic functionality", {
   expect_s3_class(result, "data.frame")
   expect_true("V22 [m^3]" %in% names(result))
   expect_true("Validity Status" %in% names(result))
-  expect_true("Equation Used" %in% names(result))
   expect_equal(nrow(result), nrow(test_data))
 
   # Verify that volumes are not all NA
@@ -488,7 +487,7 @@ test_that("calculate_carbon - Missing Biomass Total [kg] column", {
 
   expect_warning(
     result <- calculate_carbon(test_data),
-    regexp = "Column 'Biomass_Total' is missing\\. Carbon cannot be calculated\\."
+    regexp = "Column 'Biomass Total' is missing\\. Carbon cannot be calculated\\."
   )
 
   expect_true("Carbon Total [kg]" %in% names(result))

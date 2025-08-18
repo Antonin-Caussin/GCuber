@@ -37,17 +37,22 @@ The function first removes missing values, then:
 If the column contains only missing values, or an unsupported data type, an error is raised.
 }
 \examples{
-\dontrun{
-df <- data.frame(
-  Code = c(3, 41, 3),
-  Abr = c("HE", "EP", "HE"),
-  Species = c("Hetre", "epicea commun", "Hetre")
-)
+# Example: detecting the type of species identifier
 
-detect_specimens_type(df, specimens = "Code")     # Returns "Code"
-detect_specimens_type(df, specimens = "Abr")      # Returns "Abr"
-detect_specimens_type(df, specimens = "Species")  # Returns "Species"
-}
+# Case 1: numeric codes
+df_code <- data.frame(Specimens = c(101, 102, 103))
+detect_specimens_type(df_code, specimens = "Specimens")
+# Returns: "Code"
+
+# Case 2: abbreviations (short codes <= 4 characters)
+df_abbr <- data.frame(Specimens = c("HETR", "CHSE", "EPIC"))
+detect_specimens_type(df_abbr, specimens = "Specimens")
+# Returns: "Abr"
+
+# Case 3: full species names
+df_species <- data.frame(Specimens = c("Hetre", "Chene sessile", "Epicea commun"))
+detect_specimens_type(df_species, specimens = "Specimens")
+# Returns: "Species"
 
 }
 \seealso{

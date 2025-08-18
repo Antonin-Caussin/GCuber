@@ -37,10 +37,30 @@ based on the complementary measurement. If a conversion is expected but the requ
 source variable is \code{NA}, a warning is issued.
 }
 \examples{
-df <- data.frame(D130 = c(30, NA), C130 = c(NA, 94.2))
-df <- diameter_conversions(df, C130 = "C130", C150 = "C150", D130 = "D130", D150 = "D150")
-print(df)
+# Example: completing missing diameter and circumference values
 
+df <- data.frame(
+  Espece = c("Hetre", "Chene sessile", "Epicea commun"),
+  D130   = c(32, NA, 40),    # diameter at 1.30 m (cm)
+  C130   = c(NA, 120, NA),   # circumference at 1.30 m (cm)
+  D150   = c(NA, 35, NA),    # diameter at 1.50 m (cm)
+  C150   = c(110, NA, NA),   # circumference at 1.50 m (cm)
+  HTOT   = c(28, 30, 25),    # total height (m)
+  HDOM   = c(30, 32, 27)     # dominant height (m)
+)
+
+# Run conversion helper
+result <- diameter_conversions(
+  x = df,
+  C130 = "C130",
+  C150 = "C150",
+  D130 = "D130",
+  D150 = "D150",
+  HTOT = "HTOT",
+  HDOM = "HDOM"
+)
+
+head(result)
 }
 \seealso{
 \code{\link{convert_circumference}}, \code{\link{calculate_basal_areas}}, \code{\link{preprocess_data}}

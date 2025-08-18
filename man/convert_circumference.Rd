@@ -46,12 +46,40 @@ must be available in a global object named \code{equations}.
 }
 \examples{
 \dontrun{
-df <- data.frame(Species = "FASY", C150 = 105)
-equations <- data.frame(Species = "FASY", HV = 0.97, IV = 1.5)
-df <- convert_circumference(df)
-head(df)
-}
+# --- Species-specific C130 <-> C150 conversion with HV/IV per species ---
 
+# Input data: one missing C130 (will compute from C150), one missing C150
+df <- data.frame(
+  Species = c("Hetre", "Chene sessile"),
+  C130    = c(NA,     120),   # missing for Hetre, present for Chene sessile
+  C150    = c(105,    NA),    # present for Hetre, missing for Chene sessile
+  D130    = NA_real_,         # will be recomputed from C130
+  D150    = NA_real_,         # will be recomputed from C150
+  HTOT    = c(25, 28),
+  HDOM    = c(27, 30),
+  stringsAsFactors = FALSE
+)
+
+# Run circumference harmonization (species-specific HV/IV are used)
+df_conv <- convert_circumference(df, C130 = "C130", C150 = "C150",
+                                 D130 = "D130", D150 = "D150")
+head(df_conv)
+
+# After this call:
+# - For Hetre: C130 = HV * C150 + IV  => 0.97*105 + 1.5, and D130 = C130 / pi
+# - For Chene sessile: C150 = (C130 - IV) / HV, and D150 = C150 / pi
+
+# Full pipeline via carbofor() on a plain data.frame:
+res <- carbofor(
+  x = df_conv,         # a standard data.frame is fine here; wrapper handles class
+  volume_type = "V22",
+  carbon = TRUE,
+  bark = TRUE,
+  specimens = "Species",
+  biomass_method = "volume"
+)
+head(res)
+}
 }
 \seealso{
 \code{\link{diameter_conversions}}, \code{\link{calculate_basal_areas}}, \code{\link{preprocess_data}}

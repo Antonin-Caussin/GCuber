@@ -30,9 +30,12 @@ subsequent terms to manage signs correctly.
 \examples{
 \dontrun{
 # Internal function - not exported
-build_equation(c("1", "DBH", "DBH^2"), c(1.5, 0.02, -0.001), "Volume")
+build_equation(
+  x_cols = c("1", "DBH", "DBH^2"),
+  b_cols = c(1.5, 0.02, -0.001),
+  y_var  = "Volume"
+)
 # Returns: "Volume = 1.5000 + 0.0200*DBH - 0.0010*DBH^2"
 }
-
 }
 \keyword{internal}

@@ -2,40 +2,35 @@
 % Please edit documentation in R/liste.R
 \name{list_species}
 \alias{list_species}
-\title{List Available Species}
+\title{List available species (human-readable labels)}
 \usage{
 list_species()
 }
 \value{
-Invisibly returns a character vector of unique species names,
-  sorted alphabetically.
+Invisibly returns a character vector of unique species labels, sorted
+alphabetically.
 }
 \description{
-This function displays all available tree species in the carbofor database
-in a numbered, formatted list.
-}
-\details{
-The function extracts unique species names from the equations dataset,
-sorts them alphabetically, and displays them in a numbered list format
-with a total count. This is useful for exploring available species before
-filtering with \code{carbofor_species()}.
+Prints and returns the set of unique species labels found in `equations$Species`
+(the human-readable/common label). Useful to discover valid values for the
+`species` filter of [carbofor_species()].
 }
 \examples{
 \dontrun{
-# Display all available species
-list_species()
+equations <- data.frame(
+  Species = c("Hetre", "Chene sessile", "Hetre"),
+  Y = "V22"
+)
 
-# Store species list for programmatic use
-available_species <- list_species()
-head(available_species)
-length(available_species)
+# Print a numbered list and get the vector back
+sp <- list_species()
+sp
 
-# Check if a specific species is available
+# Quick existence check before filtering
 "Hetre" \%in\% list_species()
 }
 
 }
 \seealso{
-\code{\link{list_equation_types}} for listing equation types,
-  \code{\link{carbofor_species}} for filtering by species
+[list_equation_types()], [carbofor_species()]
 }

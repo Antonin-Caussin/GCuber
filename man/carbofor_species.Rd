@@ -2,108 +2,87 @@
 % Please edit documentation in R/liste.R
 \name{carbofor_species}
 \alias{carbofor_species}
-\title{Explore and Display Forest Allometric Equations}
+\title{Explore and display allometric equations by species and source}
 \usage{
 carbofor_species(species = NULL, equation_type = NULL, plot = TRUE)
 }
 \arguments{
-\item{species}{Character string. Name of the tree species to filter for.
-Must match exactly the species names in the database. Use \code{list_species()}
-to see available species. Default is \code{NULL} (no species filter).}
+\item{species}{Character or `NULL`. Human-readable species name used in the
+\code{equations$Species} column (e.g., `"Hetre"`, `"Chene sessile"`). If `NULL`,
+no species filter is applied (summary mode).}
 
-\item{equation_type}{Character string. Type of equation to filter for
-(e.g., "V22", "biomass", "height"). Must match exactly the equation types
-in the Y column of the database. Use \code{list_equation_types()} to see
-available types. Default is \code{NULL} (no equation type filter).}
+\item{equation_type}{Character or `NULL`. Equation type to filter on
+(e.g., `"V22"`, `"biomass"`, `"height"`), matched against \code{equations$Y}.
+If `NULL`, no equation-type filter is applied.}
 
-\item{plot}{Logical. Whether to display formatted tables. If \code{TRUE}
-(default), attempts to create formatted HTML tables using knitr/kableExtra
-or gt packages. If these packages are not available, falls back to console
-output. If \code{FALSE}, returns data without visual formatting.}
+\item{plot}{Logical. If `TRUE` (default), attempts to render a formatted
+table (HTML with \pkg{kableExtra}, or \pkg{gt}); if those packages are not
+available, prints a console table. If `FALSE`, simply returns the data.}
 }
 \value{
-Invisibly returns a data frame containing the filtered results:
-  \describe{
-    \item{Summary mode (no filters)}{Data frame with columns: Species,
-          Available_equations, Sources}
-    \item{Detailed mode (with filters)}{Data frame with columns: Species,
-          Equation_ID, Volume_Type, Source, Equation}
-  }
+Invisibly returns a \code{data.frame}. The schema depends on the mode:
+\describe{
+  \item{Summary mode}{Columns: \code{Species} (Latin), \code{Code}, \code{Abreviation},
+  \code{Source}, \code{Available equations}. There is one row per Latin species
+  \eqn{\times} source.}
+  \item{Detailed mode}{Columns: \code{Species} (Latin), \code{Code},
+  \code{Abreviation}, \code{Source}, \code{Equation_ID}, \code{Volume_Type},
+  \code{Equation}. There is one row per equation.}
+}
 }
 \description{
-This function provides an interface to explore forest allometric equations
-from the carbofor database. It allows filtering by species and/or equation type,
-and presents results in formatted tables with complete equation formulas.
+`carbofor_species()` explores the package allometric database (`equations`)
+and returns a structured table of equations for each tree species.
+It supports two display modes:
+\itemize{
+  \item \strong{Summary mode} (default; when both `species` and `equation_type` are `NULL`): one row per \emph{Latin} species name \eqn{\times} source, with the column \emph{Available equations} listing all equation types for that source. Cells for repeated \emph{Species}, \emph{Code}, and \emph{Abreviation} are visually merged when HTML tables are enabled.
+  \item \strong{Detailed mode} (when `species` and/or `equation_type` is provided): one row per equation with the fully formatted mathematical expression (built via `build_equation()`).
+}
+
+The output column \code{Species} always displays the \emph{Latin} name. Practical
+helpers (HTML styling, borders, merged cells) are applied when
+\pkg{knitr} + \pkg{kableExtra} or \pkg{gt} are available; otherwise a clean
+console fallback is used.
 }
 \details{
-The function operates in two modes:
-\describe{
-  \item{Summary mode}{When no filters are applied, shows overview of all
-        available species with their equation types and sources}
-  \item{Detailed mode}{When filters are applied, shows complete equations
-        with coefficients formatted as mathematical expressions}
-}
+This function expects a data frame named \code{equations} available in scope
+with columns at least: \code{Species}, \code{Latin}, \code{Code}, \code{Abr},
+\code{Y}, \code{A0}, \code{Source_Eq}, \code{X0..X5}, \code{b0..b5}.
+Detailed equations are built with \code{\link{build_equation}}.
 
-Equations are built using the \code{build_equation()} helper function, which
-formats coefficients and variables into readable mathematical expressions.
-Only non-zero, non-NA coefficients are included in the final equations.
-
-The function supports visual output through multiple table formatting packages:
-\describe{
-  \item{Primary}{knitr + kableExtra (HTML tables with Bootstrap styling)}
-  \item{Alternative}{gt package (Grammar of Tables)}
-  \item{Fallback}{Console output with formatted text}
+If \pkg{knitr} and \pkg{kableExtra} are available, header styling and cell merging
+(\code{kableExtra::collapse_rows}) are applied. With \pkg{gt}, a styled table
+is produced; otherwise a console print is shown.
 }
-}
-\section{Database Structure}{
+\section{Notes}{
 
-The function expects a data frame named \code{equations} with the following columns:
-\describe{
-  \item{Species}{Species names}
-  \item{A0}{Equation IDs}
-  \item{Y}{Equation types/response variables}
-  \item{Source_Eq}{Source references}
-  \item{X0, X1, X2, X3, X4, X5}{Predictor variable names}
-  \item{b0, b1, b2, b3, b4, b5}{Equation coefficients}
+\itemize{
+  \item Species without \code{Code} or \code{Abr} are kept with \code{NA} values.
+  \item Filtering by \code{species} matches \code{equations$Species} (human label),
+        while the output \code{Species} column always shows the Latin name.
 }
 }
 
 \examples{
 \dontrun{
-# Load the package and ensure equations data is available
-library(carbofor)
-data(equations)  # Assuming the data is included in the package
-
-# Display all available species and equation types
-carbofor_species()
-
-# Get equations for a specific species
-carbofor_species("Hetre")
-carbofor_species("Epicea commun")
-
-# Get equations of a specific type
-carbofor_species(equation_type = "V22")
-carbofor_species(equation_type = "biomass")
-
-# Combine filters: specific species and equation type
-carbofor_species("Hetre", equation_type = "V22")
-
-# Get data without visual formatting for further analysis
-data <- carbofor_species(plot = FALSE)
-equations_v22 <- carbofor_species(equation_type = "V22", plot = FALSE)
-
-# Store results for further analysis
-hetre_data <- carbofor_species("Hetre", plot = FALSE)
-str(hetre_data)
+equations <- data.frame(
+  Species   = c("Hetre", "Hetre", "Epicea commun"),
+  Latin     = c("Fagus sylvatica", "Fagus sylvatica", "Picea abies"),
+  Code      = c("FASY", "FASY", "PIAB"),
+  Abr       = c("HETR", "HETR", "EPIC"),
+  Y         = c("V22", "biomass", "V22"),
+  A0        = c(1, 2, 3),
+  Source_Eq = c("Dagnelie", "Vallet", "Dagnelie"),
+  X0 = c("1", "1", "1"), X1 = c("DBH", "DBH", "DBH"),
+  b0 = c(1.5, 2.0, 0.8), b1 = c(0.02, 0.03, 0.05),
+  stringsAsFactors = FALSE
+)
+carbofor_species(plot = FALSE)                         # summary mode
+carbofor_species(species = "Hetre", plot = FALSE)      # detailed by species
+carbofor_species(equation_type = "V22", plot = FALSE)  # detailed by type
 }
 
 }
 \seealso{
-\code{\link{list_species}} for listing available species names,
-\code{\link{list_equation_types}} for listing available equation types,
-\code{\link{species}} for the shorter function alias,
-\code{\link{equation}} for filtering by equation type only
-}
-\author{
-[Your Name]
+\code{\link{build_equation}}, \code{\link{list_species}}, \code{\link{list_equation_types}}
 }

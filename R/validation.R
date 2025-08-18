@@ -1,79 +1,81 @@
 # =====================================================================
-#                    validate_parameters()
+#                   validate_parameters() (interne)
 # =====================================================================
 
-
-#' Validate Input Parameters for Allometric Volume Calculation
+#' Validate input parameters and required columns (internal)
 #'
 #' @description
-#' This function checks the validity of the input arguments provided to functions
-#' using allometric equations (e.g., for volume, biomass, or carbon estimations).
-#' It ensures that:
-#' - The specified `source` and `volume_type` are among the accepted values.
-#' - The selected `equation_id` is allowed for the given `volume_type`.
-#' - All required columns (diameter, height, species) are present in the input data.
+#' Internal helper that checks the consistency of user inputs and the presence
+#' of required dendrometric columns prior to computation. Stops with informative
+#' errors or issues warnings when inconsistencies are detected.
 #'
-#' The function is primarily used internally before launching model predictions,
-#' to catch user errors and provide informative messages.
+#' @param x A data frame with tree inventory data.
+#' @param volume_type Character. Target volume type to compute.
+#' @param equation_id Integer. Index of the model to use when several are available.
+#' @param source Character. Equation source identifier (e.g., "Dagnelie").
+#' @param specimens Character or \code{NULL}. Column name used to identify species.
+#' @param C130,C150,D130,D150,HTOT,HDOM Character. Column names for dendrometric variables.
 #'
-#' @param x A `data.frame` containing the tree-level inventory data. Must include
-#' at least one column related to diameter or circumference at a defined height.
-#' @param volume_type Character. Type of volume to be computed. Accepted values include:
-#' "V22" (commercial volume over bark from 0 to 22 cm diameter),
-#' "V22B" (commercial volume under bark from 0 to 22 cm diameter),
-#' "V22_HA" (commercial volume over bark extrapolated to hectare scale),
-#' "Sawlog" (sawlog volume),
-#' "Aboveground" (total aboveground volume),
-#' and "Merchantable" (merchantable volume).
-#' @param equation_id Integer. Identifier of the equation to use (typically from an internal database).
-#' Some volume types only accept specific values for this argument.
-#' @param source Character. Source of the allometric equations.
-#' Must be one of: \code{"Dagnelie"}, \code{"Algan"}, \code{"Vallet"},
-#' \code{"Bouvard"}, \code{"Rondeu"}, or \code{"Courbet"}.
-#' @param specimens Optional character. Name of the column containing species identifiers
-#' (codes, abbreviations, or full names), used to select the appropriate model.
-#' @param C130,C150 Character. Names of the columns containing circumference at 130 cm
-#' and 150 cm above ground, respectively (in cm).
-#' @param D130,D150 Character. Names of the columns containing diameter at 130 cm
-#' and 150 cm above ground, respectively (in cm).
-#' @param HTOT Character. Name of the column with total tree height (in meters).
-#' @param HDOM Character. Name of the column with dominant height, used for plot-level scaling (in meters).
+#' @return Invisibly returns \code{TRUE} when validation passes; otherwise throws an error or warning.
 #'
-#' @return
-#' The function returns the input `data.frame` invisibly, after validating the parameters.
-#' It throws an error if a parameter is invalid (e.g., unknown volume type or source),
-#' and issues a warning if some required columns are missing from the dataset.
-#'
-#' @details
-#' This function does not modify the dataset. It is intended to be used as a safeguard
-#' before applying volume, biomass, or carbon prediction models. At least one of the
-#' following columns must be present in `x`: `C130`, `C150`, `D130`, or `D150`.
-#'
+#' @seealso \code{\link{preprocess_data}}, \code{\link{carbofor.carbofor_data}}
+#' @keywords internal
 #' @examples
 #' \dontrun{
-#' # Minimal working example
+#' # Valid dataset: all required columns are present
 #' df <- data.frame(
-#'   C130 = c(100, 120),
-#'   D130 = c(31.8, 38.2),
-#'   HTOT = c(20, 25),
-#'   HDOM = c(22, 26),
-#'   Species = c("FASY", "PCSY")
+#'   Espece = "Hetre",
+#'   D130   = 32,
+#'   C130   = 100,
+#'   HTOT   = 25,
+#'   HDOM   = 27
 #' )
 #'
+#' # Successful validation
 #' validate_parameters(
 #'   x = df,
 #'   volume_type = "V22",
 #'   equation_id = 1,
 #'   source = "Dagnelie",
-#'   specimens = "Species"
+#'   specimens = "Espece",
+#'   C130 = "C130", C150 = "C150",
+#'   D130 = "D130", D150 = "D150",
+#'   HTOT = "HTOT", HDOM = "HDOM"
+#' )
+#'
+#' # Example with missing column (D130 is absent)
+#' df2 <- data.frame(
+#'   Espece = "Chene sessile",
+#'   C130   = 120,
+#'   HTOT   = 30,
+#'   HDOM   = 32
+#' )
+#'
+#' # Generates an error: missing D130 column
+#' validate_parameters(
+#'   x = df2,
+#'   volume_type = "V22",
+#'   equation_id = 1,
+#'   source = "Dagnelie",
+#'   specimens = "Espece",
+#'   C130 = "C130", C150 = "C150",
+#'   D130 = "D130", D150 = "D150",
+#'   HTOT = "HTOT", HDOM = "HDOM"
+#' )
+#'
+#' # Example with invalid volume_type
+#' validate_parameters(
+#'   x = df,
+#'   volume_type = "InvalidType",
+#'   equation_id = 1,
+#'   source = "Dagnelie",
+#'   specimens = "Espece",
+#'   C130 = "C130", C150 = "C150",
+#'   D130 = "D130", D150 = "D150",
+#'   HTOT = "HTOT", HDOM = "HDOM"
 #' )
 #' }
-#'
-#' @seealso
-#' \code{\link{calculate_volume}}, \code{\link{carbofor_species}},
-#' \code{\link{calculate_prediction_interval}} for downstream use.
-#'
-#' @export
+
 
 
 validate_parameters <- function(x,
@@ -84,12 +86,12 @@ validate_parameters <- function(x,
                                 C130 = "C130", C150 = "C150",
                                 D130 = "D130", D150 = "D150",
                                 HTOT = "HTOT", HDOM = "HDOM") {
-  valid_sources <- c("Dagnelie", "Algan", "Vallet", "Bouvard","Courbet","Rondeu")
+  valid_sources <- c("Dagnelie", "Algan", "Vallet", "Bouvard", "Courbet", "Rondeux")
   if (!source %in% valid_sources) {
     stop(paste("Invalid source:", source, "\nValid sources:", paste(valid_sources, collapse = ", ")))
   }
 
-  valid_volume_types <- c("V22", "V22B", "V22_HA", "Sawlog", "Aboveground" ,"Merchantable" )
+  valid_volume_types <- c("V22", "V22B", "V22_HA", "Aboveground", "Merchantable")
   if (!volume_type %in% valid_volume_types) {
     stop(paste("Invalid volume type:", volume_type, "\nValid types:", paste(valid_volume_types, collapse = ", ")))
   }
@@ -107,11 +109,21 @@ validate_parameters <- function(x,
   required_columns <- c(C130, C150, D130, D150, HTOT, HDOM)
   if (!is.null(specimens)) {
     required_columns <- c(required_columns, specimens)
+
+
+    if (!(specimens %in% names(x)) && length(intersect(setdiff(required_columns, specimens), names(x))) > 0) {
+      warning(paste(
+        "Missing columns in data: none of the required columns found. Expected at least one of:",
+        specimens
+      ), call. = FALSE)
+    }
   }
 
-  missing_columns <- setdiff(required_columns, names(x))
-  if (length(missing_columns) > 0) {
-    warning(paste("Missing columns in data:", paste(missing_columns, collapse = ", ")))
+  if (length(intersect(required_columns, names(x))) == 0) {
+    warning(paste(
+      "Missing columns in data: none of the required columns found. Expected at least one of:",
+      paste(required_columns, collapse = ", ")
+    ), call. = FALSE)
   }
 
   if (!any(c(C130, C150, D130, D150) %in% names(x))) {

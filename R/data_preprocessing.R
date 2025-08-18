@@ -193,21 +193,23 @@ preprocess_data <- function(x, specimens = NULL, C130 = "C130", C150 = "C150",
 #'
 #' @examples
 #' \dontrun{
-#' # Suppose `equations` contains: Species | Code
-#' #                              ---------|------
-#' #                              Hetre | HE
-#' #                              Epicea commun     | EP
+#' # Example: establishing correspondence between species identifiers
 #'
-#' df <- data.frame(
-#'   TreeID = 1:3,
-#'   Code = c("HE", "EP", "XXXX"),
-#'   DBH = c(32.1, 28.4, 25.3)
-#' )
+#' # Case 1: data uses abbreviations
+#' df_abbr <- data.frame(Abr = c("HE", "CHS"))
+#' establish_species_correspondence(df_abbr, specimens = "Abr")
+#' # Returns a data.frame with a new column "Species"
 #'
-#' df <- establish_species_correspondence(df, specimens = "Code")
-#' head(df)
-#' }
+#' # Case 2: data uses numeric codes
+#' df_code <- data.frame(Code = c(101, 103))
+#' establish_species_correspondence(df_code, specimens = "Code")
+#' # Returns a data.frame with a new column "Species"
 #'
+#' # Case 3: data already uses full species names
+#' df_species <- data.frame(Species = c("Hetre", "Chene sessile"))
+#' establish_species_correspondence(df_species, specimens = "Species")
+#' # Returns the same data.frame (no changes applied)
+#'}
 #' @seealso
 #' \code{\link{detect_specimens_type}}, \code{\link{preprocess_data}}, \code{\link{validate_parameters}},
 #' \code{\link{calculate_volume}}, \code{\link{carbofor_species}}
@@ -298,17 +300,22 @@ establish_species_correspondence <- function(x, specimens) {
 #' If the column contains only missing values, or an unsupported data type, an error is raised.
 #'
 #' @examples
-#' \dontrun{
-#' df <- data.frame(
-#'   Code = c(3, 41, 3),
-#'   Abr = c("HE", "EP", "HE"),
-#'   Species = c("Hetre", "epicea commun", "Hetre")
-#' )
+#' # Example: detecting the type of species identifier
 #'
-#' detect_specimens_type(df, specimens = "Code")     # Returns "Code"
-#' detect_specimens_type(df, specimens = "Abr")      # Returns "Abr"
-#' detect_specimens_type(df, specimens = "Species")  # Returns "Species"
-#' }
+#' # Case 1: numeric codes
+#' df_code <- data.frame(Specimens = c(101, 102, 103))
+#' detect_specimens_type(df_code, specimens = "Specimens")
+#' # Returns: "Code"
+#'
+#' # Case 2: abbreviations (short codes <= 4 characters)
+#' df_abbr <- data.frame(Specimens = c("HETR", "CHSE", "EPIC"))
+#' detect_specimens_type(df_abbr, specimens = "Specimens")
+#' # Returns: "Abr"
+#'
+#' # Case 3: full species names
+#' df_species <- data.frame(Specimens = c("Hetre", "Chene sessile", "Epicea commun"))
+#' detect_specimens_type(df_species, specimens = "Specimens")
+#' # Returns: "Species"
 #'
 #' @seealso
 #' \code{\link{establish_species_correspondence}}, \code{\link{preprocess_data}},
@@ -374,13 +381,31 @@ detect_specimens_type <- function(x, specimens) {
 #' \code{\link{convert_circumference}}, \code{\link{calculate_basal_areas}}, \code{\link{preprocess_data}}
 #'
 #' @examples
-#' df <- data.frame(D130 = c(30, NA), C130 = c(NA, 94.2))
-#' df <- diameter_conversions(df, C130 = "C130", C150 = "C150", D130 = "D130", D150 = "D150")
-#' print(df)
+#' # Example: completing missing diameter and circumference values
 #'
+#' df <- data.frame(
+#'   Espece = c("Hetre", "Chene sessile", "Epicea commun"),
+#'   D130   = c(32, NA, 40),    # diameter at 1.30 m (cm)
+#'   C130   = c(NA, 120, NA),   # circumference at 1.30 m (cm)
+#'   D150   = c(NA, 35, NA),    # diameter at 1.50 m (cm)
+#'   C150   = c(110, NA, NA),   # circumference at 1.50 m (cm)
+#'   HTOT   = c(28, 30, 25),    # total height (m)
+#'   HDOM   = c(30, 32, 27)     # dominant height (m)
+#' )
+#'
+#' # Run conversion helper
+#' result <- diameter_conversions(
+#'   x = df,
+#'   C130 = "C130",
+#'   C150 = "C150",
+#'   D130 = "D130",
+#'   D150 = "D150",
+#'   HTOT = "HTOT",
+#'   HDOM = "HDOM"
+#' )
+#'
+#' head(result)
 #' @export
-
-
 
 
 diameter_conversions <- function(x, C130, C150, D130, D150, HTOT = "HTOT", HDOM = "HDOM") {
@@ -455,12 +480,41 @@ diameter_conversions <- function(x, C130, C150, D130, D150, HTOT = "HTOT", HDOM 
 #'
 #' @examples
 #' \dontrun{
-#' df <- data.frame(Species = "FASY", C150 = 105)
-#' equations <- data.frame(Species = "FASY", HV = 0.97, IV = 1.5)
-#' df <- convert_circumference(df)
-#' head(df)
-#' }
+#' # --- Species-specific C130 <-> C150 conversion with HV/IV per species ---
 #'
+#' # Input data: one missing C130 (will compute from C150), one missing C150
+#' df <- data.frame(
+#'   Species = c("Hetre", "Chene sessile"),
+#'   C130    = c(NA,     120),   # missing for Hetre, present for Chene sessile
+#'   C150    = c(105,    NA),    # present for Hetre, missing for Chene sessile
+#'   D130    = NA_real_,         # will be recomputed from C130
+#'   D150    = NA_real_,         # will be recomputed from C150
+#'   HTOT    = c(25, 28),
+#'   HDOM    = c(27, 30),
+#'   stringsAsFactors = FALSE
+#' )
+#'
+#' # Run circumference harmonization (species-specific HV/IV are used)
+#' df_conv <- convert_circumference(df, C130 = "C130", C150 = "C150",
+#'                                  D130 = "D130", D150 = "D150")
+#' head(df_conv)
+#'
+#' # After this call:
+#' # - For Hetre: C130 = HV * C150 + IV  => 0.97*105 + 1.5, and D130 = C130 / pi
+#' # - For Chene sessile: C150 = (C130 - IV) / HV, and D150 = C150 / pi
+#'
+#' # Full pipeline via carbofor() on a plain data.frame:
+#' res <- carbofor(
+#'   x = df_conv,         # a standard data.frame is fine here; wrapper handles class
+#'   volume_type = "V22",
+#'   carbon = TRUE,
+#'   bark = TRUE,
+#'   specimens = "Species",
+#'   biomass_method = "volume"
+#' )
+#' head(res)
+#' }
+
 #' @export
 
 convert_circumference <- function(x, D150 = "D150", D130 = "D130",
